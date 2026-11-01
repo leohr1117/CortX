@@ -1,8 +1,9 @@
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import type { DatabaseSync } from 'node:sqlite';
+import { DatabaseSync } from 'node:sqlite';
 import { SPEICHER } from '../../shared/kern/grenzen.ts';
 import { migriere, oeffneDatenbank } from './db.ts';
+import { MIGRATIONEN } from './migrationen.ts';
 import { verweigereEchteDatenbank } from './testpfad.ts';
 
 describe('database', () => {
@@ -29,7 +30,35 @@ describe('database', () => {
     const nachher = db.prepare('SELECT COUNT(*) AS anzahl FROM topic').get() as { anzahl: number };
     expect(nachher.anzahl).toBe(1);
     const version = db.prepare('PRAGMA user_version').get() as { user_version: number };
-    expect(version.user_version).toBe(1);
+    expect(version.user_version).toBe(2);
+  });
+
+  it('migrates a schema 1 database without losing its notes', () => {
+    const db = new DatabaseSync(SPEICHER);
+    offen.push(db);
+    db.exec('PRAGMA foreign_keys = ON');
+    db.exec(MIGRATIONEN[0] ?? '');
+    db.exec('PRAGMA user_version = 1');
+    const thema = db.prepare('SELECT id FROM topic').get() as { id: number };
+    db.prepare(
+      'INSERT INTO note (text, created, topic_id, source, ai_confidence) VALUES (?, ?, ?, ?, NULL)',
+    ).run('keep me', '2026-01-01T00:00:00.000Z', thema.id, 'manual');
+    migriere(db);
+    const version = db.prepare('PRAGMA user_version').get() as { user_version: number };
+    expect(version.user_version).toBe(2);
+    const notiz = db.prepare('SELECT text, pinned, client_id FROM note').get() as {
+      text: string;
+      pinned: number;
+      client_id: string | null;
+    };
+    expect(notiz).toEqual({ text: 'keep me', pinned: 0, client_id: null });
+    const tabelle = db
+      .prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'correction'")
+      .get();
+    expect(tabelle).toEqual({ name: 'correction' });
+    migriere(db);
+    const nochmal = db.prepare('PRAGMA user_version').get() as { user_version: number };
+    expect(nochmal.user_version).toBe(2);
   });
 
   it('stores ai as a source and rejects an unknown source', () => {

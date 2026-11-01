@@ -21,4 +21,17 @@ export const MIGRATIONEN: readonly string[] = [
   INSERT INTO "topic" (name, name_key, created)
   VALUES ('Inbox', 'inbox', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
   `,
+  `
+  ALTER TABLE "note" ADD COLUMN client_id TEXT;
+  ALTER TABLE "note" ADD COLUMN pinned INTEGER NOT NULL DEFAULT 0 CHECK (pinned IN (0, 1));
+  CREATE UNIQUE INDEX note_client_id ON "note"(client_id) WHERE client_id IS NOT NULL;
+  CREATE TABLE "correction" (
+    id INTEGER PRIMARY KEY,
+    note_id INTEGER NOT NULL REFERENCES "note"(id),
+    from_topic_id INTEGER NOT NULL REFERENCES "topic"(id),
+    to_topic_id INTEGER NOT NULL REFERENCES "topic"(id),
+    created TEXT NOT NULL
+  );
+  CREATE INDEX correction_note ON "correction"(note_id);
+  `,
 ];

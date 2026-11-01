@@ -1,0 +1,119 @@
+import type { WarteschlangeEintrag } from './warteschlange.ts';
+
+export const LOKAL_DB = 'cortex';
+export const ENTWURF_STORE = 'draft';
+export const ENTWURF_ID = 'capture';
+export const WARTESCHLANGE_STORE = 'queue';
+
+let kette: Promise<void> = Promise.resolve();
+
+export function exklusiv<T>(arbeit: () => Promise<T>): Promise<T> {
+  const ergebnis = kette.then(arbeit, arbeit);
+  kette = ergebnis.then(
+    () => undefined,
+    () => undefined,
+  );
+  return ergebnis;
+}
+
+function oeffne(): Promise<IDBDatabase> {
+  if (typeof indexedDB === 'undefined') return Promise.reject(new Error('Local storage is unavailable.'));
+  return new Promise((resolve, reject) => {
+    const anfrage = indexedDB.open(LOKAL_DB, 1);
+    anfrage.onupgradeneeded = () => {
+      const db = anfrage.result;
+      if (!db.objectStoreNames.contains(ENTWURF_STORE)) db.createObjectStore(ENTWURF_STORE);
+      if (!db.objectStoreNames.contains(WARTESCHLANGE_STORE)) {
+        db.createObjectStore(WARTESCHLANGE_STORE, { keyPath: 'clientId' });
+      }
+    };
+    anfrage.onsuccess = () => resolve(anfrage.result);
+    anfrage.onerror = () => reject(anfrage.error ?? new Error('Local storage is unavailable.'));
+  });
+}
+
+export async function liesEntwurfOffen(): Promise<string> {
+  const db = await oeffne();
+  try {
+    return await new Promise((resolve, reject) => {
+      const tx = db.transaction(ENTWURF_STORE, 'readonly');
+      const lesen = tx.objectStore(ENTWURF_STORE).get(ENTWURF_ID);
+      lesen.onsuccess = () => {
+        const wert = lesen.result as { text?: string } | undefined;
+        resolve(wert?.text ?? '');
+      };
+      lesen.onerror = () => reject(lesen.error ?? new Error('Could not read the draft.'));
+    });
+  } finally {
+    db.close();
+  }
+}
+
+export async function putEntwurfOffen(text: string): Promise<void> {
+  const db = await oeffne();
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(ENTWURF_STORE, 'readwrite');
+      const store = tx.objectStore(ENTWURF_STORE);
+      if (text.length === 0) store.delete(ENTWURF_ID);
+      else store.put({ text }, ENTWURF_ID);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error ?? new Error('Could not save the draft.'));
+      tx.onabort = () => reject(tx.error ?? new Error('Could not save the draft.'));
+    });
+  } finally {
+    db.close();
+  }
+}
+
+export async function liesQueueOffen(): Promise<WarteschlangeEintrag[]> {
+  const db = await oeffne();
+  try {
+    return await new Promise((resolve, reject) => {
+      const tx = db.transaction(WARTESCHLANGE_STORE, 'readonly');
+      const lesen = tx.objectStore(WARTESCHLANGE_STORE).getAll();
+      lesen.onsuccess = () => resolve(lesen.result as WarteschlangeEintrag[]);
+      lesen.onerror = () => reject(lesen.error ?? new Error('Could not read the queue.'));
+    });
+  } finally {
+    db.close();
+  }
+}
+
+export async function putQueueOffen(eintrag: WarteschlangeEintrag): Promise<void> {
+  const db = await oeffne();
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(WARTESCHLANGE_STORE, 'readwrite');
+      tx.objectStore(WARTESCHLANGE_STORE).put(eintrag);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error ?? new Error('Could not save the note.'));
+      tx.onabort = () => reject(tx.error ?? new Error('Could not save the note.'));
+    });
+  } finally {
+    db.close();
+  }
+}
+
+export async function entferneQueueOffen(clientId: string): Promise<void> {
+  const db = await oeffne();
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(WARTESCHLANGE_STORE, 'readwrite');
+      tx.objectStore(WARTESCHLANGE_STORE).delete(clientId);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error ?? new Error('Could not update the queue.'));
+      tx.onabort = () => reject(tx.error ?? new Error('Could not update the queue.'));
+    });
+  } finally {
+    db.close();
+  }
+}
+
+export function liesEntwurf(): Promise<string> {
+  return exklusiv(liesEntwurfOffen);
+}
+
+export function schreibEntwurf(text: string): Promise<void> {
+  return exklusiv(() => putEntwurfOffen(text));
+}

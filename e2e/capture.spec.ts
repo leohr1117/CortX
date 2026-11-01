@@ -1,12 +1,72 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
+import { leereLokal } from './lokal.ts';
 
 const BILDER = 'tmp-bau/screens-U01';
 const SATZ = 'Buy a birthday present for Anna – she mentioned the new Murakami.';
 const TAG_TEXT =
   'Call the landlord about the broken radiator in the bedroom. Ask for a repair date before the weekend. #wo';
 
+const LISBON = 'Travel \u2013 Lisbon';
+
 test.beforeEach(async ({ page }) => {
-  await page.goto('/');
+  await leereLokal(page);
+});
+
+async function themaZahl(page: Page, name: string): Promise<number> {
+  const antwort = await page.request.get('/api/topics');
+  const daten = (await antwort.json()) as { topics: Array<{ name: string; count: number }> };
+  return daten.topics.find((thema) => thema.name === name)?.count ?? 0;
+}
+
+async function auffuellen(
+  page: Page,
+  name: string,
+  ziel: number,
+  textFuer: (index: number) => string,
+  verschieben: boolean,
+): Promise<void> {
+  const fehlt = ziel - (await themaZahl(page, name));
+  for (let index = 0; index < fehlt; index += 1) {
+    const antwort = await page.request.post('/api/notes', { data: { text: textFuer(index) } });
+    if (!antwort.ok()) throw new Error(`Seed ${name} failed.`);
+    if (!verschieben) continue;
+    const notiz = (await antwort.json()) as { id: number };
+    const move = await page.request.post(`/api/notes/${notiz.id}/move`, { data: { topic: name } });
+    if (!move.ok()) throw new Error(`Move ${name} failed.`);
+  }
+}
+
+test('change picker lists topics and closes without a move', async ({ page }, testInfo) => {
+  test.setTimeout(90_000);
+  await auffuellen(page, 'Books', 9, (index) => `Books ${index} #Books`, false);
+  await auffuellen(page, 'Ideas', 23, (index) => `Ideas ${index} #Ideas`, false);
+  await auffuellen(page, LISBON, 5, (index) => `Lisbon ${index}`, true);
+  await auffuellen(page, 'Inbox', 3, (index) => `Inbox loose ${index}`, false);
+  const feld = page.getByRole('textbox', { name: 'Note' });
+  await feld.fill('Pay the rent #Home');
+  await page.getByRole('button', { name: 'File' }).click();
+  await expect(page.getByRole('status')).toContainText('Home');
+  await page.getByRole('button', { name: 'Change' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Move note to' });
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByLabel('Search topics')).toBeFocused();
+  await expect(dialog.locator('.wz.sel .n')).toHaveText('Home');
+  await expect(dialog.locator('.wz.sel .ok')).toBeVisible();
+  const zeilen = dialog.locator('.wz');
+  if ((await zeilen.count()) === 7) {
+    await expect(zeilen.locator('.n')).toHaveText(['Inbox', 'Books', 'Home', 'Ideas', LISBON, 'Work', 'Workout']);
+    await expect(zeilen.nth(0).locator('.w')).toHaveText('3');
+    await expect(zeilen.nth(1).locator('.w')).toHaveText('9');
+    await expect(zeilen.nth(3).locator('.w')).toHaveText('23');
+    await expect(zeilen.nth(4).locator('.w')).toHaveText('5');
+    await expect(zeilen.nth(5).locator('.w')).toHaveText('14');
+    await expect(zeilen.nth(6).locator('.w')).toHaveText('6');
+  }
+  await page.screenshot({ path: `tmp-bau/screens-U02/${testInfo.project.name}-03b-change.png` });
+  await page.keyboard.press('Escape');
+  await expect(dialog).toHaveCount(0);
+  await expect(page.getByRole('status')).toContainText('Home');
+  await expect(page).toHaveURL(/\/$/);
 });
 
 test('empty capture', async ({ page }, testInfo) => {
@@ -119,9 +179,64 @@ test('files with the button and with ctrl enter', async ({ page }, testInfo) => 
   await page.screenshot({ path: `${BILDER}/${testInfo.project.name}-03-toast.png` });
 
   await page.getByRole('button', { name: 'Change' }).click();
-  await expect(page.getByRole('dialog')).toHaveCount(0);
+  const dialog = page.getByRole('dialog', { name: 'Move note to' });
+  await expect(dialog).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(dialog).toHaveCount(0);
   await expect(page).toHaveURL(/\/$/);
+  await expect(page.getByRole('status')).toContainText('Home');
   await page.keyboard.press('Control+Enter');
+  await expect(feld).toHaveValue('');
+});
+
+test('change moves the note onto an existing or new topic', async ({ page }, testInfo) => {
+  const feld = page.getByRole('textbox', { name: 'Note' });
+  await feld.fill('Move me #Home');
+  await page.getByRole('button', { name: 'File' }).click();
+  await expect(page.getByRole('status')).toContainText('Home');
+
+  await page.getByRole('button', { name: 'Change' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Move note to' });
+  await page.getByRole('button', { name: 'Close' }).click();
+  await expect(dialog).toHaveCount(0);
+  await expect(page.getByRole('status')).toContainText('Home');
+
+  await page.getByRole('button', { name: 'Change' }).click();
+  await page.locator('.scrim').click({ position: { x: 8, y: 8 } });
+  await expect(dialog).toHaveCount(0);
+
+  await page.getByRole('button', { name: 'Change' }).click();
+  await page.goBack();
+  await expect(dialog).toHaveCount(0);
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.getByRole('status')).toContainText('Home');
+
+  await page.getByRole('button', { name: 'Change' }).click();
+  await dialog.getByRole('option', { name: /^Work\b/ }).click();
+  await expect(dialog).toHaveCount(0);
+  await expect(page.getByRole('status')).toContainText('Work');
+
+  await page.getByRole('button', { name: 'Change' }).click();
+  await dialog.getByLabel('Search topics').press('ArrowDown');
+  const ziel = (await dialog.locator('.wz.akt .n').innerText()).trim();
+  await dialog.getByLabel('Search topics').press('Enter');
+  await expect(dialog).toHaveCount(0);
+  await expect(page.getByRole('status')).toContainText(ziel);
+
+  const neu = `Zimmer${testInfo.project.name}`;
+  const tastatur = `Taste${testInfo.project.name}`;
+  await page.getByRole('button', { name: 'Change' }).click();
+  await dialog.getByLabel('Search topics').fill(neu);
+  await dialog.getByRole('option', { name: /New topic/ }).click();
+  await expect(page.getByRole('status')).toContainText(neu);
+  await expect(page.getByRole('button', { name: 'Change' })).toBeVisible();
+  await page.screenshot({ path: `tmp-bau/screens-U02/${testInfo.project.name}-03-moved.png` });
+
+  await page.getByRole('button', { name: 'Change' }).click();
+  await dialog.getByLabel('Search topics').fill(tastatur);
+  await dialog.getByLabel('Search topics').press('Enter');
+  await expect(page.getByRole('status')).toContainText(tastatur);
+  await page.reload();
   await expect(feld).toHaveValue('');
 });
 
