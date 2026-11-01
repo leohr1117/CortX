@@ -1,0 +1,10 @@
+export const SERVER_HOST = '127.0.0.1';
+export const SERVER_PORT = 3100;
+export const STRIDE_PORT = 3000;
+export const E2E_PORT = 3110;
+export const INBOX_NAME = 'Inbox';
+export const NOTE_TEXT_MAX = 20_000;
+export const TOPIC_NAME_MAX = 80;
+export const DESKTOP_AB = 900;
+export const VORSCHLAG_BREITE = 248;
+export const SPEICHER = ':memory:';

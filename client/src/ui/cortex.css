@@ -1,0 +1,282 @@
+@import "tailwindcss";
+
+:root {
+  --grund: #141414;
+  --flaeche: #1c1c1c;
+  --flaeche-2: #262626;
+  --trenner: #2e2e2e;
+  --haupt: #f2f2f2;
+  --leise: #949494;
+  --feldrand: #767676;
+  --rand-ruhig: #3a3a3a;
+  --aktion: #f2f2f2;
+  --aktion-text: #141414;
+  --gefahr: #f87171;
+  --fokus: #60a5fa;
+  --kopf: 56px;
+  --rand: 16px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body, #root { height: 100%; }
+html { color-scheme: dark; background: var(--grund); }
+body {
+  height: 100dvh;
+  background: var(--grund);
+  color: var(--haupt);
+  font: 400 16px/22px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: "tnum";
+  overscroll-behavior: none;
+}
+button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+button:disabled { cursor: default; }
+svg.i {
+  width: 20px;
+  height: 20px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+a { color: inherit; text-decoration: none; }
+
+.app {
+  position: relative;
+  height: 100%;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--grund);
+}
+
+.kopf {
+  height: var(--kopf);
+  display: flex;
+  align-items: center;
+  padding: 0 4px;
+  flex: none;
+  background: var(--grund);
+}
+.kopf.leer {
+  border-bottom: 0;
+  padding: 0 var(--rand);
+  justify-content: flex-end;
+}
+.tlink {
+  font-weight: 500;
+  font-size: 15px;
+  line-height: 20px;
+  color: var(--haupt);
+  height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 4px;
+  border-radius: 8px;
+}
+.tlink svg { width: 18px; height: 18px; color: var(--leise); }
+.tlink:focus-visible,
+.btn:focus-visible,
+.toast .a:focus-visible {
+  outline: 2px solid var(--fokus);
+  outline-offset: 2px;
+}
+
+.cap {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 8px var(--rand) 0;
+  position: relative;
+}
+.schreib {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  font-size: 18px;
+  line-height: 28px;
+}
+.spiegel,
+.schreib textarea {
+  font: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  letter-spacing: inherit;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+.spiegel {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  color: var(--haupt);
+  pointer-events: none;
+}
+.schreib textarea {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  resize: none;
+  overflow: auto;
+  background: transparent;
+  color: transparent;
+  caret-color: var(--fokus);
+  outline: none;
+  scrollbar-width: none;
+}
+.schreib textarea::-webkit-scrollbar { display: none; }
+.schreib textarea::placeholder { color: var(--leise); }
+.schreib textarea::selection { background: rgba(96, 165, 250, 0.35); }
+.tag { color: var(--fokus); }
+.anker { display: inline-block; width: 0; height: 0; }
+
+.fuss {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px var(--rand) max(34px, env(safe-area-inset-bottom));
+  flex: none;
+  background: var(--grund);
+}
+.fuss .ziel {
+  flex: 1;
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--leise);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fuss .ziel b { color: var(--haupt); font-weight: 600; }
+.kbd {
+  display: none;
+  font-size: 13px;
+  color: var(--leise);
+  gap: 4px;
+  align-items: center;
+}
+.kbd i { font-style: normal; }
+.kbd .mac { display: none; }
+html[data-os="mac"] .kbd .win { display: none; }
+html[data-os="mac"] .kbd .mac { display: inline-flex; }
+.kbd span {
+  border: 1px solid var(--rand-ruhig);
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-size: 12px;
+  line-height: 16px;
+}
+.btn {
+  height: 48px;
+  min-width: 104px;
+  padding: 0 24px;
+  border-radius: 8px;
+  background: var(--aktion);
+  color: var(--aktion-text);
+  font-weight: 500;
+  font-size: 15px;
+  line-height: 20px;
+}
+.btn.aus { background: var(--flaeche-2); color: var(--leise); }
+
+.vorschlag {
+  position: absolute;
+  width: 248px;
+  background: var(--flaeche);
+  border: 1px solid var(--rand-ruhig);
+  border-radius: 8px;
+  padding: 4px 0;
+  z-index: 5;
+  max-height: 320px;
+  overflow: auto;
+}
+.vorschlag .z {
+  height: 48px;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  gap: 10px;
+}
+.vorschlag .z .n { flex: 1; min-width: 0; }
+.vorschlag .z .n b { font-weight: 700; }
+.vorschlag .z .w { font-size: 13px; color: var(--leise); }
+.vorschlag .z.akt { background: var(--flaeche-2); }
+.vorschlag .tr { height: 1px; background: var(--trenner); margin: 4px 0; }
+.vorschlag .z.neu .n { color: var(--haupt); }
+.vorschlag .z svg { width: 16px; height: 16px; color: var(--leise); flex: none; }
+
+.toast {
+  position: absolute;
+  left: 50%;
+  right: auto;
+  transform: translateX(-50%);
+  bottom: 98px;
+  z-index: 20;
+  width: max-content;
+  max-width: calc(100% - 32px);
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 6px 0 16px;
+  background: var(--flaeche-2);
+  border: 1px solid var(--rand-ruhig);
+  border-radius: 8px;
+  font-size: 15px;
+}
+.toast.ohne { padding-right: 16px; }
+.toast .t { flex: none; }
+.toast .t b { font-weight: 600; }
+.toast .a {
+  height: 48px;
+  min-width: 48px;
+  padding: 0 12px;
+  font-weight: 600;
+  color: var(--haupt);
+  border-radius: 6px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: var(--feldrand);
+}
+.toast .dot {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--leise);
+  padding: 0 2px;
+}
+
+@media (min-width: 900px) {
+  :root { --rand: 32px; }
+  .kopf { height: 64px; padding: 0 20px; }
+  .kopf.leer { padding: 0 32px; }
+  .cap {
+    width: 720px;
+    max-width: 100%;
+    margin: 0 auto;
+    align-self: center;
+    padding: 72px 0 0;
+  }
+  .schreib { font-size: 20px; line-height: 32px; }
+  .fuss {
+    width: 720px;
+    max-width: 100%;
+    margin: 0 auto;
+    align-self: center;
+    padding: 16px 0 40px;
+  }
+  .kbd { display: flex; }
+  .toast { bottom: 112px; min-width: 0; }
+}
+
+@media (hover: none), (pointer: coarse) {
+  .kbd { display: none !important; }
+}
