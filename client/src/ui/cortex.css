@@ -59,6 +59,7 @@ a { color: inherit; text-decoration: none; }
   padding: 0 4px;
   flex: none;
   background: var(--grund);
+  border-bottom: 1px solid var(--trenner);
 }
 .kopf.leer {
   border-bottom: 0;
@@ -418,6 +419,132 @@ svg.i.ok {
 }
 .wz.sel .n { font-weight: 600; }
 .wz.akt { background: var(--flaeche-2); }
+
+.kopf h1 {
+  font-weight: 600;
+  font-size: 20px;
+  line-height: 28px;
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding-left: 4px;
+}
+.spalte {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+}
+.inhalt {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding-bottom: 40px;
+}
+.ab {
+  font-weight: 600;
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--leise);
+  margin: 24px var(--rand) 8px;
+}
+.liste {
+  background: var(--flaeche);
+  border-top: 1px solid var(--trenner);
+  border-bottom: 1px solid var(--trenner);
+}
+.liste.anfang { margin-top: 16px; }
+.zeile {
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  position: relative;
+}
+.zeile:focus-visible {
+  outline: 2px solid var(--fokus);
+  outline-offset: -2px;
+}
+.zeile + .zeile::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 48px;
+  height: 1px;
+  background: var(--trenner);
+}
+.zeile .sym {
+  width: 20px;
+  color: var(--leise);
+  flex: none;
+  display: grid;
+  place-items: center;
+}
+.zeile .tx { flex: 1; min-width: 0; }
+.zeile .ti {
+  font-size: 16px;
+  line-height: 22px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.zeile .ne {
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--leise);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.zeile .wert { font-size: 15px; color: var(--leise); }
+.zeile .pf { color: var(--leise); width: 16px; height: 16px; }
+.leer1 {
+  color: var(--leise);
+  margin: 32px var(--rand);
+  font-size: 16px;
+  line-height: 24px;
+}
+.notiz {
+  display: flex;
+  gap: 4px;
+  padding: 12px 0 12px 16px;
+  position: relative;
+}
+.notiz + .notiz::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 16px;
+  height: 1px;
+  background: var(--trenner);
+}
+.notiz .tx { flex: 1; min-width: 0; padding-top: 2px; }
+.notiz .tx p {
+  font-size: 16px;
+  line-height: 24px;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+}
+.notiz .zeit {
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--leise);
+  margin-top: 4px;
+}
+.notiz .ib {
+  width: 48px;
+  height: 48px;
+  color: var(--leise);
+  flex: none;
+  margin-top: -8px;
+}
+.ib circle { fill: currentColor; stroke: none; }
 @media (min-width: 900px) {
   .blatt {
     left: 50%;
@@ -432,4 +559,11 @@ svg.i.ok {
   }
   .blatt .griff { display: none; }
   .wl { max-height: 480px; }
+  .kopf h1 { font-size: 24px; line-height: 32px; }
+  .spalte { width: 720px; max-width: 100%; margin: 0 auto; }
+  .kopf .spalte { width: 730px; margin: 0; margin-left: calc(50% - 360px - 12px); }
+  .inhalt { width: 720px; max-width: 100%; margin-left: auto; margin-right: auto; }
+  .ab { margin-left: 0; margin-right: 0; }
+  .liste { border: 1px solid var(--trenner); border-radius: 8px; }
+  .leer1 { margin-left: 0; }
 }

@@ -19,6 +19,7 @@ async function saee(url: string, thema: string, anzahl: number): Promise<void> {
 
 export default async function globalSetup(): Promise<void> {
   const lauf = JSON.parse(fs.readFileSync('tmp-test/e2e-lauf.json', 'utf8')) as Lauf;
+  fs.writeFileSync('tmp-test/e2e-server.json', JSON.stringify(lauf));
   fs.mkdirSync('tmp-test/screens', { recursive: true });
   await saee(lauf.url, 'Work', 14);
   await saee(lauf.url, 'Workout', 6);

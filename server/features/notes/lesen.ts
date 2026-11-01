@@ -59,3 +59,10 @@ export function liesNotizNachId(db: DatabaseSync, id: number): NotizZeile | null
 export function liesNotizNachClient(db: DatabaseSync, clientId: string): NotizZeile | null {
   return zeile(db.prepare(`${SELECT} WHERE "note".client_id = ?`).get(clientId));
 }
+
+export function liesNotizenFuerThema(db: DatabaseSync, topicId: number): NotizZeile[] {
+  const roh = db
+    .prepare(`${SELECT} WHERE "note".topic_id = ? ORDER BY "note".created DESC, "note".id DESC`)
+    .all(topicId);
+  return roh.map((eintrag) => zeile(eintrag)).filter((eintrag): eintrag is NotizZeile => eintrag !== null);
+}

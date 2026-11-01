@@ -240,13 +240,13 @@ test('change moves the note onto an existing or new topic', async ({ page }, tes
   await expect(feld).toHaveValue('');
 });
 
-test('library is an empty placeholder', async ({ page }) => {
+test('library returns to capture', async ({ page }) => {
   await page.getByRole('link', { name: 'Library' }).click();
   await expect(page).toHaveURL(/\/library$/);
+  await expect(page.getByRole('heading', { name: 'Library' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'File' })).toHaveCount(0);
   await expect(page.getByRole('link', { name: 'Library' })).toHaveCount(0);
-  await page.goto('/library');
-  await expect(page.getByRole('button', { name: 'File' })).toHaveCount(0);
-  await page.goto('/');
+  await page.getByRole('link', { name: 'Back to Capture' }).click();
+  await expect(page).toHaveURL(/\/$/);
   await expect(page.getByRole('textbox', { name: 'Note' })).toBeFocused();
 });

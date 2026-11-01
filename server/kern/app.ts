@@ -4,6 +4,7 @@ import fastifyStatic from '@fastify/static';
 import Fastify, { type FastifyError, type FastifyInstance, type FastifyServerOptions } from 'fastify';
 import type { DatabaseSync } from 'node:sqlite';
 import { ZodError } from 'zod';
+import { bibliothekRouten } from '../features/library/index.ts';
 import { notizRouten } from '../features/notes/index.ts';
 import { themenRouten } from '../features/topics/index.ts';
 import { AppFehler } from './fehler.ts';
@@ -43,6 +44,7 @@ export async function erstelleApp(
     async (api) => {
       themenRouten(api, db);
       notizRouten(api, db);
+      bibliothekRouten(api, db);
     },
     { prefix: '/api' },
   );
