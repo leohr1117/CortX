@@ -5,7 +5,17 @@ import { INBOX_NAME } from '../../../../shared/kern/grenzen.ts';
 import { gleicherName } from '../../../../shared/features/tags/index.ts';
 import type { Thema } from '../../../../shared/kern/modell.ts';
 import type { Notiz } from '../../../../shared/kern/modell.ts';
-import { PunkteIcon } from '../../ui/icons.tsx';
+import {
+  liesGemerkteNotiz,
+  loescheNotiz,
+  merkeNotiz,
+  NotizFehler,
+  NotizKnopf,
+  NotizToast,
+  stelleNotizHer,
+  vergissNotiz,
+  type NotizMeldung,
+} from '../edit/index.ts';
 import {
   fuehreZusammen,
   ladeThemen,
@@ -24,16 +34,38 @@ function meldung(fehler: unknown): string {
   return 'Could not load this topic.';
 }
 
-function NotizZeile({ notiz }: { notiz: Notiz }) {
+function NotizZeile({
+  notiz,
+  offen,
+  gesperrt,
+  onOeffnen,
+  onSchliessen,
+  onEdit,
+  onDelete,
+}: {
+  notiz: Notiz;
+  offen: boolean;
+  gesperrt: boolean;
+  onOeffnen: () => void;
+  onSchliessen: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
   return (
     <article className="notiz">
       <div className="tx">
         <p>{notiz.text}</p>
         <div className="zeit">{uhrzeit(notiz.created)}</div>
       </div>
-      <button type="button" className="ib" aria-label="Note actions">
-        <PunkteIcon />
-      </button>
+      <NotizKnopf
+        id={notiz.id}
+        offen={offen}
+        gesperrt={gesperrt}
+        onOeffnen={onOeffnen}
+        onSchliessen={onSchliessen}
+        onEdit={onEdit}
+        onDelete={onDelete}
+      />
     </article>
   );
 }
@@ -49,6 +81,9 @@ export function ThemaAnsicht() {
   const [themen, setThemen] = useState<Thema[]>([]);
   const [aktionFehler, setAktionFehler] = useState<string | null>(null);
   const [beschaeftigt, setBeschaeftigt] = useState(false);
+  const [menueId, setMenueId] = useState<number | null>(null);
+  const [notizMeldung, setNotizMeldung] = useState<NotizMeldung | null>(liesGemerkteNotiz);
+  const [undoFehler, setUndoFehler] = useState<string | null>(null);
   const sperre = useRef(false);
 
   useEffect(() => {
@@ -91,6 +126,54 @@ export function ThemaAnsicht() {
     if (sperre.current) return;
     setDialog(null);
     setAktionFehler(null);
+  }
+
+  function notizBearbeiten(id: number) {
+    setMenueId(null);
+    navigate(`/library/note?id=${id}`);
+  }
+
+  async function notizLoeschen(notiz: Notiz) {
+    if (sperre.current) return;
+    sperre.current = true;
+    setBeschaeftigt(true);
+    setMenueId(null);
+    setDialog(null);
+    setUndoFehler(null);
+    setAktionFehler(null);
+    try {
+      const ergebnis = await loescheNotiz(notiz.id);
+      const meldung = { token: ergebnis.token, topic: titel };
+      merkeNotiz(meldung);
+      setNotizMeldung(meldung);
+      setNotizen((liste) => (liste ? liste.filter((eintrag) => eintrag.id !== notiz.id) : liste));
+    } catch (grund: unknown) {
+      setAktionFehler(grund instanceof NotizFehler ? grund.message : 'Could not delete the note.');
+    } finally {
+      sperre.current = false;
+      setBeschaeftigt(false);
+    }
+  }
+
+  async function notizZurueck() {
+    if (!notizMeldung || sperre.current) return;
+    sperre.current = true;
+    setBeschaeftigt(true);
+    setUndoFehler(null);
+    try {
+      await stelleNotizHer(notizMeldung.token);
+      vergissNotiz();
+      setNotizMeldung(null);
+      const ansicht = await ladeThema(name);
+      setTitel(ansicht.topic);
+      setNotizen(ansicht.notes);
+      setFehler(null);
+    } catch (grund: unknown) {
+      setUndoFehler(grund instanceof NotizFehler ? grund.message : 'Could not undo.');
+    } finally {
+      sperre.current = false;
+      setBeschaeftigt(false);
+    }
   }
 
   function umbenannt(neu: string) {
@@ -152,6 +235,7 @@ export function ThemaAnsicht() {
         offen={dialog === 'menu'}
         gesperrt={beschaeftigt}
         onOeffnen={() => {
+          setMenueId(null);
           setAktionFehler(null);
           setDialog('menu');
         }}
@@ -179,7 +263,20 @@ export function ThemaAnsicht() {
             <h2 className="ab">{gruppe.label}</h2>
             <div className="liste">
               {gruppe.notizen.map((notiz) => (
-                <NotizZeile key={notiz.id} notiz={notiz} />
+                <NotizZeile
+                  key={notiz.id}
+                  notiz={notiz}
+                  offen={menueId === notiz.id}
+                  gesperrt={beschaeftigt}
+                  onOeffnen={() => {
+                    setDialog(null);
+                    setAktionFehler(null);
+                    setMenueId(notiz.id);
+                  }}
+                  onSchliessen={() => setMenueId((aktuell) => (aktuell === notiz.id ? null : aktuell))}
+                  onEdit={() => notizBearbeiten(notiz.id)}
+                  onDelete={() => void notizLoeschen(notiz)}
+                />
               ))}
             </div>
           </section>
@@ -204,6 +301,9 @@ export function ThemaAnsicht() {
           onClose={schliesse}
           onWahl={(ziel) => void zusammen(ziel)}
         />
+      ) : null}
+      {notizMeldung ? (
+        <NotizToast fehler={undoFehler} gesperrt={beschaeftigt} onUndo={() => void notizZurueck()} />
       ) : null}
     </div>
   );

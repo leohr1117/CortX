@@ -40,6 +40,8 @@ export interface Bestand {
 export interface SaatNotiz {
   text: string;
   created: string;
+  source?: 'tag' | 'ai' | 'manual';
+  pinned?: 0 | 1;
 }
 
 export interface SaatThema {
@@ -91,6 +93,7 @@ export function sichereBestand(): Bestand {
 export function stelleBestand(bestand: Bestand): void {
   schreib((db) => {
     db.exec('DELETE FROM "topic_undo"');
+    db.exec('DELETE FROM "note_undo"');
     db.exec('DELETE FROM "correction"');
     db.exec('DELETE FROM "note"');
     db.exec('DELETE FROM "topic"');
@@ -124,13 +127,14 @@ export function stelleBestand(bestand: Bestand): void {
 export function setzeSchauspiel(themen: readonly SaatThema[]): void {
   schreib((db) => {
     db.exec('DELETE FROM "topic_undo"');
+    db.exec('DELETE FROM "note_undo"');
     db.exec('DELETE FROM "correction"');
     db.exec('DELETE FROM "note"');
     db.exec(`DELETE FROM "topic" WHERE name_key != 'inbox'`);
     const einfuegen = db.prepare('INSERT INTO "topic" (name, name_key, created) VALUES (?, ?, ?)');
     const notiz = db.prepare(
       `INSERT INTO "note" (text, created, topic_id, source, ai_confidence, client_id, pinned)
-       VALUES (?, ?, ?, 'manual', NULL, NULL, 0)`,
+       VALUES (?, ?, ?, ?, NULL, NULL, ?)`,
     );
     const inbox = db.prepare(`SELECT id FROM "topic" WHERE name_key = 'inbox'`).get() as { id: number } | undefined;
     if (!inbox) throw new Error('Inbox is missing.');
@@ -142,7 +146,9 @@ export function setzeSchauspiel(themen: readonly SaatThema[]): void {
         const info = einfuegen.run(eintrag.name, schluessel, jetzt);
         id = Number(info.lastInsertRowid);
       }
-      for (const stueck of eintrag.notizen) notiz.run(stueck.text, stueck.created, id);
+      for (const stueck of eintrag.notizen) {
+        notiz.run(stueck.text, stueck.created, id, stueck.source ?? 'manual', stueck.pinned ?? 0);
+      }
     }
   });
 }
@@ -154,6 +160,7 @@ export function setzeThema(name: string, notizen: readonly SaatNotiz[]): void {
       | { id: number }
       | undefined;
     if (!vorhanden) throw new Error(`Topic ${name} is missing.`);
+    db.exec('DELETE FROM "note_undo"');
     db.prepare(
       `DELETE FROM "correction" WHERE note_id IN (SELECT id FROM "note" WHERE topic_id = ?)
        OR from_topic_id = ? OR to_topic_id = ?`,
@@ -169,6 +176,7 @@ export function setzeThema(name: string, notizen: readonly SaatNotiz[]): void {
 
 export function loescheNotizen(nurInbox: boolean): void {
   schreib((db) => {
+    db.exec('DELETE FROM "note_undo"');
     if (nurInbox) {
       db.exec(
         `DELETE FROM "correction" WHERE note_id IN (

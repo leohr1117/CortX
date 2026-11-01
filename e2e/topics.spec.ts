@@ -83,6 +83,7 @@ test('topic menu renames with validation and lists merge targets', async ({ page
     await expect(page.getByRole('heading', { level: 2 })).toHaveText(['Today', 'Yesterday', tagesLabel(oktober, new Date())]);
     await expect(page.locator('.notiz p')).toHaveText([MARA, FREITAG, SERVER, JONAS, BUCH]);
     await page.getByRole('button', { name: 'Note actions' }).first().click();
+    await page.keyboard.press('Escape');
     await expect(page.getByRole('menu')).toHaveCount(0);
 
     await page.getByRole('button', { name: 'Topic actions' }).click();

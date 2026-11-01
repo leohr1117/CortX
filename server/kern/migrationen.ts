@@ -41,5 +41,12 @@ export const MIGRATIONEN: readonly string[] = [
     created TEXT NOT NULL
   );
   `,
+  `
+  CREATE TABLE "note_undo" (
+    token TEXT PRIMARY KEY,
+    payload TEXT NOT NULL,
+    created TEXT NOT NULL
+  );
+  `,
 ];
 

@@ -83,6 +83,14 @@ export function HakenIcon() {
   );
 }
 
+export function AbwaertsIcon() {
+  return (
+    <svg className="i ab-pf" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M6 9l6 6 6-6" />
+    </svg>
+  );
+}
+
 export function StiftIcon() {
   return (
     <svg className="i" viewBox="0 0 24 24" aria-hidden="true">
