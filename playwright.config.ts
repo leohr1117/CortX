@@ -3,11 +3,11 @@ import path from 'node:path';
 import { defineConfig } from '@playwright/test';
 
 const E2E_PORT = 3110;
-const datenbank = path.resolve('tmp-bau', `e2e-${process.pid}.db`);
+const datenbank = path.resolve('tmp-test', `e2e-${process.pid}.db`);
 const url = `http://127.0.0.1:${E2E_PORT}`;
 
-fs.mkdirSync(path.resolve('tmp-bau'), { recursive: true });
-fs.writeFileSync(path.resolve('tmp-bau', 'e2e-lauf.json'), JSON.stringify({ datenbank, url }));
+fs.mkdirSync(path.resolve('tmp-test'), { recursive: true });
+fs.writeFileSync(path.resolve('tmp-test', 'e2e-lauf.json'), JSON.stringify({ datenbank, url }));
 
 export default defineConfig({
   testDir: 'e2e',

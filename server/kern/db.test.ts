@@ -79,9 +79,9 @@ describe('database', () => {
     ).toThrow(/CHECK/);
   });
 
-  it('refuses a database inside data/ and allows memory and tmp-bau', () => {
+  it('refuses a database inside data/ and allows memory and tmp-test', () => {
     expect(() => verweigereEchteDatenbank(path.join('data', 'cortex.db'))).toThrow(/data/);
     expect(verweigereEchteDatenbank(SPEICHER)).toBe(SPEICHER);
-    expect(verweigereEchteDatenbank(path.resolve('tmp-bau', 'probe.db'))).toContain('tmp-bau');
+    expect(verweigereEchteDatenbank(path.resolve('tmp-test', 'probe.db'))).toContain('tmp-test');
   });
 });

@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { leereLokal } from './lokal.ts';
 
-const BILDER = 'tmp-bau/screens-U01';
+const BILDER = 'tmp-test/screens';
 const SATZ = 'Buy a birthday present for Anna – she mentioned the new Murakami.';
 const TAG_TEXT =
   'Call the landlord about the broken radiator in the bedroom. Ask for a repair date before the weekend. #wo';
@@ -62,7 +62,7 @@ test('change picker lists topics and closes without a move', async ({ page }, te
     await expect(zeilen.nth(5).locator('.w')).toHaveText('14');
     await expect(zeilen.nth(6).locator('.w')).toHaveText('6');
   }
-  await page.screenshot({ path: `tmp-bau/screens-U02/${testInfo.project.name}-03b-change.png` });
+  await page.screenshot({ path: `tmp-test/screens/${testInfo.project.name}-03b-change.png` });
   await page.keyboard.press('Escape');
   await expect(dialog).toHaveCount(0);
   await expect(page.getByRole('status')).toContainText('Home');
@@ -230,7 +230,7 @@ test('change moves the note onto an existing or new topic', async ({ page }, tes
   await dialog.getByRole('option', { name: /New topic/ }).click();
   await expect(page.getByRole('status')).toContainText(neu);
   await expect(page.getByRole('button', { name: 'Change' })).toBeVisible();
-  await page.screenshot({ path: `tmp-bau/screens-U02/${testInfo.project.name}-03-moved.png` });
+  await page.screenshot({ path: `tmp-test/screens/${testInfo.project.name}-03-moved.png` });
 
   await page.getByRole('button', { name: 'Change' }).click();
   await dialog.getByLabel('Search topics').fill(tastatur);

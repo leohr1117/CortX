@@ -3,7 +3,7 @@ data/*.db
 data/*.db-*
 client/dist
 .env
-tmp-bau/
 tmp-*/
 test-results/
 playwright-report/
+tmp-test/

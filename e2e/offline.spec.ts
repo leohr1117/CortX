@@ -41,7 +41,7 @@ test('files offline and syncs the note once', async ({ page }, testInfo) => {
   await expect(page.getByRole('button', { name: 'Change' })).toHaveCount(0);
   expect(await themaZahl(page, thema)).toBe(vorher);
   await expect.poll(() => warteschlangeLaenge(page)).toBe(1);
-  await page.screenshot({ path: `tmp-bau/screens-U02/${testInfo.project.name}-03c-offline.png` });
+  await page.screenshot({ path: `tmp-test/screens/${testInfo.project.name}-03c-offline.png` });
 
   await page.route('**/api/notes', (route) => {
     if (route.request().method() === 'POST' && /\/api\/notes$/.test(route.request().url())) {
