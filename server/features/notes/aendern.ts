@@ -92,63 +92,66 @@ function schnapp(db: DatabaseSync, notiz: NotizZeile): UndoBild {
   };
 }
 
-function themaDa(db: DatabaseSync, id: number): boolean {
-  return Boolean(db.prepare('SELECT id FROM "topic" WHERE id = ?').get(id));
+function themaDa(db: DatabaseSync, id: number, kontoId: string): boolean {
+  return Boolean(db.prepare('SELECT id FROM "topic" WHERE id = ? AND account_id = ?').get(id, kontoId));
 }
 
-export function speichereText(db: DatabaseSync, id: number, roh: string): Notiz {
+export function speichereText(db: DatabaseSync, id: number, roh: string, kontoId: string): Notiz {
   return transaktion(db, () => {
     const plan = planeNotizText(roh);
     if (!plan.ok) throw new AppFehler(400, textMeldung(plan.grund));
-    const notiz = liesNotizNachId(db, id);
+    const notiz = liesNotizNachId(db, id, kontoId);
     if (!notiz) throw new AppFehler(404, 'Note not found.');
     if (notiz.text !== plan.text) {
-      const geschrieben = db.prepare('UPDATE "note" SET text = ? WHERE id = ?').run(plan.text, id);
+      const geschrieben = db.prepare('UPDATE "note" SET text = ? WHERE id = ? AND account_id = ?').run(plan.text, id, kontoId);
       if (Number(geschrieben.changes) !== 1) throw new AppFehler(500, SPEICHERN);
     }
-    const neu = liesNotizNachId(db, id);
+    const neu = liesNotizNachId(db, id, kontoId);
     if (!neu) throw new AppFehler(500, SPEICHERN);
     return alsNotiz(neu);
   });
 }
 
-export function loescheNotiz(db: DatabaseSync, id: number): { token: string } {
+export function loescheNotiz(db: DatabaseSync, id: number, kontoId: string): { token: string } {
   return transaktion(db, () => {
-    const notiz = liesNotizNachId(db, id);
+    const notiz = liesNotizNachId(db, id, kontoId);
     if (!notiz) throw new AppFehler(404, 'Note not found.');
     const bild = schnapp(db, notiz);
     db.prepare('DELETE FROM "correction" WHERE note_id = ?').run(id);
-    const weg = db.prepare('DELETE FROM "note" WHERE id = ?').run(id);
+    const weg = db.prepare('DELETE FROM "note" WHERE id = ? AND account_id = ?').run(id, kontoId);
     if (Number(weg.changes) !== 1) throw new AppFehler(500, LOESCHEN);
     const token = randomUUID();
-    db.prepare('DELETE FROM "note_undo"').run();
-    db.prepare('INSERT INTO "note_undo" (token, payload, created) VALUES (?, ?, ?)').run(
+    db.prepare('DELETE FROM "note_undo" WHERE account_id = ?').run(kontoId);
+    db.prepare('INSERT INTO "note_undo" (token, payload, created, account_id) VALUES (?, ?, ?, ?)').run(
       token,
       JSON.stringify(bild),
       new Date().toISOString(),
+      kontoId,
     );
     return { token };
   });
 }
 
-export function stelleNotizHer(db: DatabaseSync, token: string): Notiz {
+export function stelleNotizHer(db: DatabaseSync, token: string, kontoId: string): Notiz {
   return transaktion(db, () => {
-    const zeile = db.prepare('SELECT payload FROM "note_undo" WHERE token = ?').get(token) as
+    const zeile = db.prepare('SELECT payload FROM "note_undo" WHERE token = ? AND account_id = ?').get(token, kontoId) as
       | { payload: string }
       | undefined;
     if (!zeile) throw new AppFehler(404, NICHTS);
     const bild = liesBild(zeile.payload);
     if (!bild) throw new AppFehler(500, GEHT_NICHT);
-    if (!themaDa(db, bild.note.topicId)) throw new AppFehler(409, GEHT_NICHT);
+    if (!themaDa(db, bild.note.topicId, kontoId)) throw new AppFehler(409, GEHT_NICHT);
     if (db.prepare('SELECT id FROM "note" WHERE id = ?').get(bild.note.id)) throw new AppFehler(409, GEHT_NICHT);
     for (const korrektur of bild.corrections) {
-      if (!themaDa(db, korrektur.fromTopicId) || !themaDa(db, korrektur.toTopicId)) throw new AppFehler(409, GEHT_NICHT);
+      if (!themaDa(db, korrektur.fromTopicId, kontoId) || !themaDa(db, korrektur.toTopicId, kontoId)) {
+        throw new AppFehler(409, GEHT_NICHT);
+      }
       if (db.prepare('SELECT id FROM "correction" WHERE id = ?').get(korrektur.id)) throw new AppFehler(409, GEHT_NICHT);
     }
     try {
       db.prepare(
-        `INSERT INTO "note" (id, text, created, topic_id, source, ai_confidence, client_id, pinned)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO "note" (id, text, created, topic_id, source, ai_confidence, client_id, pinned, account_id)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       ).run(
         bild.note.id,
         bild.note.text,
@@ -158,6 +161,7 @@ export function stelleNotizHer(db: DatabaseSync, token: string): Notiz {
         bild.note.aiConfidence,
         bild.note.clientId,
         bild.note.pinned,
+        kontoId,
       );
     } catch (fehler) {
       if (fehler instanceof Error && fehler.message.includes('UNIQUE')) throw new AppFehler(409, GEHT_NICHT);
@@ -169,8 +173,8 @@ export function stelleNotizHer(db: DatabaseSync, token: string): Notiz {
     for (const korrektur of bild.corrections) {
       einfuegen.run(korrektur.id, korrektur.noteId, korrektur.fromTopicId, korrektur.toTopicId, korrektur.created);
     }
-    db.prepare('DELETE FROM "note_undo" WHERE token = ?').run(token);
-    const neu = liesNotizNachId(db, bild.note.id);
+    db.prepare('DELETE FROM "note_undo" WHERE token = ? AND account_id = ?').run(token, kontoId);
+    const neu = liesNotizNachId(db, bild.note.id, kontoId);
     if (!neu) throw new AppFehler(500, GEHT_NICHT);
     return alsNotiz(neu);
   });

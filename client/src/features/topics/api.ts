@@ -1,4 +1,5 @@
 import type { Thema } from '../../../../shared/kern/modell.ts';
+import { meldeAblauf } from '../zugang/index.ts';
 
 export class PflegeFehler extends Error {
   readonly status: number | null;
@@ -46,6 +47,7 @@ async function post<T>(url: string, body: unknown): Promise<T> {
     } catch {
       meldung = 'Could not update the topic.';
     }
+    meldeAblauf(antwort.status);
     throw new PflegeFehler(meldung, antwort.status);
   }
   return (await antwort.json()) as T;
@@ -54,7 +56,10 @@ async function post<T>(url: string, body: unknown): Promise<T> {
 export function ladeThemen(): Promise<Thema[]> {
   return fetch('/api/topics')
     .then(async (antwort) => {
-      if (!antwort.ok) throw new PflegeFehler('Could not load topics.', antwort.status);
+      if (!antwort.ok) {
+        meldeAblauf(antwort.status);
+        throw new PflegeFehler('Could not load topics.', antwort.status);
+      }
       const daten = (await antwort.json()) as { topics: Thema[] };
       return daten.topics;
     })

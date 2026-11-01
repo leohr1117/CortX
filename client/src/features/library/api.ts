@@ -1,5 +1,6 @@
 import type { Bibliothek } from '../../../../shared/features/library/index.ts';
 import type { Notiz } from '../../../../shared/kern/modell.ts';
+import { meldeAblauf } from '../zugang/index.ts';
 
 export class LeseFehler extends Error {
   readonly status: number | null;
@@ -23,7 +24,10 @@ async function hole<T>(url: string): Promise<T> {
   } catch {
     throw new LeseFehler(null);
   }
-  if (!antwort.ok) throw new LeseFehler(antwort.status);
+  if (!antwort.ok) {
+    meldeAblauf(antwort.status);
+    throw new LeseFehler(antwort.status);
+  }
   return (await antwort.json()) as T;
 }
 

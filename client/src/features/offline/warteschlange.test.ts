@@ -28,11 +28,12 @@ describe('offline queue', () => {
     expect(naechsteSeq([])).toBe(1);
   });
 
-  it('retries network failures and stops on a rejected note', () => {
+  it('retries a network failure and a signed-out request, and stops on a rejected note', () => {
     expect(istDauerhaft(null)).toBe(false);
     expect(istDauerhaft(500)).toBe(false);
     expect(istDauerhaft(408)).toBe(false);
     expect(istDauerhaft(429)).toBe(false);
+    expect(istDauerhaft(401)).toBe(false);
     expect(istDauerhaft(400)).toBe(true);
     expect(istDauerhaft(404)).toBe(true);
   });

@@ -3,8 +3,8 @@ import { afterEach, describe, expect, it } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import type { DatabaseSync } from 'node:sqlite';
 import { NOTE_TEXT_MAX, SPEICHER } from '../../../shared/kern/grenzen.ts';
-import { erstelleApp } from '../../kern/app.ts';
 import { oeffneDatenbank } from '../../kern/db.ts';
+import { oeffneAngemeldet } from '../zugang/attrappe.ts';
 
 interface NotizFest {
   id: number;
@@ -39,7 +39,7 @@ describe('note edit and delete', () => {
   async function paar(): Promise<{ server: FastifyInstance; db: DatabaseSync }> {
     const db = oeffneDatenbank(SPEICHER);
     dbs.push(db);
-    const server = await erstelleApp(db);
+    const server = await oeffneAngemeldet(db);
     apps.push(server);
     return { server, db };
   }

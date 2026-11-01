@@ -16,6 +16,7 @@ import {
   vergissPflege,
   type PflegeMeldung,
 } from '../topics/index.ts';
+import { AbmeldenKnopf } from '../zugang/index.ts';
 import { ladeBibliothek, themaPfad } from './api.ts';
 import { Kopf } from './Kopf.tsx';
 
@@ -102,7 +103,7 @@ export function LibraryAnsicht() {
 
   return (
     <div className="app">
-      <Kopf titel="Library" zurueck="/" zurueckLabel="Back to Capture" />
+      <Kopf titel="Library" zurueck="/" zurueckLabel="Back to Capture" aktion={<AbmeldenKnopf />} />
       <main className="inhalt">
         {fehler ? <p className="leer1">Could not load the library.</p> : null}
         {stand && leer ? <p className="leer1">No notes yet.</p> : null}

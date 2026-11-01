@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
+import { meldeAn } from './anmelden.ts';
 import { leereLokal } from './lokal.ts';
 import { setzeSchauspiel, sichereBestand, stelleBestand, type SaatNotiz } from './schau.ts';
 
@@ -46,6 +47,7 @@ test.beforeAll(() => {
 });
 
 test.beforeEach(async ({ page }) => {
+  await meldeAn(page);
   await leereLokal(page);
   await page.evaluate(() => sessionStorage.removeItem('cortex.note-undo'));
 });

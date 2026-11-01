@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { SERVER_PORT, STRIDE_PORT } from '../../shared/kern/grenzen.ts';
+import { SERVER_HOST, SERVER_PORT, STRIDE_PORT } from '../../shared/kern/grenzen.ts';
 import { istTestlauf, verweigereEchteDatenbank, WURZEL } from './testpfad.ts';
 
 export function datenbankPfad(): string {
@@ -31,4 +31,10 @@ export function logLevel(): string {
 
 export function clientDist(): string {
   return path.join(WURZEL, 'client', 'dist');
+}
+
+export function strideUrl(): string {
+  const gesetzt = process.env.CORTEX_STRIDE_URL;
+  if (!gesetzt) return `http://${SERVER_HOST}:${STRIDE_PORT}/api/zugang`;
+  return new URL(gesetzt).toString();
 }

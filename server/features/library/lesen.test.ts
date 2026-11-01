@@ -2,8 +2,8 @@ import { afterEach, describe, expect, it } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import type { DatabaseSync } from 'node:sqlite';
 import { TOPIC_NAME_MAX, SPEICHER } from '../../../shared/kern/grenzen.ts';
-import { erstelleApp } from '../../kern/app.ts';
 import { oeffneDatenbank } from '../../kern/db.ts';
+import { oeffneAngemeldet } from '../zugang/attrappe.ts';
 
 describe('library api', () => {
   const dbs: DatabaseSync[] = [];
@@ -19,7 +19,7 @@ describe('library api', () => {
   async function app(): Promise<{ server: FastifyInstance; db: DatabaseSync }> {
     const db = oeffneDatenbank(SPEICHER);
     dbs.push(db);
-    const server = await erstelleApp(db);
+    const server = await oeffneAngemeldet(db);
     apps.push(server);
     return { server, db };
   }

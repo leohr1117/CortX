@@ -25,7 +25,7 @@ export default defineConfig({
     { name: 'desktop', use: { viewport: { width: 1440, height: 900 } } },
   ],
   webServer: {
-    command: 'node --disable-warning=ExperimentalWarning server/index.ts',
+    command: 'node --disable-warning=ExperimentalWarning e2e/server.ts',
     url,
     reuseExistingServer: false,
     env: {

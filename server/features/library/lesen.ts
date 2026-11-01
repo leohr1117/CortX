@@ -10,7 +10,7 @@ interface RohZeile {
   lastNote: string | null;
 }
 
-export function liesBibliothek(db: DatabaseSync): Bibliothek {
+export function liesBibliothek(db: DatabaseSync, kontoId: string): Bibliothek {
   const roh = db
     .prepare(
       `
@@ -18,11 +18,12 @@ export function liesBibliothek(db: DatabaseSync): Bibliothek {
              COUNT("note".id) AS count,
              MAX("note".created) AS lastNote
       FROM "topic"
-      LEFT JOIN "note" ON "note".topic_id = "topic".id
+      LEFT JOIN "note" ON "note".topic_id = "topic".id AND "note".account_id = "topic".account_id
+      WHERE "topic".account_id = ?
       GROUP BY "topic".id
       `,
     )
-    .all() as unknown as RohZeile[];
+    .all(kontoId) as unknown as RohZeile[];
   const zeilen: BibliothekZeile[] = roh.map((zeile) => ({
     name: zeile.name,
     count: Number(zeile.count),
@@ -31,10 +32,16 @@ export function liesBibliothek(db: DatabaseSync): Bibliothek {
   return baueBibliothek(zeilen);
 }
 
-export function liesThemaAnsicht(db: DatabaseSync, name: string): { topic: string; notes: Notiz[] } | null {
-  const id = themaId(db, name);
+export function liesThemaAnsicht(
+  db: DatabaseSync,
+  name: string,
+  kontoId: string,
+): { topic: string; notes: Notiz[] } | null {
+  const id = themaId(db, name, kontoId);
   if (id === null) return null;
-  const thema = db.prepare('SELECT name FROM "topic" WHERE id = ?').get(id) as { name: string } | undefined;
+  const thema = db.prepare('SELECT name FROM "topic" WHERE id = ? AND account_id = ?').get(id, kontoId) as
+    | { name: string }
+    | undefined;
   if (!thema) return null;
-  return { topic: thema.name, notes: liesNotizenFuerThema(db, id).map(alsNotiz) };
+  return { topic: thema.name, notes: liesNotizenFuerThema(db, id, kontoId).map(alsNotiz) };
 }

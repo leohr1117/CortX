@@ -1,0 +1,11 @@
+export const COOKIE_NAME = 'cortex_session';
+export const SITZUNG_SEKUNDEN = 400 * 24 * 60 * 60;
+export const SITZUNG_MS = SITZUNG_SEKUNDEN * 1000;
+export const STRIDE_PRUEF_MS = 24 * 60 * 60 * 1000;
+export const STRIDE_TIMEOUT_MS = 8_000;
+export const FEHLER_FENSTER_MS = 15 * 60 * 1000;
+export const FEHLER_JE_IP = 5;
+export const FEHLER_GLOBAL = 30;
+export const NAME_MAX = 320;
+export const PASSWORT_MAX = 1024;
+export const KONTO_ID_MAX = 128;

@@ -767,3 +767,81 @@ textarea.feld:focus {
   .dlg .knoepfe { justify-content: flex-end; }
   .dlg .knoepfe .btn { flex: none; min-width: 120px; }
 }
+
+.login {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0 24px 80px;
+  max-width: 400px;
+  width: 100%;
+  margin: 0 auto;
+}
+.login form { display: flex; flex-direction: column; }
+.marke {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+  font-size: 24px;
+  line-height: 32px;
+  margin-bottom: 6px;
+}
+.marke .logo { width: 28px; height: 28px; flex: none; }
+.login .sub {
+  color: var(--leise);
+  font-size: 15px;
+  line-height: 22px;
+  margin-bottom: 16px;
+}
+.login .lab { margin: 16px 0 8px; }
+.login input.feld { background: var(--flaeche); }
+.pw { position: relative; }
+.pw input { padding-right: 76px; }
+.pw .zeig {
+  position: absolute;
+  right: 0;
+  top: 0;
+  height: 48px;
+  min-width: 72px;
+  padding: 0 14px;
+  font-weight: 500;
+  font-size: 15px;
+  color: var(--haupt);
+}
+.pw .zeig:focus-visible {
+  outline: 2px solid var(--fokus);
+  outline-offset: 2px;
+}
+.login .btn.voll { width: 100%; margin-top: 28px; }
+.login .alarm {
+  margin: 12px 0 0;
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--gefahr);
+}
+.login .hinweis {
+  margin-top: 16px;
+  text-align: center;
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--leise);
+}
+.abmelden {
+  height: 48px;
+  padding: 0 12px;
+  border-radius: 8px;
+  font-weight: 500;
+  font-size: 15px;
+  line-height: 20px;
+  color: var(--leise);
+  flex: none;
+}
+.abmelden:focus-visible {
+  outline: 2px solid var(--fokus);
+  outline-offset: 2px;
+}
+@media (min-width: 900px) {
+  .login .btn.voll { width: 100%; }
+}

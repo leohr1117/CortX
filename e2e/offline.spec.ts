@@ -1,7 +1,9 @@
 import { expect, test, type Page } from '@playwright/test';
+import { meldeAn } from './anmelden.ts';
 import { leereLokal, liesEntwurf, warteBereit, warteschlangeLaenge } from './lokal.ts';
 
 test.beforeEach(async ({ page }) => {
+  await meldeAn(page);
   await leereLokal(page);
 });
 

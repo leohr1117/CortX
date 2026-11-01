@@ -11,20 +11,29 @@ function schemaVersion(db: DatabaseSync): number {
 }
 
 export function migriere(db: DatabaseSync): void {
-  for (let index = schemaVersion(db); index < MIGRATIONEN.length; index += 1) {
-    const version = index + 1;
-    const sql = MIGRATIONEN[index];
-    if (sql === undefined) continue;
-    db.exec('BEGIN');
-    try {
-      db.exec(sql);
-      db.exec(`PRAGMA user_version = ${version}`);
-      db.exec('COMMIT');
-    } catch (fehler) {
-      db.exec('ROLLBACK');
-      const grund = fehler instanceof Error ? fehler.message : 'unknown';
-      throw new Error(`Migration ${version} failed: ${grund}`, { cause: fehler });
+  const start = schemaVersion(db);
+  if (start >= MIGRATIONEN.length) return;
+  db.exec('PRAGMA foreign_keys = OFF');
+  try {
+    for (let index = start; index < MIGRATIONEN.length; index += 1) {
+      const version = index + 1;
+      const sql = MIGRATIONEN[index];
+      if (sql === undefined) continue;
+      db.exec('BEGIN');
+      try {
+        db.exec(sql);
+        db.exec(`PRAGMA user_version = ${version}`);
+        db.exec('COMMIT');
+      } catch (fehler) {
+        db.exec('ROLLBACK');
+        const grund = fehler instanceof Error ? fehler.message : 'unknown';
+        throw new Error(`Migration ${version} failed: ${grund}`, { cause: fehler });
+      }
     }
+    const verstoesse = db.prepare('PRAGMA foreign_key_check').all();
+    if (verstoesse.length > 0) throw new Error('Foreign key check failed after migration.');
+  } finally {
+    db.exec('PRAGMA foreign_keys = ON');
   }
 }
 

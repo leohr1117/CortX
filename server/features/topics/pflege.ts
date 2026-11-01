@@ -55,13 +55,15 @@ function wirf(grund: PflegeGrund): never {
   throw new AppFehler(status, pflegeMeldung(grund));
 }
 
-function alleNamen(db: DatabaseSync): string[] {
-  const roh = db.prepare('SELECT name FROM "topic"').all() as Array<{ name: string }>;
+function alleNamen(db: DatabaseSync, kontoId: string): string[] {
+  const roh = db.prepare('SELECT name FROM "topic" WHERE account_id = ?').all(kontoId) as Array<{ name: string }>;
   return roh.map((zeile) => zeile.name);
 }
 
-function liesThema(db: DatabaseSync, name: string): ThemaZeile | null {
-  const roh = db.prepare('SELECT id, name, name_key, created FROM "topic" WHERE name_key = ?').get(name.toLocaleLowerCase()) as
+function liesThema(db: DatabaseSync, name: string, kontoId: string): ThemaZeile | null {
+  const roh = db
+    .prepare('SELECT id, name, name_key, created FROM "topic" WHERE name_key = ? AND account_id = ?')
+    .get(name.toLocaleLowerCase(), kontoId) as
     | { id: number; name: string; name_key: string; created: string }
     | undefined;
   if (!roh) return null;
@@ -114,7 +116,12 @@ function schnapp(db: DatabaseSync, quelle: ThemaZeile): UndoBild {
   };
 }
 
-function wendeVerschiebung(db: DatabaseSync, quelle: ThemaZeile, zielId: number): { token: string; count: number } {
+function wendeVerschiebung(
+  db: DatabaseSync,
+  quelle: ThemaZeile,
+  zielId: number,
+  kontoId: string,
+): { token: string; count: number } {
   const bild = schnapp(db, quelle);
   const loeschKorrektur = db.prepare('DELETE FROM "correction" WHERE id = ?');
   for (const korrektur of bild.corrections) loeschKorrektur.run(korrektur.id);
@@ -122,21 +129,22 @@ function wendeVerschiebung(db: DatabaseSync, quelle: ThemaZeile, zielId: number)
   const weg = db.prepare('DELETE FROM "topic" WHERE id = ?').run(quelle.id);
   if (Number(weg.changes) !== 1) throw new AppFehler(500, 'Could not update the topic.');
   const token = randomUUID();
-  db.prepare('DELETE FROM "topic_undo"').run();
-  db.prepare('INSERT INTO "topic_undo" (token, payload, created) VALUES (?, ?, ?)').run(
+  db.prepare('DELETE FROM "topic_undo" WHERE account_id = ?').run(kontoId);
+  db.prepare('INSERT INTO "topic_undo" (token, payload, created, account_id) VALUES (?, ?, ?, ?)').run(
     token,
     JSON.stringify(bild),
     new Date().toISOString(),
+    kontoId,
   );
   return { token, count: bild.noteIds.length };
 }
 
-export function benenneUm(db: DatabaseSync, aktuell: string, roh: string): { topic: string } {
+export function benenneUm(db: DatabaseSync, aktuell: string, roh: string, kontoId: string): { topic: string } {
   return transaktion(db, () => {
-    const plan = planeUmbenennen(aktuell, roh, alleNamen(db));
+    const plan = planeUmbenennen(aktuell, roh, alleNamen(db, kontoId));
     if (!plan.ok) wirf(plan.grund);
     if (!plan.geaendert) return { topic: plan.aktuell };
-    const quelle = liesThema(db, plan.aktuell);
+    const quelle = liesThema(db, plan.aktuell, kontoId);
     if (!quelle) wirf('missing');
     try {
       db.prepare('UPDATE "topic" SET name = ?, name_key = ? WHERE id = ?').run(
@@ -156,70 +164,78 @@ export function fuehreZusammen(
   db: DatabaseSync,
   aktuell: string,
   roh: string,
+  kontoId: string,
 ): { token: string; from: string; into: string; count: number } {
   return transaktion(db, () => {
-    const plan = planeZusammenfuehren(aktuell, roh, alleNamen(db));
+    const plan = planeZusammenfuehren(aktuell, roh, alleNamen(db, kontoId));
     if (!plan.ok) wirf(plan.grund);
-    const quelle = liesThema(db, plan.quelle);
-    const ziel = liesThema(db, plan.ziel);
+    const quelle = liesThema(db, plan.quelle, kontoId);
+    const ziel = liesThema(db, plan.ziel, kontoId);
     if (!quelle || !ziel) wirf('missing');
-    const ergebnis = wendeVerschiebung(db, quelle, ziel.id);
+    const ergebnis = wendeVerschiebung(db, quelle, ziel.id, kontoId);
     return { token: ergebnis.token, from: quelle.name, into: ziel.name, count: ergebnis.count };
   });
 }
 
-export function loescheThema(db: DatabaseSync, aktuell: string): { token: string; topic: string; count: number } {
+export function loescheThema(
+  db: DatabaseSync,
+  aktuell: string,
+  kontoId: string,
+): { token: string; topic: string; count: number } {
   return transaktion(db, () => {
-    const plan = planeLoeschen(aktuell, alleNamen(db));
+    const plan = planeLoeschen(aktuell, alleNamen(db, kontoId));
     if (!plan.ok) wirf(plan.grund);
-    const quelle = liesThema(db, plan.name);
-    const inbox = liesThema(db, INBOX_NAME);
+    const quelle = liesThema(db, plan.name, kontoId);
+    const inbox = liesThema(db, INBOX_NAME, kontoId);
     if (!quelle) wirf('missing');
     if (!inbox) throw new AppFehler(500, 'Could not delete the topic.');
-    const ergebnis = wendeVerschiebung(db, quelle, inbox.id);
+    const ergebnis = wendeVerschiebung(db, quelle, inbox.id, kontoId);
     return { token: ergebnis.token, topic: quelle.name, count: ergebnis.count };
   });
 }
 
-export function macheRueckgaengig(db: DatabaseSync, token: string): { topic: string } {
+export function macheRueckgaengig(db: DatabaseSync, token: string, kontoId: string): { topic: string } {
   return transaktion(db, () => {
-    const zeile = db.prepare('SELECT payload FROM "topic_undo" WHERE token = ?').get(token) as
-      | { payload: string }
-      | undefined;
+    const zeile = db
+      .prepare('SELECT payload FROM "topic_undo" WHERE token = ? AND account_id = ?')
+      .get(token, kontoId) as { payload: string } | undefined;
     if (!zeile) throw new AppFehler(404, NICHTS);
     const bild = liesBild(zeile.payload);
     if (!bild) throw new AppFehler(500, GEHT_NICHT);
-    const belegt = db.prepare('SELECT id FROM "topic" WHERE id = ? OR name_key = ?').get(bild.topic.id, bild.topic.nameKey);
+    const belegt = db
+      .prepare('SELECT id FROM "topic" WHERE id = ? OR (account_id = ? AND name_key = ?)')
+      .get(bild.topic.id, kontoId, bild.topic.nameKey);
     if (belegt) throw new AppFehler(409, SCHON_DA);
-    const notizDa = db.prepare('SELECT id FROM "note" WHERE id = ?');
+    const notizDa = db.prepare('SELECT id FROM "note" WHERE id = ? AND account_id = ?');
     for (const id of bild.noteIds) {
-      if (!notizDa.get(id)) throw new AppFehler(409, GEHT_NICHT);
+      if (!notizDa.get(id, kontoId)) throw new AppFehler(409, GEHT_NICHT);
     }
     const korrekturDa = db.prepare('SELECT id FROM "correction" WHERE id = ?');
     for (const korrektur of bild.corrections) {
       if (korrekturDa.get(korrektur.id)) throw new AppFehler(409, GEHT_NICHT);
     }
-    db.prepare('INSERT INTO "topic" (id, name, name_key, created) VALUES (?, ?, ?, ?)').run(
+    db.prepare('INSERT INTO "topic" (id, name, name_key, created, account_id) VALUES (?, ?, ?, ?, ?)').run(
       bild.topic.id,
       bild.topic.name,
       bild.topic.nameKey,
       bild.topic.created,
+      kontoId,
     );
-    const themaDa = db.prepare('SELECT id FROM "topic" WHERE id = ?');
+    const themaDa = db.prepare('SELECT id FROM "topic" WHERE id = ? AND account_id = ?');
     for (const korrektur of bild.corrections) {
-      if (!themaDa.get(korrektur.fromTopicId) || !themaDa.get(korrektur.toTopicId)) {
+      if (!themaDa.get(korrektur.fromTopicId, kontoId) || !themaDa.get(korrektur.toTopicId, kontoId)) {
         throw new AppFehler(409, GEHT_NICHT);
       }
     }
-    const setze = db.prepare('UPDATE "note" SET topic_id = ? WHERE id = ?');
-    for (const id of bild.noteIds) setze.run(bild.topic.id, id);
+    const setze = db.prepare('UPDATE "note" SET topic_id = ? WHERE id = ? AND account_id = ?');
+    for (const id of bild.noteIds) setze.run(bild.topic.id, id, kontoId);
     const einfuegen = db.prepare(
       'INSERT INTO "correction" (id, note_id, from_topic_id, to_topic_id, created) VALUES (?, ?, ?, ?, ?)',
     );
     for (const korrektur of bild.corrections) {
       einfuegen.run(korrektur.id, korrektur.noteId, korrektur.fromTopicId, korrektur.toTopicId, korrektur.created);
     }
-    db.prepare('DELETE FROM "topic_undo" WHERE token = ?').run(token);
+    db.prepare('DELETE FROM "topic_undo" WHERE token = ? AND account_id = ?').run(token, kontoId);
     return { topic: bild.topic.name };
   });
 }

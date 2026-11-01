@@ -1,4 +1,5 @@
 import type { Notiz } from '../../../../shared/kern/modell.ts';
+import { meldeAblauf } from '../zugang/index.ts';
 
 export class NotizFehler extends Error {
   readonly status: number | null;
@@ -18,6 +19,7 @@ async function liesFehler(antwort: Response, fallback: string): Promise<never> {
   } catch {
     meldung = fallback;
   }
+  meldeAblauf(antwort.status);
   throw new NotizFehler(meldung, antwort.status);
 }
 

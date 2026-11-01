@@ -3,8 +3,8 @@ import { afterEach, describe, expect, it } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import type { DatabaseSync } from 'node:sqlite';
 import { NOTE_TEXT_MAX, TOPIC_NAME_MAX, SPEICHER } from '../../../shared/kern/grenzen.ts';
-import { erstelleApp } from '../../kern/app.ts';
 import { oeffneDatenbank } from '../../kern/db.ts';
+import { oeffneAngemeldet } from '../zugang/attrappe.ts';
 
 describe('filing api', () => {
   const dbs: DatabaseSync[] = [];
@@ -20,7 +20,7 @@ describe('filing api', () => {
   async function app(): Promise<FastifyInstance> {
     const db = oeffneDatenbank(SPEICHER);
     dbs.push(db);
-    const gebaut = await erstelleApp(db);
+    const gebaut = await oeffneAngemeldet(db);
     apps.push(gebaut);
     return gebaut;
   }

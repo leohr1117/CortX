@@ -7,6 +7,9 @@ import { ZodError } from 'zod';
 import { bibliothekRouten } from '../features/library/index.ts';
 import { notizRouten } from '../features/notes/index.ts';
 import { themenRouten } from '../features/topics/index.ts';
+import { zugangRouten, type Dienste } from '../features/zugang/index.ts';
+import { strideHttp } from '../features/zugang/stride.ts';
+import { strideUrl } from './config.ts';
 import { AppFehler } from './fehler.ts';
 
 const UNGUELTIG = 'The note text is missing or invalid.';
@@ -23,8 +26,14 @@ export async function erstelleApp(
   db: DatabaseSync,
   clientPfad: string | null = null,
   stufe: string | false = false,
+  dienste: Partial<Dienste> = {},
 ): Promise<FastifyInstance> {
+  const lauf: Dienste = {
+    stride: dienste.stride ?? strideHttp(strideUrl()),
+    jetzt: dienste.jetzt ?? (() => Date.now()),
+  };
   const app = Fastify({ logger: protokoll(stufe) });
+  app.decorateRequest('kontoId', null);
 
   app.setErrorHandler((fehler: FastifyError | Error, anfrage, antwort) => {
     if (fehler instanceof ZodError || fehler instanceof AppFehler) {
@@ -42,6 +51,7 @@ export async function erstelleApp(
 
   await app.register(
     async (api) => {
+      zugangRouten(api, db, lauf);
       themenRouten(api, db);
       notizRouten(api, db);
       bibliothekRouten(api, db);

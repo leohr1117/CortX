@@ -31,6 +31,6 @@ export function reihenfolge(queue: readonly WarteschlangeEintrag[]): Warteschlan
 
 export function istDauerhaft(status: number | null): boolean {
   if (status === null) return false;
-  if (status === 408 || status === 429) return false;
+  if (status === 401 || status === 408 || status === 429) return false;
   return status >= 400 && status < 500;
 }

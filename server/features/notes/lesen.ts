@@ -52,17 +52,19 @@ export function alsNotiz(wert: NotizZeile): Notiz {
   };
 }
 
-export function liesNotizNachId(db: DatabaseSync, id: number): NotizZeile | null {
-  return zeile(db.prepare(`${SELECT} WHERE "note".id = ?`).get(id));
+export function liesNotizNachId(db: DatabaseSync, id: number, kontoId: string): NotizZeile | null {
+  return zeile(db.prepare(`${SELECT} WHERE "note".id = ? AND "note".account_id = ?`).get(id, kontoId));
 }
 
-export function liesNotizNachClient(db: DatabaseSync, clientId: string): NotizZeile | null {
-  return zeile(db.prepare(`${SELECT} WHERE "note".client_id = ?`).get(clientId));
+export function liesNotizNachClient(db: DatabaseSync, clientId: string, kontoId: string): NotizZeile | null {
+  return zeile(db.prepare(`${SELECT} WHERE "note".client_id = ? AND "note".account_id = ?`).get(clientId, kontoId));
 }
 
-export function liesNotizenFuerThema(db: DatabaseSync, topicId: number): NotizZeile[] {
+export function liesNotizenFuerThema(db: DatabaseSync, topicId: number, kontoId: string): NotizZeile[] {
   const roh = db
-    .prepare(`${SELECT} WHERE "note".topic_id = ? ORDER BY "note".created DESC, "note".id DESC`)
-    .all(topicId);
+    .prepare(
+      `${SELECT} WHERE "note".topic_id = ? AND "note".account_id = ? ORDER BY "note".created DESC, "note".id DESC`,
+    )
+    .all(topicId, kontoId);
   return roh.map((eintrag) => zeile(eintrag)).filter((eintrag): eintrag is NotizZeile => eintrag !== null);
 }

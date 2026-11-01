@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { meldeAn } from './anmelden.ts';
 import { leereLokal } from './lokal.ts';
 
 const BILDER = 'tmp-test/screens';
@@ -9,6 +10,7 @@ const TAG_TEXT =
 const LISBON = 'Travel \u2013 Lisbon';
 
 test.beforeEach(async ({ page }) => {
+  await meldeAn(page);
   await leereLokal(page);
 });
 

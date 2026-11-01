@@ -1,4 +1,5 @@
 import type { Notiz, Thema } from '../../../../shared/kern/modell.ts';
+import { meldeAblauf } from '../zugang/index.ts';
 
 export class ApiFehler extends Error {
   readonly status: number | null;
@@ -11,7 +12,10 @@ export class ApiFehler extends Error {
 }
 
 async function leseJson<T>(antwort: Response): Promise<T> {
-  if (!antwort.ok) throw new ApiFehler(antwort.status);
+  if (!antwort.ok) {
+    meldeAblauf(antwort.status);
+    throw new ApiFehler(antwort.status);
+  }
   return (await antwort.json()) as T;
 }
 
