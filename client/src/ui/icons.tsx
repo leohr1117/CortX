@@ -83,6 +83,33 @@ export function HakenIcon() {
   );
 }
 
+export function StiftIcon() {
+  return (
+    <svg className="i" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M4 20h4L19 9l-4-4L4 16z" />
+      <path d="M13.5 6.5l4 4" />
+    </svg>
+  );
+}
+
+export function ZusammenIcon() {
+  return (
+    <svg className="i" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M6 4v5a5 5 0 005 5h7" />
+      <path d="M15 11l3 3-3 3" />
+      <path d="M6 20v-6" />
+    </svg>
+  );
+}
+
+export function PapierkorbIcon() {
+  return (
+    <svg className="i" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13" />
+    </svg>
+  );
+}
+
 export function WolkeAusIcon() {
   return (
     <svg className="i ic" viewBox="0 0 24 24" aria-hidden="true">

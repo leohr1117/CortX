@@ -34,4 +34,12 @@ export const MIGRATIONEN: readonly string[] = [
   );
   CREATE INDEX correction_note ON "correction"(note_id);
   `,
+  `
+  CREATE TABLE "topic_undo" (
+    token TEXT PRIMARY KEY,
+    payload TEXT NOT NULL,
+    created TEXT NOT NULL
+  );
+  `,
 ];
+

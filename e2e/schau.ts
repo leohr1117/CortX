@@ -90,6 +90,7 @@ export function sichereBestand(): Bestand {
 
 export function stelleBestand(bestand: Bestand): void {
   schreib((db) => {
+    db.exec('DELETE FROM "topic_undo"');
     db.exec('DELETE FROM "correction"');
     db.exec('DELETE FROM "note"');
     db.exec('DELETE FROM "topic"');
@@ -122,6 +123,7 @@ export function stelleBestand(bestand: Bestand): void {
 
 export function setzeSchauspiel(themen: readonly SaatThema[]): void {
   schreib((db) => {
+    db.exec('DELETE FROM "topic_undo"');
     db.exec('DELETE FROM "correction"');
     db.exec('DELETE FROM "note"');
     db.exec(`DELETE FROM "topic" WHERE name_key != 'inbox'`);

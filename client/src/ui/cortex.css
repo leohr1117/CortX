@@ -566,4 +566,87 @@ svg.i.ok {
   .ab { margin-left: 0; margin-right: 0; }
   .liste { border: 1px solid var(--trenner); border-radius: 8px; }
   .leer1 { margin-left: 0; }
+  .blatt .bf { display: flex; justify-content: flex-end; }
+  .blatt .bf .btn { width: auto; min-width: 120px; }
+  .toast.ruhe { bottom: 40px; }
+}
+
+.ib.on { background: var(--flaeche-2); }
+.menue-anker { position: relative; z-index: 6; flex: none; }
+.menue {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  width: 244px;
+  background: var(--flaeche);
+  border: 1px solid var(--rand-ruhig);
+  border-radius: 8px;
+  padding: 4px 0;
+  z-index: 1;
+}
+.menue .m {
+  width: 100%;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 16px;
+  text-align: left;
+  border-radius: 0;
+}
+.menue .m svg { color: var(--leise); flex: none; }
+.menue .m:hover,
+.menue .m:focus-visible { background: var(--flaeche-2); }
+.menue .m:focus-visible { outline: 2px solid var(--fokus); outline-offset: -2px; }
+.menue .mt { display: flex; flex-direction: column; min-width: 0; }
+.menue .m .ne { font-size: 13px; line-height: 18px; color: var(--leise); }
+.menue .tr { height: 1px; background: var(--trenner); margin: 4px 0; }
+.menue .m.gef,
+.menue .m.gef svg { color: var(--gefahr); }
+.menue .m.gef .ne { color: var(--leise); }
+.blatt .bh {
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--leise);
+  padding: 0 16px 8px;
+  flex: none;
+}
+.blatt .bi { padding: 0 16px; flex: none; }
+.blatt .bf { padding: 12px 16px 0; flex: none; }
+.blatt .bf .btn { width: 100%; }
+.blatt form { display: flex; flex-direction: column; }
+.lab {
+  display: block;
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 20px;
+  margin: 0 0 8px;
+}
+input.feld {
+  width: 100%;
+  min-height: 48px;
+  border: 1px solid var(--feldrand);
+  border-radius: 8px;
+  background: var(--grund);
+  padding: 12px 14px;
+  font: inherit;
+  font-size: 16px;
+  line-height: 24px;
+  color: var(--haupt);
+}
+input.feld:focus {
+  outline: 2px solid var(--fokus);
+  outline-offset: 2px;
+}
+input.feld::placeholder { color: var(--leise); }
+.feldfehler {
+  margin: 8px 0 0;
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--gefahr);
+}
+.toast.ruhe { bottom: max(34px, env(safe-area-inset-bottom)); }
+@media (min-width: 900px) {
+  .blatt .bf .btn { width: auto; min-width: 120px; }
+  .toast.ruhe { bottom: 40px; }
 }

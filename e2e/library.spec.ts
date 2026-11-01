@@ -124,9 +124,9 @@ test('library, topic, and empty states', async ({ page }, testInfo) => {
     await expect(page.locator('.notiz p')).toHaveText([MARA, FREITAG, SERVER, JONAS, BUCH]);
     await expect(page.locator('.zeit')).toHaveText(['14:32', '09:12', '17:48', '12:55', '08:20']);
     await expect(page.getByRole('button', { name: 'Note actions' })).toHaveCount(5);
-    await page.screenshot({ path: `${BILDER}/${testInfo.project.name}-05b-topic.png` });
-    await page.getByRole('button', { name: 'Topic actions' }).click();
+    await expect(page.getByRole('button', { name: 'Topic actions' })).toBeVisible();
     await expect(page.getByRole('menu')).toHaveCount(0);
+    await page.screenshot({ path: `${BILDER}/${testInfo.project.name}-05b-topic.png` });
     await page.getByRole('link', { name: 'Back to Library' }).click();
     await expect(page).toHaveURL(/\/library$/);
 

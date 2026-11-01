@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Link } from 'react-router';
+import { useEffect, useRef, useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router';
 import {
   bibliothekLeer,
   letzteNotizZeile,
@@ -7,6 +7,15 @@ import {
   type BibliothekZeile,
 } from '../../../../shared/features/library/index.ts';
 import { HashIcon, PosteingangIcon, WeiterIcon } from '../../ui/icons.tsx';
+import {
+  liesGemerktePflege,
+  liesPflegeMeldung,
+  macheRueckgaengig,
+  PflegeFehler,
+  PflegeToast,
+  vergissPflege,
+  type PflegeMeldung,
+} from '../topics/index.ts';
 import { ladeBibliothek, themaPfad } from './api.ts';
 import { Kopf } from './Kopf.tsx';
 
@@ -26,18 +35,28 @@ function Zeile({ zeile, inbox, jetzt }: { zeile: BibliothekZeile; inbox: boolean
 }
 
 export function LibraryAnsicht() {
+  const navigate = useNavigate();
+  const ort = useLocation();
+  const ausOrt = liesPflegeMeldung(ort.state);
+  const [gemerkt, setGemerkt] = useState<PflegeMeldung | null>(liesGemerktePflege);
+  const meldung = ausOrt ?? gemerkt;
   const [stand, setStand] = useState<Bibliothek | null>(null);
   const [fehler, setFehler] = useState(false);
+  const [undoFehler, setUndoFehler] = useState<string | null>(null);
+  const [machtRueck, setMachtRueck] = useState(false);
+  const anfrage = useRef(0);
   const jetzt = new Date();
 
   useEffect(() => {
+    const id = anfrage.current + 1;
+    anfrage.current = id;
     let aktiv = true;
     ladeBibliothek()
       .then((daten) => {
-        if (aktiv) setStand(daten);
+        if (aktiv && anfrage.current === id) setStand(daten);
       })
       .catch(() => {
-        if (aktiv) setFehler(true);
+        if (aktiv && anfrage.current === id) setFehler(true);
       })
       .finally(() => {
         if (aktiv) document.documentElement.dataset.bereit = '1';
@@ -46,6 +65,37 @@ export function LibraryAnsicht() {
       aktiv = false;
     };
   }, []);
+
+  useEffect(() => {
+    setUndoFehler(null);
+  }, [meldung?.token]);
+
+  async function rueckgaengig() {
+    if (!meldung || machtRueck) return;
+    setMachtRueck(true);
+    try {
+      await macheRueckgaengig(meldung.token);
+    } catch (grund: unknown) {
+      setUndoFehler(grund instanceof PflegeFehler ? grund.message : 'Could not undo.');
+      setMachtRueck(false);
+      return;
+    }
+    const id = anfrage.current + 1;
+    anfrage.current = id;
+    try {
+      const daten = await ladeBibliothek();
+      if (anfrage.current === id) {
+        setStand(daten);
+        setFehler(false);
+      }
+    } catch {
+      if (anfrage.current === id) setFehler(true);
+    }
+    vergissPflege();
+    setGemerkt(null);
+    setMachtRueck(false);
+    navigate('/library', { replace: true, state: null });
+  }
 
   const leer = stand ? bibliothekLeer(stand) : false;
   const themen = stand?.topics ?? [];
@@ -74,6 +124,9 @@ export function LibraryAnsicht() {
           </>
         ) : null}
       </main>
+      {meldung ? (
+        <PflegeToast meldung={meldung} fehler={undoFehler} gesperrt={machtRueck} onUndo={() => void rueckgaengig()} />
+      ) : null}
     </div>
   );
 }
