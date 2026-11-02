@@ -631,6 +631,18 @@ svg.i.ok {
   color: var(--leise);
   margin-top: 4px;
 }
+.notiz .termin,
+.zeile .termin {
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--leise);
+}
+.notiz .termin { margin-top: 2px; }
+.zeile .termin {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .notiz .ib {
   width: 48px;
   height: 48px;

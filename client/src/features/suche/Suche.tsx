@@ -3,6 +3,7 @@ import { SUCH_MAX, type SuchTreffer } from '../../../../shared/features/suche/in
 import { gleicherName } from '../../../../shared/features/tags/index.ts';
 import { INBOX_NAME } from '../../../../shared/kern/grenzen.ts';
 import { LeseText } from '../format/index.ts';
+import { TerminZeile } from '../termine/index.ts';
 import { HashIcon, LupeIcon, PosteingangIcon, WeiterIcon } from '../../ui/icons.tsx';
 import { notizPfad } from './api.ts';
 
@@ -39,6 +40,7 @@ export function Trefferliste({ treffer }: { treffer: SuchTreffer[] }) {
                 <LeseText text={zeile.text} dicht />
               </div>
               <div className="ne">{zeile.topic}</div>
+              <TerminZeile text={zeile.text} created={zeile.created} />
             </span>
             <WeiterIcon />
           </Link>

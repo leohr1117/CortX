@@ -28,6 +28,7 @@ import {
 } from '../topics/index.ts';
 import { ladeThema, LeseFehler, themaPfad } from './api.ts';
 import { LeseText } from '../format/index.ts';
+import { TerminZeile } from '../termine/index.ts';
 import { Kopf } from './Kopf.tsx';
 
 function meldung(fehler: unknown): string {
@@ -57,6 +58,7 @@ function NotizZeile({
       <div className="tx">
         <LeseText text={notiz.text} />
         <div className="zeit">{uhrzeit(notiz.created)}</div>
+        <TerminZeile text={notiz.text} created={notiz.created} />
       </div>
       <NotizKnopf
         id={notiz.id}

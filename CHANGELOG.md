@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.4.0
+
+Reading a note can show a date. A date or a time in the text, in English or German, shows under the note: "tomorrow 3pm", "morgen 15 Uhr", "next Monday", "03.11.", a weekday, or a clock time such as "15:30". It shows on a topic, in Inbox, and in search results. The day is taken in Europe/Berlin from when the note was written. The saved text stays plain. Capture and edit stay as they are.
+
 ## 1.3.0
 
 A note can have a heading. In edit, Heading marks the line at the cursor, or turns that heading back into a normal line. A heading is a line that starts with "= ". Reading shows it on a topic, in Inbox, and in search results. The saved text stays plain. #topic is still a tag. Capture stays a plain text field.
