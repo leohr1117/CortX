@@ -63,7 +63,7 @@ export function Anmeldung() {
                 strokeLinecap="round"
               />
             </svg>
-            Cortex
+            CortX
           </div>
           <p className="sub">Sign in with your Stride account.</p>
           <label className="lab" htmlFor="username">

@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.5.1
+
+The home screen name is CortX. The icon is three lines of a note, the top one white and the ones under it gray, on a full dark square. A maskable icon fills the phone's shape, so no white ring shows around it.
+
 ## 1.5.0
 
 A note opens on its own page. Inbox, a topic, and search show the whole note, with its lines and formatting. Tap a note to read it. The pencil turns that same page into a writing surface. The read icon saves and shows the note again. Edits also save on their own and when you go back. A draft stays on the device, including while you are offline. Change the topic or delete the note from the menu, and undo a delete. The old edit form is gone.
