@@ -1,9 +1,10 @@
 import type { Beleg, LeseTeil } from './baum.ts';
+import { WICHTIG_INLINE } from './zeile.ts';
 
-const ESCAPE = new Set(['\\', '`', '*', '_', '~', '[', ']']);
+const ESCAPE = new Set(['\\', '`', '*', '_', '~', '[', ']', '!']);
 
 interface Fund {
-  art: 'code' | 'link' | 'fett' | 'kursiv' | 'streich';
+  art: 'code' | 'link' | 'fett' | 'kursiv' | 'streich' | 'wichtig';
   von: number;
   bis: number;
   innenVon: number;
@@ -144,22 +145,137 @@ function belegAbsolut(basis: number, fund: Fund): Beleg {
   return beleg;
 }
 
-function alsSchrift(art: 'fett' | 'kursiv' | 'streich', teile: LeseTeil[]): LeseTeil {
-  const inhalt = teile.length > 0 ? teile : [{ art: 'text' as const, text: '' }];
-  const schlicht = teile.length === 1 && teile[0]?.art === 'text' ? teile[0].text : null;
-  if (art === 'fett') return schlicht !== null ? { art, text: schlicht } : { art, teile: inhalt };
-  if (art === 'kursiv') return schlicht !== null ? { art, text: schlicht } : { art, teile: inhalt };
-  return schlicht !== null ? { art, text: schlicht } : { art, teile: inhalt };
+function zeichenLeer(zeichen: string | undefined): boolean {
+  return zeichen === undefined || /\s/u.test(zeichen);
 }
 
-export function leseInline(zeile: string, basis: number, inLink = false): { teile: LeseTeil[]; belege: Beleg[] } {
+function zeichenSatz(zeichen: string | undefined): boolean {
+  return zeichen !== undefined && /\p{P}/u.test(zeichen);
+}
+
+function davorVon(zeile: string, i: number, vorher: string): string | undefined {
+  if (i > 0) return zeile[i - 1];
+  if (vorher === '' || vorher === '\n') return undefined;
+  return vorher;
+}
+
+function kannOeffnen(zeile: string, i: number, vorher: string): boolean {
+  const nach = zeile[i + WICHTIG_INLINE.length];
+  if (nach === '[' || zeichenLeer(nach)) return false;
+  const davor = davorVon(zeile, i, vorher);
+  if (davor === undefined || /\s/u.test(davor)) return true;
+  return davor === '(';
+}
+
+function kannSchliessen(zeile: string, i: number, vorher: string): boolean {
+  const davor = davorVon(zeile, i, vorher);
+  if (zeichenLeer(davor)) return false;
+  if (!zeichenSatz(davor)) return true;
+  const nach = zeile[i + WICHTIG_INLINE.length];
+  return zeichenLeer(nach) || zeichenSatz(nach);
+}
+
+function entwertet(zeile: string, index: number): boolean {
+  let anzahl = 0;
+  for (let k = index - 1; k >= 0 && zeile[k] === '\\'; k -= 1) anzahl += 1;
+  return anzahl % 2 === 1;
+}
+
+function wichtigPaare(zeile: string, vorher: string): Map<number, number> {
+  const laeufe: Array<{ index: number; oeffnen: boolean; schliessen: boolean }> = [];
+  let i = 0;
+  while (i < zeile.length) {
+    if (zeile[i] === '\\' && ESCAPE.has(zeile[i + 1] ?? '')) {
+      i += 2;
+      continue;
+    }
+    if (zeile[i] === '`') {
+      const code = sucheCode(zeile, i);
+      if (code) {
+        i = code.bis;
+        continue;
+      }
+    }
+    if (zeile.startsWith(WICHTIG_INLINE, i) && zeile[i + WICHTIG_INLINE.length] !== '[' && !entwertet(zeile, i)) {
+      laeufe.push({
+        index: i,
+        oeffnen: kannOeffnen(zeile, i, vorher),
+        schliessen: kannSchliessen(zeile, i, vorher),
+      });
+      i += WICHTIG_INLINE.length;
+      continue;
+    }
+    i += 1;
+  }
+  const stapel: Array<{ index: number }> = [];
+  const paare = new Map<number, number>();
+  for (const lauf of laeufe) {
+    let getroffen = false;
+    if (lauf.schliessen) {
+      for (let k = stapel.length - 1; k >= 0; k -= 1) {
+        const auf = stapel[k];
+        if (!auf || auf.index + WICHTIG_INLINE.length >= lauf.index) continue;
+        stapel.splice(k);
+        paare.set(auf.index, lauf.index);
+        getroffen = true;
+        break;
+      }
+    }
+    if (!getroffen && lauf.oeffnen) stapel.push({ index: lauf.index });
+  }
+  return paare;
+}
+
+function alsSchrift(art: 'fett' | 'kursiv' | 'streich' | 'wichtig', teile: LeseTeil[]): LeseTeil {
+  const inhalt = teile.length > 0 ? teile : [{ art: 'text' as const, text: '' }];
+  const schlicht = teile.length === 1 && teile[0]?.art === 'text' ? teile[0].text : null;
+  if (schlicht !== null) {
+    if (art === 'fett') return { art, text: schlicht };
+    if (art === 'kursiv') return { art, text: schlicht };
+    if (art === 'streich') return { art, text: schlicht };
+    return { art, text: schlicht };
+  }
+  if (art === 'fett') return { art, teile: inhalt };
+  if (art === 'kursiv') return { art, teile: inhalt };
+  if (art === 'streich') return { art, teile: inhalt };
+  return { art, teile: inhalt };
+}
+
+export function leseInline(
+  zeile: string,
+  basis: number,
+  inLink = false,
+  vorher = '\n',
+): { teile: LeseTeil[]; belege: Beleg[] } {
   const teile: LeseTeil[] = [];
   const belege: Beleg[] = [];
+  const paare = wichtigPaare(zeile, vorher);
   let i = 0;
   while (i < zeile.length) {
     if (zeile[i] === '\\' && ESCAPE.has(zeile[i + 1] ?? '')) {
       haengeText(teile, zeile[i + 1] ?? '');
       i += 2;
+      continue;
+    }
+    const zu = paare.get(i);
+    if (zu !== undefined) {
+      const innenVon = i + WICHTIG_INLINE.length;
+      const fund: Fund = {
+        art: 'wichtig',
+        von: i,
+        bis: zu + WICHTIG_INLINE.length,
+        innenVon,
+        innenBis: zu,
+        marker: [
+          [i, innenVon],
+          [zu, zu + WICHTIG_INLINE.length],
+        ],
+      };
+      const innen = zeile.slice(innenVon, zu);
+      const schrift = leseInline(innen, basis + innenVon, inLink, zeile[innenVon - 1] ?? '\n');
+      teile.push(alsSchrift('wichtig', schrift.teile));
+      belege.push(belegAbsolut(basis, fund), ...schrift.belege);
+      i = fund.bis;
       continue;
     }
     const fund = versuch(zeile, i, inLink);
@@ -178,12 +294,12 @@ export function leseInline(zeile: string, basis: number, inLink = false): { teil
       teile.push({ art: 'code', text: innen });
       belege.push(belegAbsolut(basis, fund));
     } else if (fund.art === 'link') {
-      const label = leseInline(innen, basis + fund.innenVon, true);
+      const label = leseInline(innen, basis + fund.innenVon, true, zeile[fund.innenVon - 1] ?? '\n');
       const inhalt = label.teile.length > 0 ? label.teile : [{ art: 'text' as const, text: '' }];
       teile.push({ art: 'link', teile: inhalt, ziel: fund.ziel ?? '' });
       belege.push(belegAbsolut(basis, fund), ...label.belege);
     } else {
-      const schrift = leseInline(innen, basis + fund.innenVon, inLink);
+      const schrift = leseInline(innen, basis + fund.innenVon, inLink, zeile[fund.innenVon - 1] ?? '\n');
       teile.push(alsSchrift(fund.art, schrift.teile));
       belege.push(belegAbsolut(basis, fund), ...schrift.belege);
     }

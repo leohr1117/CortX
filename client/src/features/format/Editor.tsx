@@ -10,6 +10,7 @@ import {
   schalteStrich,
   schalteUeberschrift,
   schalteVerknuepfung,
+  schalteWichtig,
   type TextWahl,
 } from '../../../../shared/features/format/index.ts';
 import type { FormatBefehl } from './Leiste.tsx';
@@ -29,6 +30,7 @@ function wende(befehl: FormatBefehl, text: string, start: number, ende: number, 
   if (befehl === 'code') return schalteCode(text, start, ende);
   if (befehl === 'liste') return schalteListe(text, start, ende);
   if (befehl === 'haken') return schalteHaken(text, start, ende);
+  if (befehl === 'wichtig') return schalteWichtig(text, start, ende);
   if (befehl === 'link') return schalteVerknuepfung(text, start, ende, ziel);
   return schalteUeberschrift(text, start, ende);
 }

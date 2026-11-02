@@ -18,8 +18,13 @@ export interface LeseStreichTeil {
   text: string;
 }
 
+export interface LeseWichtigTeil {
+  art: 'wichtig';
+  text: string;
+}
+
 export interface LeseVerschachtelt {
-  art: 'fett' | 'kursiv' | 'streich';
+  art: 'fett' | 'kursiv' | 'streich' | 'wichtig';
   teile: LeseTeil[];
 }
 
@@ -39,6 +44,7 @@ export type LeseTeil =
   | LeseFettTeil
   | LeseKursivTeil
   | LeseStreichTeil
+  | LeseWichtigTeil
   | LeseVerschachtelt
   | LeseCodeTeil
   | LeseLinkTeil;
@@ -69,12 +75,17 @@ export interface LeseUeberschrift {
   teile: LeseTeil[];
 }
 
+export interface LeseWichtig {
+  art: 'wichtig';
+  teile: LeseTeil[];
+}
+
 export interface LeseCodeBlock {
   art: 'codeblock';
   text: string;
 }
 
-export type LeseBlock = LeseAbsatz | LeseListe | LeseHaken | LeseUeberschrift | LeseCodeBlock;
+export type LeseBlock = LeseAbsatz | LeseListe | LeseHaken | LeseUeberschrift | LeseWichtig | LeseCodeBlock;
 
 export type BelegArt =
   | 'fett'
@@ -86,7 +97,8 @@ export type BelegArt =
   | 'liste'
   | 'nummer'
   | 'haken'
-  | 'ueberschrift';
+  | 'ueberschrift'
+  | 'wichtig';
 
 export interface Beleg {
   art: BelegArt;

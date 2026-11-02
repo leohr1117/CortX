@@ -6,6 +6,16 @@ export interface Versionseintrag {
 
 export const VERSIONEN: readonly Versionseintrag[] = [
   {
+    version: '1.7.0',
+    datum: '2026-11-02',
+    zeilen: [
+      'Mark words as Wichtig with !!text!!, or a whole line with !!!! at the start.',
+      'The format bar has a Wichtig button.',
+      'Wichtig is highlighted, and a whole line also has a bar on the left.',
+      'The saved note stays plain text.',
+    ],
+  },
+  {
     version: '1.6.0',
     datum: '2026-11-02',
     zeilen: [

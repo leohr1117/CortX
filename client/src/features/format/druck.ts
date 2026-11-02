@@ -1,4 +1,4 @@
-import { leseDokument, type Beleg } from '../../../../shared/features/format/index.ts';
+import { WICHTIG_ZEILE, leseDokument, type Beleg } from '../../../../shared/features/format/index.ts';
 
 export interface Druck {
   fett: boolean;
@@ -9,6 +9,7 @@ export interface Druck {
   ueberschrift: boolean;
   liste: boolean;
   haken: boolean;
+  wichtig: boolean;
 }
 
 function zeileAm(text: string, index: number): string {
@@ -49,5 +50,6 @@ export function leseDruck(text: string, start: number, ende: number): Druck {
     ueberschrift: zeile.startsWith('= '),
     liste: istListe(zeile),
     haken: istHaken(zeile),
+    wichtig: hat('wichtig') || zeile.startsWith(WICHTIG_ZEILE),
   };
 }

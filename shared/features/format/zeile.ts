@@ -1,4 +1,10 @@
 export const UEBERSCHRIFT_MARKER = '= ';
+export const WICHTIG_INLINE = '!!';
+export const WICHTIG_ZEILE = `${WICHTIG_INLINE}${WICHTIG_INLINE} `;
+
+export function wichtigZeile(zeile: string): boolean {
+  return zeile.startsWith(WICHTIG_ZEILE);
+}
 
 export function ohneWagen(zeile: string): string {
   return zeile.endsWith('\r') ? zeile.slice(0, -1) : zeile;

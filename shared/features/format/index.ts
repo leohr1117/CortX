@@ -20,8 +20,10 @@ export {
   type LeseTextTeil,
   type LeseUeberschrift,
   type LeseVerschachtelt,
+  type LeseWichtig,
+  type LeseWichtigTeil,
 } from './lesen.ts';
-export { UEBERSCHRIFT_MARKER } from './zeile.ts';
+export { UEBERSCHRIFT_MARKER, WICHTIG_ZEILE } from './zeile.ts';
 export {
   schalteCode,
   schalteFett,
@@ -31,6 +33,7 @@ export {
   schalteListe,
   schalteStrich,
   schalteVerknuepfung,
+  schalteWichtig,
 } from './befehl.ts';
 export { liegtInCode, wandleKuerzel } from './kuerzel.ts';
 export { sicherZiel } from './sicher.ts';

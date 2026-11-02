@@ -16,6 +16,7 @@ const CODE = 8;
 const LINK = 16;
 const UEBER = 32;
 const BLOCK = 64;
+const WICHTIG = 128;
 
 const BITS: Partial<Record<Beleg['art'], number>> = {
   fett: FETT,
@@ -25,7 +26,11 @@ const BITS: Partial<Record<Beleg['art'], number>> = {
   link: LINK,
   ueberschrift: UEBER,
   codeblock: BLOCK,
+  wichtig: WICHTIG,
 };
+
+const ZEILEN_BALKEN = Decoration.line({ class: 'cm-wichtig-zeile' });
+const MARKER_DIMM = Decoration.mark({ class: 'cm-wichtig-marker' });
 
 class PunktWidget extends WidgetType {
   eq(other: WidgetType): boolean {
@@ -100,7 +105,17 @@ function klasse(bit: number): string {
   if (bit & LINK) namen.push('cm-link');
   if (bit & UEBER) namen.push('cm-ueberschrift');
   if (bit & BLOCK) namen.push('cm-codeblock');
+  if (bit & WICHTIG) namen.push('cm-wichtig');
   return namen.join(' ');
+}
+
+function markerAktiv(view: EditorView, von: number, bis: number): boolean {
+  return view.state.selection.ranges.some((range) => {
+    const anfang = Math.min(range.from, range.to);
+    const ende = Math.max(range.from, range.to);
+    if (anfang === ende) return anfang >= von && anfang <= bis;
+    return anfang < bis && ende > von;
+  });
 }
 
 function zeileAktiv(view: EditorView, von: number): boolean {
@@ -127,11 +142,25 @@ function baue(view: EditorView): DecorationSet {
   if (text.length === 0) return Decoration.none;
   const stil = new Uint8Array(text.length);
   const verdeckt = new Uint8Array(text.length);
+  const gedimmt = new Uint8Array(text.length);
+  const zeilen = new Set<number>();
   const kacheln = new Map<number, Kachel>();
   for (const beleg of leseDokument(text).belege) {
+    const zeilenForm = beleg.art === 'wichtig' && beleg.marker.length === 1;
+    if (zeilenForm) zeilen.add(beleg.ganzVon);
     for (const [von, bis] of beleg.marker) {
-      if (bis <= von || zeileAktiv(view, von)) continue;
+      if (bis <= von) continue;
       const ende = Math.min(bis, text.length);
+      if (beleg.art === 'wichtig') {
+        if (!markerAktiv(view, von, ende)) {
+          for (let i = Math.max(0, von); i < ende; i += 1) {
+            if (text[i] === '\n') break;
+            gedimmt[i] = 1;
+          }
+        }
+        continue;
+      }
+      if (zeileAktiv(view, von)) continue;
       for (let i = Math.max(0, von); i < ende; i += 1) {
         if (text[i] === '\n') break;
         verdeckt[i] = 1;
@@ -143,12 +172,13 @@ function baue(view: EditorView): DecorationSet {
     if (bit === 0) continue;
     const ende = Math.min(beleg.bis, text.length);
     for (let i = Math.max(0, beleg.von); i < ende; i += 1) {
-      if (!verdeckt[i]) stil[i] |= bit;
+      if (!verdeckt[i] && !gedimmt[i]) stil[i] |= bit;
     }
   }
   const bau = new RangeSetBuilder<Decoration>();
   let i = 0;
   while (i < text.length) {
+    if (zeilen.has(i)) bau.add(i, i, ZEILEN_BALKEN);
     if (verdeckt[i]) {
       const kachel = kacheln.get(i);
       if (kachel && kachel.bis > kachel.von) {
@@ -157,14 +187,21 @@ function baue(view: EditorView): DecorationSet {
         continue;
       }
       let j = i + 1;
-      while (j < text.length && verdeckt[j] && !kacheln.has(j)) j += 1;
+      while (j < text.length && verdeckt[j] && !kacheln.has(j) && !zeilen.has(j)) j += 1;
       if (j > i) bau.add(i, j, Decoration.replace({}));
+      i = j;
+      continue;
+    }
+    if (gedimmt[i]) {
+      let j = i + 1;
+      while (j < text.length && gedimmt[j] && !kacheln.has(j) && !zeilen.has(j)) j += 1;
+      if (j > i) bau.add(i, j, MARKER_DIMM);
       i = j;
       continue;
     }
     const bit = stil[i] ?? 0;
     let j = i + 1;
-    while (j < text.length && !verdeckt[j] && stil[j] === bit) j += 1;
+    while (j < text.length && !verdeckt[j] && !gedimmt[j] && stil[j] === bit && !zeilen.has(j)) j += 1;
     if (bit !== 0) bau.add(i, j, Decoration.mark({ class: klasse(bit) }));
     i = j;
   }

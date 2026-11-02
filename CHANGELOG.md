@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.7.0
+
+You can mark something as Wichtig. !!text!! highlights words, and !!!! at the start of a line marks that line, with a bar on the left. The format bar has a Wichtig button. The saved note stays plain text.
+
 ## 1.6.0
 
 Notes stay as text. Bold, italic, strike, code, lists, checkboxes, links, and headings show while you read. The editor keeps that text, with a format bar and optional shortcuts while typing.

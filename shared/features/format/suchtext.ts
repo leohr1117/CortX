@@ -13,7 +13,7 @@ function teileText(teile: readonly LeseTeil[]): string {
 
 function blockText(block: LeseBlock): string {
   if (block.art === 'codeblock') return block.text;
-  if (block.art === 'ueberschrift') return teileText(block.teile);
+  if (block.art === 'ueberschrift' || block.art === 'wichtig') return teileText(block.teile);
   if (block.art === 'liste') return block.punkte.map((teile) => teileText(teile)).join('\n');
   if (block.art === 'haken') return block.punkte.map((punkt) => teileText(punkt.teile)).join('\n');
   return block.zeilen.map((teile) => teileText(teile)).join('\n');

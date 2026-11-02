@@ -777,7 +777,8 @@ input.feld::placeholder { color: var(--leise); }
 .notizblatt .lesetext .lauf,
 .notizblatt .lesetext h3,
 .notizblatt .lesetext li,
-.notizblatt .lesetext .hakenzeile { min-height: 28px; }
+.notizblatt .lesetext .hakenzeile,
+.notizblatt .lesetext .wichtigzeile { min-height: 28px; }
 .notizblatt .lesetext h3 { font-size: 20px; line-height: 28px; }
 .ablage {
   font-size: 13px;
@@ -800,7 +801,8 @@ input.feld::placeholder { color: var(--leise); }
   .notizblatt .lesetext .lauf,
   .notizblatt .lesetext h3,
   .notizblatt .lesetext li,
-  .notizblatt .lesetext .hakenzeile { min-height: 32px; }
+  .notizblatt .lesetext .hakenzeile,
+  .notizblatt .lesetext .wichtigzeile { min-height: 32px; }
   .notizblatt .lesetext h3 { font-size: 22px; line-height: 32px; }
 }
 
@@ -980,6 +982,24 @@ input.feld::placeholder { color: var(--leise); }
 }
 .schreib .cm-ueberschrift { font-weight: 650; font-size: 20px; }
 .schreib .cm-link { color: var(--fokus); }
+.schreib .cm-wichtig {
+  background: #f3e2a8;
+  color: #1a1a1a;
+  border-radius: 2px;
+  border-bottom: 2px solid #5c4314;
+}
+.schreib .cm-link.cm-wichtig { color: #1a1a1a; text-decoration: underline; }
+.schreib .cm-code.cm-wichtig,
+.schreib .cm-codeblock.cm-wichtig {
+  color: var(--haupt);
+  background: var(--flaeche-2);
+  border-bottom: 2px solid #b8892e;
+}
+.schreib .cm-editor .cm-line.cm-wichtig-zeile {
+  padding-left: 10px;
+  box-shadow: inset 3px 0 0 #b8892e;
+}
+.schreib .cm-wichtig-marker { color: #8d8d8d; }
 .schreib .cm-punkt,
 .schreib .cm-nummer { color: var(--haupt); }
 .schreib .cm-haken {
@@ -1021,6 +1041,33 @@ input.feld::placeholder { color: var(--leise); }
   white-space: pre-wrap;
 }
 .lesetext a { color: var(--fokus); }
+.sr-nur {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.lesetext mark {
+  position: relative;
+  background: #f3e2a8;
+  color: #1a1a1a;
+  border-radius: 2px;
+  border-bottom: 2px solid #5c4314;
+  padding: 0 1px;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+.lesetext mark a { color: inherit; text-decoration: underline; }
+.lesetext mark code { color: var(--haupt); }
+.lesetext .wichtigzeile {
+  border-left: 3px solid #b8892e;
+  padding-left: 8px;
+  min-height: 24px;
+}
 .lesetext ol {
   margin: 0;
   padding: 0;

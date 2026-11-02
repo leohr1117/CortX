@@ -91,6 +91,16 @@ export function AbwaertsIcon() {
   );
 }
 
+export function MarkerIcon() {
+  return (
+    <svg className="i" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M4 20h11" />
+      <path d="M14 4.5l5.5 5.5L10 19.5H6v-4L14 4.5z" />
+      <path d="M12 7.5l4.5 4.5" />
+    </svg>
+  );
+}
+
 export function StiftIcon() {
   return (
     <svg className="i" viewBox="0 0 24 24" aria-hidden="true">

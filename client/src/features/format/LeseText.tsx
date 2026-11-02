@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import {
   sicherZiel,
   leseBaum,
@@ -8,10 +9,29 @@ import {
 } from '../../../../shared/features/format/index.ts';
 import { HakenIcon } from '../../ui/icons.tsx';
 
+function Markierung({ children }: { children: ReactNode }) {
+  return (
+    <mark>
+      <span className="sr-nur">Wichtig</span>
+      {children}
+    </mark>
+  );
+}
+
 function Schrift({ teil, verlinken }: { teil: LeseTeil; verlinken: boolean }) {
   if (teil.art === 'text') return teil.text;
   if (teil.art === 'code') return <code>{teil.text}</code>;
   if (teil.art === 'link') return <LinkTeil teil={teil} verlinken={verlinken} />;
+  if (teil.art === 'wichtig') {
+    if ('teile' in teil) {
+      return (
+        <Markierung>
+          <Teile teile={teil.teile} verlinken={verlinken} />
+        </Markierung>
+      );
+    }
+    return <Markierung>{teil.text}</Markierung>;
+  }
   const Tag = teil.art === 'fett' ? 'strong' : teil.art === 'kursiv' ? 'em' : 's';
   if ('text' in teil) return <Tag>{teil.text}</Tag>;
   return (
@@ -72,6 +92,15 @@ function Block({ block, verlinken }: { block: LeseBlock; verlinken: boolean }) {
           </li>
         ))}
       </Tag>
+    );
+  }
+  if (block.art === 'wichtig') {
+    return (
+      <div className="wichtigzeile">
+        <Markierung>
+          <Teile teile={block.teile} verlinken={verlinken} />
+        </Markierung>
+      </div>
     );
   }
   if (block.art === 'haken') return <Haken punkte={block.punkte} verlinken={verlinken} />;

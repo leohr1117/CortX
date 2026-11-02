@@ -50,7 +50,15 @@ describe('update hinweis', () => {
     expect(alt.badge).toBe(true);
     expect(alt.schreiben).toEqual({ benachrichtigt: AKTUELLE_VERSION });
     const neu = neuereVersionen(VERSIONEN, '1.5.0');
-    expect(neu.map((eintrag) => eintrag.version)).toEqual(['1.6.0', '1.5.5', '1.5.4', '1.5.3', '1.5.2', '1.5.1']);
+    expect(neu.map((eintrag) => eintrag.version)).toEqual([
+      '1.7.0',
+      '1.6.0',
+      '1.5.5',
+      '1.5.4',
+      '1.5.3',
+      '1.5.2',
+      '1.5.1',
+    ]);
     expect(neu.every((eintrag) => versionKleiner('1.5.0', eintrag.version))).toBe(true);
     expect(hoehereVersion('1.0.0', AKTUELLE_VERSION)).toBe(AKTUELLE_VERSION);
     expect(hoehereVersion(null, '1.0.0')).toBe('1.0.0');

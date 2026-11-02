@@ -2,9 +2,11 @@ import type { Beleg, BelegArt, Dokument, LeseBlock, LeseHakenPunkt, LeseListe, L
 import { leseInline } from './inline.ts';
 import {
   UEBERSCHRIFT_MARKER,
+  WICHTIG_ZEILE,
   hakenVon,
   listenLaenge,
   nummerLaenge,
+  wichtigZeile,
   zaunAuf,
   zaunZu,
   zeilenStuecke,
@@ -30,13 +32,16 @@ export type {
   LeseTextTeil,
   LeseUeberschrift,
   LeseVerschachtelt,
+  LeseWichtig,
+  LeseWichtigTeil,
 } from './baum.ts';
-export { UEBERSCHRIFT_MARKER } from './zeile.ts';
+export { UEBERSCHRIFT_MARKER, WICHTIG_ZEILE } from './zeile.ts';
 
 function besonders(zeile: string): boolean {
   return (
     zaunAuf(zeile) !== null ||
     zeile.startsWith(UEBERSCHRIFT_MARKER) ||
+    wichtigZeile(zeile) ||
     hakenVon(zeile) !== null ||
     listenLaenge(zeile) > 0 ||
     nummerLaenge(zeile) > 0
@@ -64,7 +69,8 @@ function struktur(
 }
 
 function zeileInline(stueck: ZeilenStueck, laenge: number): { teile: LeseTeil[]; belege: Beleg[] } {
-  return leseInline(stueck.zeile.slice(laenge), stueck.von + laenge);
+  const vorher = laenge === 0 ? '\n' : (stueck.zeile[laenge - 1] ?? '\n');
+  return leseInline(stueck.zeile.slice(laenge), stueck.von + laenge, false, vorher);
 }
 
 function codeText(roh: string): string {
@@ -135,6 +141,13 @@ export function leseDokument(text: string): Dokument {
       const inline = zeileInline(stueck, UEBERSCHRIFT_MARKER.length);
       bloecke.push({ art: 'ueberschrift', teile: inline.teile });
       belege.push(struktur('ueberschrift', stueck, UEBERSCHRIFT_MARKER.length), ...inline.belege);
+      i += 1;
+      continue;
+    }
+    if (wichtigZeile(stueck.zeile)) {
+      const inline = zeileInline(stueck, WICHTIG_ZEILE.length);
+      bloecke.push({ art: 'wichtig', teile: inline.teile });
+      belege.push(struktur('wichtig', stueck, WICHTIG_ZEILE.length), ...inline.belege);
       i += 1;
       continue;
     }

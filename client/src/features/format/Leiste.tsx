@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { EditorView } from '@codemirror/view';
+import { MarkerIcon } from '../../ui/icons.tsx';
 import { leseDruck, type Druck } from './druck.ts';
 
 export type FormatBefehl =
@@ -10,6 +11,7 @@ export type FormatBefehl =
   | 'ueberschrift'
   | 'liste'
   | 'haken'
+  | 'wichtig'
   | 'link';
 
 const LEER: Druck = {
@@ -21,12 +23,14 @@ const LEER: Druck = {
   ueberschrift: false,
   liste: false,
   haken: false,
+  wichtig: false,
 };
 
 const KNOEPFE: ReadonlyArray<{ befehl: FormatBefehl; name: string; zeichen: string; klasse?: string }> = [
   { befehl: 'fett', name: 'Bold', zeichen: 'B', klasse: 'fett' },
   { befehl: 'kursiv', name: 'Italic', zeichen: 'I', klasse: 'kursiv' },
   { befehl: 'strich', name: 'Strikethrough', zeichen: 'S', klasse: 'strich' },
+  { befehl: 'wichtig', name: 'Wichtig', zeichen: '' },
   { befehl: 'code', name: 'Code', zeichen: '</>' },
   { befehl: 'ueberschrift', name: 'Heading', zeichen: 'H' },
   { befehl: 'liste', name: 'List', zeichen: '•' },
@@ -87,7 +91,7 @@ export function Leiste({
       setPos(null);
       return;
     }
-    const breite = 360;
+    const breite = 420;
     const left = Math.max(8, Math.min(coords.left, window.innerWidth - breite - 8));
     const top = coords.top > 64 ? coords.top - 52 : coords.bottom + 8;
     setPos({ top, left });
@@ -116,7 +120,7 @@ export function Leiste({
             onPointerDown={(event) => event.preventDefault()}
             onClick={() => onBefehl(knopf.befehl)}
           >
-            {knopf.zeichen}
+            {knopf.befehl === 'wichtig' ? <MarkerIcon /> : knopf.zeichen}
           </button>
         );
       })}

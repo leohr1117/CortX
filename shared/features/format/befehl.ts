@@ -1,6 +1,7 @@
+import { belege } from './lesen.ts';
 import type { TextWahl } from './ueberschrift.ts';
 import { schalteUeberschrift } from './ueberschrift.ts';
-import { hakenVon, listenLaenge, nummerLaenge, ohneWagen } from './zeile.ts';
+import { WICHTIG_INLINE, WICHTIG_ZEILE, hakenVon, listenLaenge, nummerLaenge, ohneWagen } from './zeile.ts';
 
 function klemme(text: string, start: number, ende: number): { start: number; ende: number } {
   const links = Number.isFinite(start) ? Math.floor(start) : 0;
@@ -148,6 +149,46 @@ export function schalteVerknuepfung(text: string, start: number, ende: number, z
     start: wahl.start + 1,
     ende: wahl.start + 1 + kern.length,
   };
+}
+
+function zeileKern(text: string, index: number): string {
+  const { von, bis } = zeileUm(text, index);
+  return ohneWagen(text.slice(von, bis));
+}
+
+function enthaelt(von: number, bis: number, start: number, ende: number): boolean {
+  if (start === ende) return start >= von && start <= bis;
+  return start >= von && ende <= bis;
+}
+
+export function schalteWichtig(text: string, start: number, ende: number): TextWahl {
+  const wahl = klemme(text, start, ende);
+  const inhalt = text.slice(wahl.start, wahl.ende);
+  const einzeilig = !inhalt.includes('\n');
+  if (einzeilig) {
+    const treffer = belege(text)
+      .filter(
+        (beleg) =>
+          beleg.art === 'wichtig' &&
+          beleg.marker.length === 2 &&
+          enthaelt(beleg.von, beleg.bis, wahl.start, wahl.ende),
+      )
+      .sort((a, b) => a.bis - a.von - (b.bis - b.von));
+    const fund = treffer[0];
+    if (fund) return umwickle(text, fund.von, fund.bis, WICHTIG_INLINE);
+  }
+  const kern = zeileKern(text, wahl.start);
+  if (einzeilig && inhalt.length > 0 && !kern.startsWith(WICHTIG_ZEILE)) {
+    return umwickle(text, wahl.start, wahl.ende, WICHTIG_INLINE);
+  }
+  return schaltePraefix(
+    text,
+    wahl.start,
+    wahl.ende,
+    WICHTIG_ZEILE,
+    (zeile) => zeile.startsWith(WICHTIG_ZEILE),
+    (zeile) => (zeile.startsWith(WICHTIG_ZEILE) ? WICHTIG_ZEILE.length : 0),
+  );
 }
 
 export function schalteKopf(text: string, start: number, ende: number): TextWahl {
