@@ -1,24 +1,11 @@
-import { INBOX_NAME, TOPIC_NAME_MAX } from '../../kern/grenzen.ts';
-import type { NoteSource, Thema } from '../../kern/modell.ts';
+import { TOPIC_NAME_MAX } from '../../kern/grenzen.ts';
+import type { Thema } from '../../kern/modell.ts';
+import { schluessel } from '../seiten/text.ts';
 
 export interface TagFund {
   name: string;
   start: number;
   end: number;
-}
-
-export interface AblagePlan {
-  text: string;
-  topicName: string;
-  source: Extract<NoteSource, 'tag' | 'manual'>;
-  neu: boolean;
-}
-
-export interface VorschlagListe {
-  treffer: Thema[];
-  neu: boolean;
-  neuText: string;
-  gewaehlt: number;
 }
 
 const NAME = /^[\p{L}\p{N}][\p{L}\p{N}_'-]*/u;
@@ -31,17 +18,31 @@ function hashIstAnfang(text: string, index: number): boolean {
   return !NAMENSZEICHEN.test(davor);
 }
 
-function liesName(rest: string): string | null {
-  const name = rest.match(NAME)?.[0];
-  if (!name) return null;
-  return name.slice(0, TOPIC_NAME_MAX);
+function liesPfad(rest: string): string | null {
+  const erstes = rest.match(NAME)?.[0];
+  if (!erstes) return null;
+  let name = erstes.slice(0, TOPIC_NAME_MAX);
+  let pos = name.length;
+  if (erstes.length > name.length) return name;
+  while (rest[pos] === '/') {
+    name += '/';
+    pos += 1;
+    if (rest[pos] === '/') continue;
+    const weiter = rest.slice(pos).match(NAME)?.[0];
+    if (!weiter) break;
+    const capped = weiter.slice(0, TOPIC_NAME_MAX);
+    name += capped;
+    pos += capped.length;
+    if (weiter.length > capped.length) break;
+  }
+  return name;
 }
 
 export function findeTags(text: string): TagFund[] {
   const funde: TagFund[] = [];
   for (let index = 0; index < text.length; index += 1) {
     if (!hashIstAnfang(text, index)) continue;
-    const name = liesName(text.slice(index + 1));
+    const name = liesPfad(text.slice(index + 1));
     if (!name) continue;
     funde.push({ name, start: index, end: index + 1 + name.length });
     index += name.length;
@@ -95,49 +96,17 @@ export function sortiereThemen(themen: Thema[]): Thema[] {
 }
 
 export function passendeThemen(fragment: string, themen: Thema[]): Thema[] {
-  const nadel = fragment.toLocaleLowerCase();
+  const nadel = schluessel(fragment);
   const liste =
-    fragment.length === 0 ? themen : themen.filter((thema) => thema.name.toLocaleLowerCase().startsWith(nadel));
+    fragment.length === 0 ? themen : themen.filter((thema) => schluessel(thema.name).startsWith(nadel));
   return sortiereThemen(liste);
 }
 
 export function loeseThema(fragment: string, themen: Thema[]): { name: string; neu: boolean } | null {
   if (fragment.length === 0) return null;
-  const exakt = themen.find((thema) => gleicherName(thema.name, fragment));
+  const exakt = sortiereThemen(themen.filter((thema) => schluessel(thema.name) === schluessel(fragment)))[0];
   if (exakt) return { name: exakt.name, neu: false };
   const erste = passendeThemen(fragment, themen)[0];
   if (erste) return { name: erste.name, neu: false };
   return { name: fragment, neu: true };
-}
-
-export function vorschlaege(fragment: string, themen: Thema[]): VorschlagListe {
-  const treffer = passendeThemen(fragment, themen);
-  const exakt = fragment.length > 0 && treffer.some((thema) => gleicherName(thema.name, fragment));
-  const loesung = loeseThema(fragment, themen);
-  let gewaehlt = 0;
-  if (loesung && !loesung.neu) {
-    const index = treffer.findIndex((thema) => thema.name === loesung.name);
-    if (index >= 0) gewaehlt = index;
-  }
-  return {
-    treffer,
-    neu: fragment.length > 0 && !exakt,
-    neuText: `New topic “${fragment}”`,
-    gewaehlt,
-  };
-}
-
-export function planeAblage(roh: string, themen: Thema[]): AblagePlan | null {
-  if (roh.trim().length === 0) return null;
-  const erster = findeTags(roh)[0];
-  if (!erster) {
-    return { text: roh.trim(), topicName: INBOX_NAME, source: 'manual', neu: false };
-  }
-  const loesung = loeseThema(erster.name, themen) ?? { name: erster.name, neu: true };
-  return {
-    text: entferneTag(roh, erster).trim(),
-    topicName: loesung.name,
-    source: 'tag',
-    neu: loesung.neu,
-  };
 }

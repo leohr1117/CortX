@@ -23,7 +23,7 @@ export {
   type LeseWichtig,
   type LeseWichtigTeil,
 } from './lesen.ts';
-export { UEBERSCHRIFT_MARKER, WICHTIG_ZEILE } from './zeile.ts';
+export { kopfMarke, UEBERSCHRIFT_MARKER, WICHTIG_ZEILE, type KopfMarke } from './zeile.ts';
 export {
   schalteCode,
   schalteFett,

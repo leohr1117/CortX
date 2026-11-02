@@ -6,6 +6,15 @@ export interface Versionseintrag {
 
 export const VERSIONEN: readonly Versionseintrag[] = [
   {
+    version: '1.8.0',
+    datum: '2026-11-02',
+    zeilen: [
+      'A topic lists its pages. The page title is the first heading, and sections are the level-two headings.',
+      'While you capture, #topic/page/section shows where the note goes and files it there.',
+      'You can undo that. An open editor is never overwritten.',
+    ],
+  },
+  {
     version: '1.7.3',
     datum: '2026-11-02',
     zeilen: [

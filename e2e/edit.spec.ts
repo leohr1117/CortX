@@ -90,7 +90,7 @@ test('a note opens for reading and continues as a writing surface', async ({ pag
     await expect(page.getByRole('heading', { name: 'Work', level: 1 })).toBeVisible();
 
     await oeffne(page, 'Sprint summary');
-    await expect(page.getByRole('heading', { level: 1 })).toHaveCount(0);
+    await expect(page.getByRole('heading', { level: 1, name: 'Work > Sprint summary' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Save' })).toHaveCount(0);
     await expect(page.locator('label')).toHaveCount(0);
     await expect(page.getByText('Topic', { exact: true })).toHaveCount(0);

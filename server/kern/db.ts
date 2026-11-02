@@ -17,11 +17,12 @@ export function migriere(db: DatabaseSync): void {
   try {
     for (let index = start; index < MIGRATIONEN.length; index += 1) {
       const version = index + 1;
-      const sql = MIGRATIONEN[index];
-      if (sql === undefined) continue;
+      const schritt = MIGRATIONEN[index];
+      if (schritt === undefined) continue;
       db.exec('BEGIN');
       try {
-        db.exec(sql);
+        if (typeof schritt === 'string') db.exec(schritt);
+        else schritt(db);
         db.exec(`PRAGMA user_version = ${version}`);
         db.exec('COMMIT');
       } catch (fehler) {

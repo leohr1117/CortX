@@ -181,7 +181,7 @@ describe('topic maintenance api', () => {
       source: 'ai',
       ai_confidence: 0.4,
       client_id: clientId,
-      text: 'Pinned thought',
+      text: '# Pinned thought',
     });
     expect((db.prepare('SELECT topic_id FROM "note" WHERE id = ?').get(lose) as { topic_id: number }).topic_id).toBe(
       ideen.id,
@@ -251,7 +251,7 @@ describe('topic maintenance api', () => {
     const wieder = await server.inject({ method: 'GET', url: '/api/library/notes?topic=Work' });
     expect(wieder.json()).toMatchObject({
       topic: 'Work',
-      notes: [{ id: bleib, text: 'Goes to inbox', created: '2026-10-28T08:20:00.000Z' }],
+      notes: [{ id: bleib, text: '# Goes to inbox', created: '2026-10-28T08:20:00.000Z' }],
     });
   });
 

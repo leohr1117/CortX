@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 import { meldeAn } from './anmelden.ts';
 import { erwarteQuelle, setzeQuelle } from './feld.ts';
 import { leereLokal } from './lokal.ts';
@@ -14,6 +14,24 @@ test.beforeEach(async ({ page }) => {
   await meldeAn(page);
   await leereLokal(page);
 });
+
+async function oeffneSeite(page: Page, thema: string, text: string): Promise<void> {
+  const antwort = await page.request.get(`/api/library/notes?topic=${encodeURIComponent(thema)}`);
+  expect(antwort.ok()).toBeTruthy();
+  const daten = (await antwort.json()) as { notes: Array<{ id: number; text: string }> };
+  const id = daten.notes.filter((notiz) => notiz.text.includes(text)).reduce((max, notiz) => Math.max(max, notiz.id), 0);
+  expect(id).toBeGreaterThan(0);
+  await page.goto(`/library/note?id=${id}`);
+  await expect(page).toHaveURL(new RegExp(`/library/note\\?id=${id}$`));
+}
+
+async function wechsle(page: Page): Promise<Locator> {
+  await page.getByRole('button', { name: 'Note actions' }).click();
+  await page.getByRole('menuitem', { name: 'Change', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'Move note to' });
+  await expect(dialog).toBeVisible();
+  return dialog;
+}
 
 async function themaZahl(page: Page, name: string): Promise<number> {
   const antwort = await page.request.get('/api/topics');
@@ -47,10 +65,12 @@ test('change picker lists topics and closes without a move', async ({ page }, te
   await auffuellen(page, 'Inbox', 3, (index) => `Inbox loose ${index}`, false);
   await setzeQuelle(page, 'Pay the rent #Home');
   await page.getByRole('button', { name: 'File' }).click();
+  await expect(page.getByRole('status')).toContainText('Added to');
   await expect(page.getByRole('status')).toContainText('Home');
-  await page.getByRole('button', { name: 'Change' }).click();
-  const dialog = page.getByRole('dialog', { name: 'Move note to' });
-  await expect(dialog).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Change' })).toHaveCount(0);
+  await oeffneSeite(page, 'Home', 'Pay the rent');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Home > Pay the rent');
+  const dialog = await wechsle(page);
   await expect(dialog.getByLabel('Search topics')).toBeFocused();
   await expect(dialog.locator('.wz.sel .n')).toHaveText('Home');
   await expect(dialog.locator('.wz.sel .ok')).toBeVisible();
@@ -67,8 +87,8 @@ test('change picker lists topics and closes without a move', async ({ page }, te
   await page.screenshot({ path: `tmp-test/screens/${testInfo.project.name}-03b-change.png` });
   await page.keyboard.press('Escape');
   await expect(dialog).toHaveCount(0);
-  await expect(page.getByRole('status')).toContainText('Home');
-  await expect(page).toHaveURL(/\/$/);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Home > Pay the rent');
+  await expect(page).toHaveURL(/\/library\/note\?id=\d+/);
 });
 
 test('empty capture', async ({ page }, testInfo) => {
@@ -162,9 +182,10 @@ test('files with the button and with ctrl enter', async ({ page }, testInfo) => 
   const feld = page.getByRole('textbox', { name: 'Note' });
   await setzeQuelle(page, 'Buy milk');
   await page.getByRole('button', { name: 'File' }).click();
-  await expect(page.getByRole('status')).toContainText('Filed in');
+  await expect(page.getByRole('status')).toContainText('Added to');
   await expect(page.getByRole('status')).toContainText('Inbox');
-  await expect(page.getByRole('button', { name: 'Change' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Undo' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Change' })).toHaveCount(0);
   await erwarteQuelle(page, '');
   await expect(feld).toBeFocused();
   await expect(page.getByRole('button', { name: 'File' })).toBeDisabled();
@@ -172,18 +193,13 @@ test('files with the button and with ctrl enter', async ({ page }, testInfo) => 
   await setzeQuelle(page, 'Pay the rent #Home');
   await expect(page.locator('.ziel b')).toHaveText('Home');
   await page.keyboard.press('Control+Enter');
+  await expect(page.getByRole('status')).toContainText('Added to');
   await expect(page.getByRole('status')).toContainText('Home');
   await erwarteQuelle(page, '');
-  await expect(page.getByRole('button', { name: 'Change' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Undo' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Change' })).toHaveCount(0);
   await page.screenshot({ path: `${BILDER}/${testInfo.project.name}-03-toast.png` });
 
-  await page.getByRole('button', { name: 'Change' }).click();
-  const dialog = page.getByRole('dialog', { name: 'Move note to' });
-  await expect(dialog).toBeVisible();
-  await page.keyboard.press('Escape');
-  await expect(dialog).toHaveCount(0);
-  await expect(page).toHaveURL(/\/$/);
-  await expect(page.getByRole('status')).toContainText('Home');
   await page.keyboard.press('Control+Enter');
   await erwarteQuelle(page, '');
 });
@@ -191,51 +207,53 @@ test('files with the button and with ctrl enter', async ({ page }, testInfo) => 
 test('change moves the note onto an existing or new topic', async ({ page }, testInfo) => {
   await setzeQuelle(page, 'Move me #Home');
   await page.getByRole('button', { name: 'File' }).click();
+  await expect(page.getByRole('status')).toContainText('Added to');
   await expect(page.getByRole('status')).toContainText('Home');
+  await oeffneSeite(page, 'Home', 'Move me');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Home > Move me');
 
-  await page.getByRole('button', { name: 'Change' }).click();
-  const dialog = page.getByRole('dialog', { name: 'Move note to' });
+  let dialog = await wechsle(page);
   await page.getByRole('button', { name: 'Close' }).click();
   await expect(dialog).toHaveCount(0);
-  await expect(page.getByRole('status')).toContainText('Home');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Home > Move me');
 
-  await page.getByRole('button', { name: 'Change' }).click();
+  dialog = await wechsle(page);
   await page.locator('.scrim').click({ position: { x: 8, y: 8 } });
   await expect(dialog).toHaveCount(0);
 
-  await page.getByRole('button', { name: 'Change' }).click();
+  dialog = await wechsle(page);
   await page.goBack();
   await expect(dialog).toHaveCount(0);
-  await expect(page).toHaveURL(/\/$/);
-  await expect(page.getByRole('status')).toContainText('Home');
+  await expect(page).toHaveURL(/\/library\/note\?id=\d+/);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Home > Move me');
 
-  await page.getByRole('button', { name: 'Change' }).click();
+  dialog = await wechsle(page);
   await dialog.getByRole('option', { name: /^Work\b/ }).click();
   await expect(dialog).toHaveCount(0);
-  await expect(page.getByRole('status')).toContainText('Work');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Work > Move me');
+  await expect(page.locator('.ablage')).toContainText('via #work');
 
-  await page.getByRole('button', { name: 'Change' }).click();
+  dialog = await wechsle(page);
   await dialog.getByLabel('Search topics').press('ArrowDown');
   const ziel = (await dialog.locator('.wz.akt .n').innerText()).trim();
   await dialog.getByLabel('Search topics').press('Enter');
   await expect(dialog).toHaveCount(0);
-  await expect(page.getByRole('status')).toContainText(ziel);
+  await expect(page.getByRole('heading', { level: 1 })).toContainText(ziel);
 
   const neu = `Zimmer${testInfo.project.name}`;
   const tastatur = `Taste${testInfo.project.name}`;
-  await page.getByRole('button', { name: 'Change' }).click();
+  dialog = await wechsle(page);
   await dialog.getByLabel('Search topics').fill(neu);
   await dialog.getByRole('option', { name: /New topic/ }).click();
-  await expect(page.getByRole('status')).toContainText(neu);
-  await expect(page.getByRole('button', { name: 'Change' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1 })).toContainText(neu);
   await page.screenshot({ path: `tmp-test/screens/${testInfo.project.name}-03-moved.png` });
 
-  await page.getByRole('button', { name: 'Change' }).click();
+  dialog = await wechsle(page);
   await dialog.getByLabel('Search topics').fill(tastatur);
   await dialog.getByLabel('Search topics').press('Enter');
-  await expect(page.getByRole('status')).toContainText(tastatur);
+  await expect(page.getByRole('heading', { level: 1 })).toContainText(tastatur);
   await page.reload();
-  await erwarteQuelle(page, '');
+  await expect(page.getByRole('heading', { level: 1 })).toContainText(tastatur);
 });
 
 test('library returns to capture', async ({ page }) => {

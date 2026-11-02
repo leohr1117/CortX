@@ -1,4 +1,6 @@
 import type { Notiz } from '../../../../shared/kern/modell.ts';
+
+type DateiNotiz = Notiz & { ziel?: string; undo?: string };
 import {
   entferneQueueOffen,
   exklusiv,
@@ -16,21 +18,22 @@ import {
 
 export interface SyncTreffer {
   clientId: string;
-  notiz: Notiz;
+  notiz: DateiNotiz;
 }
 
 export interface SyncStand {
   erledigt: SyncTreffer[];
   rest: WarteschlangeEintrag[];
   dauerhaft: boolean;
+  grund: string | null;
 }
 
 export type LokalErgebnis =
-  | { art: 'abgelegt'; clientId: string; notiz: Notiz }
+  | { art: 'abgelegt'; clientId: string; notiz: DateiNotiz }
   | { art: 'offline'; clientId: string }
-  | { art: 'abgelehnt'; clientId: string };
+  | { art: 'abgelehnt'; clientId: string; grund: string | null };
 
-type Senden = (eintrag: WarteschlangeEintrag) => Promise<Notiz>;
+type Senden = (eintrag: WarteschlangeEintrag) => Promise<DateiNotiz>;
 
 function httpStatus(fehler: unknown): number | null {
   if (typeof fehler !== 'object' || fehler === null || !('status' in fehler)) return null;
@@ -42,6 +45,7 @@ function httpStatus(fehler: unknown): number | null {
 async function spueleOffen(sende: Senden): Promise<SyncStand> {
   const erledigt: SyncTreffer[] = [];
   let dauerhaft = false;
+  let grund: string | null = null;
   const liste = reihenfolge(await liesQueueOffen());
   for (const eintrag of liste) {
     try {
@@ -50,10 +54,11 @@ async function spueleOffen(sende: Senden): Promise<SyncStand> {
       erledigt.push({ clientId: eintrag.clientId, notiz });
     } catch (fehler) {
       dauerhaft = istDauerhaft(httpStatus(fehler));
+      grund = fehler instanceof Error ? fehler.message : null;
       break;
     }
   }
-  return { erledigt, rest: reihenfolge(await liesQueueOffen()), dauerhaft };
+  return { erledigt, rest: reihenfolge(await liesQueueOffen()), dauerhaft, grund };
 }
 
 export function spuele(sende: Senden): Promise<SyncStand> {
@@ -78,7 +83,7 @@ export function legeInWarteschlange(text: string, online: boolean, sende: Senden
     if (stand.dauerhaft && stand.rest[0]?.clientId === eintrag.clientId) {
       await entferneQueueOffen(eintrag.clientId);
       await putEntwurfOffen(text);
-      return { art: 'abgelehnt', clientId: eintrag.clientId };
+      return { art: 'abgelehnt', clientId: eintrag.clientId, grund: stand.grund };
     }
     return { art: 'offline', clientId: eintrag.clientId };
   });

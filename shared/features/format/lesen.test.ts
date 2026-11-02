@@ -167,6 +167,15 @@ describe('reading format', () => {
     ]);
   });
 
+  it('reads a hash heading and keeps a legacy heading without a level', () => {
+    expect(leseBaum('# Title\n## Section\n= Legacy')).toEqual([
+      { art: 'ueberschrift', teile: [{ art: 'text', text: 'Title' }], stufe: 1 },
+      { art: 'ueberschrift', teile: [{ art: 'text', text: 'Section' }], stufe: 2 },
+      { art: 'ueberschrift', teile: [{ art: 'text', text: 'Legacy' }] },
+    ]);
+    expect(leseBaum('#topic stays')).toEqual([{ art: 'absatz', zeilen: [[{ art: 'text', text: '#topic stays' }]] }]);
+  });
+
   it('keeps html-like text and #topic tags as text', () => {
     expect(leseBaum('<b>hi</b> #work\n<script>alert(1)</script>\n**#shop** **<em>x</em>**')).toEqual([
       {

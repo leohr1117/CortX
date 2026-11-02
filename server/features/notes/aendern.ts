@@ -12,6 +12,7 @@ const NICHTS = 'Nothing to undo.';
 const GEHT_NICHT = 'Could not undo.';
 const SPEICHERN = 'Could not save the note.';
 const LOESCHEN = 'Could not delete the note.';
+const KONFLIKT = 'This page changed. Reload it and try again.';
 
 const korrekturSchema = z
   .object({
@@ -35,6 +36,7 @@ const bildSchema = z
         aiConfidence: z.number().min(0).max(1).nullable(),
         clientId: z.string().min(1).nullable(),
         pinned: z.union([z.literal(0), z.literal(1)]),
+        version: z.number().int().positive().optional(),
       })
       .strict(),
     corrections: z.array(korrekturSchema),
@@ -81,6 +83,7 @@ function schnapp(db: DatabaseSync, notiz: NotizZeile): UndoBild {
       aiConfidence: notiz.aiConfidence,
       clientId: notiz.clientId,
       pinned: notiz.pinned === 1 ? 1 : 0,
+      version: notiz.version,
     },
     corrections: korrekturen.map((zeile) => ({
       id: Number(zeile.id),
@@ -96,15 +99,62 @@ function themaDa(db: DatabaseSync, id: number, kontoId: string): boolean {
   return Boolean(db.prepare('SELECT id FROM "topic" WHERE id = ? AND account_id = ?').get(id, kontoId));
 }
 
-export function speichereText(db: DatabaseSync, id: number, roh: string, kontoId: string): Notiz {
+interface SeitenUndo {
+  art: 'anhaengen' | 'anlegen';
+  id: number;
+  text: string;
+  version: number;
+}
+
+function seitenBild(payload: string): SeitenUndo | null {
+  try {
+    const roh = JSON.parse(payload) as { art?: unknown; id?: unknown; text?: unknown; version?: unknown };
+    if (roh.art !== 'anhaengen' && roh.art !== 'anlegen') return null;
+    if (typeof roh.id !== 'number' || typeof roh.text !== 'string' || typeof roh.version !== 'number') return null;
+    return { art: roh.art, id: roh.id, text: roh.text, version: roh.version };
+  } catch {
+    return null;
+  }
+}
+
+function seitenZurueck(db: DatabaseSync, bild: SeitenUndo, kontoId: string): Notiz {
+  const notiz = liesNotizNachId(db, bild.id, kontoId);
+  if (!notiz) throw new AppFehler(409, GEHT_NICHT);
+  if (bild.art === 'anhaengen') {
+    if (notiz.version !== bild.version + 1) throw new AppFehler(409, GEHT_NICHT);
+    const geschrieben = db
+      .prepare('UPDATE "note" SET text = ?, version = version + 1 WHERE id = ? AND account_id = ? AND version = ?')
+      .run(bild.text, bild.id, kontoId, bild.version + 1);
+    if (Number(geschrieben.changes) !== 1) throw new AppFehler(409, GEHT_NICHT);
+  } else {
+    if (notiz.text !== bild.text || notiz.version !== bild.version) throw new AppFehler(409, GEHT_NICHT);
+    db.prepare('DELETE FROM "note_revision" WHERE note_id = ?').run(bild.id);
+    db.prepare('DELETE FROM "correction" WHERE note_id = ?').run(bild.id);
+    const weg = db.prepare('DELETE FROM "note" WHERE id = ? AND account_id = ?').run(bild.id, kontoId);
+    if (Number(weg.changes) !== 1) throw new AppFehler(409, GEHT_NICHT);
+    db.prepare('DELETE FROM "note_undo" WHERE account_id = ?').run(kontoId);
+    return alsNotiz(notiz);
+  }
+  db.prepare('DELETE FROM "note_undo" WHERE account_id = ?').run(kontoId);
+  const neu = liesNotizNachId(db, bild.id, kontoId);
+  if (!neu) throw new AppFehler(500, GEHT_NICHT);
+  return alsNotiz(neu);
+}
+
+export function speichereText(db: DatabaseSync, id: number, roh: string, version: number, kontoId: string): Notiz {
   return transaktion(db, () => {
     const plan = planeNotizText(roh);
     if (!plan.ok) throw new AppFehler(400, textMeldung(plan.grund));
     const notiz = liesNotizNachId(db, id, kontoId);
     if (!notiz) throw new AppFehler(404, 'Note not found.');
     if (notiz.text !== plan.text) {
-      const geschrieben = db.prepare('UPDATE "note" SET text = ? WHERE id = ? AND account_id = ?').run(plan.text, id, kontoId);
-      if (Number(geschrieben.changes) !== 1) throw new AppFehler(500, SPEICHERN);
+      const geschrieben = db
+        .prepare('UPDATE "note" SET text = ?, version = version + 1 WHERE id = ? AND account_id = ? AND version = ?')
+        .run(plan.text, id, kontoId, version);
+      if (Number(geschrieben.changes) !== 1) {
+        if (!liesNotizNachId(db, id, kontoId)) throw new AppFehler(404, 'Note not found.');
+        throw new AppFehler(409, KONFLIKT);
+      }
     }
     const neu = liesNotizNachId(db, id, kontoId);
     if (!neu) throw new AppFehler(500, SPEICHERN);
@@ -117,6 +167,7 @@ export function loescheNotiz(db: DatabaseSync, id: number, kontoId: string): { t
     const notiz = liesNotizNachId(db, id, kontoId);
     if (!notiz) throw new AppFehler(404, 'Note not found.');
     const bild = schnapp(db, notiz);
+    db.prepare('DELETE FROM "note_revision" WHERE note_id = ?').run(id);
     db.prepare('DELETE FROM "correction" WHERE note_id = ?').run(id);
     const weg = db.prepare('DELETE FROM "note" WHERE id = ? AND account_id = ?').run(id, kontoId);
     if (Number(weg.changes) !== 1) throw new AppFehler(500, LOESCHEN);
@@ -138,6 +189,8 @@ export function stelleNotizHer(db: DatabaseSync, token: string, kontoId: string)
       | { payload: string }
       | undefined;
     if (!zeile) throw new AppFehler(404, NICHTS);
+    const seitenUndo = seitenBild(zeile.payload);
+    if (seitenUndo) return seitenZurueck(db, seitenUndo, kontoId);
     const bild = liesBild(zeile.payload);
     if (!bild) throw new AppFehler(500, GEHT_NICHT);
     if (!themaDa(db, bild.note.topicId, kontoId)) throw new AppFehler(409, GEHT_NICHT);
@@ -150,8 +203,8 @@ export function stelleNotizHer(db: DatabaseSync, token: string, kontoId: string)
     }
     try {
       db.prepare(
-        `INSERT INTO "note" (id, text, created, topic_id, source, ai_confidence, client_id, pinned, account_id)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO "note" (id, text, created, topic_id, source, ai_confidence, client_id, pinned, account_id, version)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       ).run(
         bild.note.id,
         bild.note.text,
@@ -162,6 +215,7 @@ export function stelleNotizHer(db: DatabaseSync, token: string, kontoId: string)
         bild.note.clientId,
         bild.note.pinned,
         kontoId,
+        bild.note.version ?? 1,
       );
     } catch (fehler) {
       if (fehler instanceof Error && fehler.message.includes('UNIQUE')) throw new AppFehler(409, GEHT_NICHT);

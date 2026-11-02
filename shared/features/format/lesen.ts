@@ -1,9 +1,9 @@
 import type { Beleg, BelegArt, Dokument, LeseBlock, LeseHakenPunkt, LeseListe, LeseTeil } from './baum.ts';
 import { leseInline } from './inline.ts';
 import {
-  UEBERSCHRIFT_MARKER,
   WICHTIG_ZEILE,
   hakenVon,
+  kopfMarke,
   listenLaenge,
   nummerLaenge,
   wichtigZeile,
@@ -35,12 +35,12 @@ export type {
   LeseWichtig,
   LeseWichtigTeil,
 } from './baum.ts';
-export { UEBERSCHRIFT_MARKER, WICHTIG_ZEILE } from './zeile.ts';
+export { kopfMarke, UEBERSCHRIFT_MARKER, WICHTIG_ZEILE } from './zeile.ts';
 
 function besonders(zeile: string): boolean {
   return (
     zaunAuf(zeile) !== null ||
-    zeile.startsWith(UEBERSCHRIFT_MARKER) ||
+    kopfMarke(zeile) !== null ||
     wichtigZeile(zeile) ||
     hakenVon(zeile) !== null ||
     listenLaenge(zeile) > 0 ||
@@ -52,7 +52,7 @@ function struktur(
   art: BelegArt,
   stueck: ZeilenStueck,
   laenge: number,
-  extra?: { abgehakt?: boolean; zahl?: string },
+  extra?: { abgehakt?: boolean; zahl?: string; stufe?: number },
 ): Beleg {
   const ganzBis = stueck.von + stueck.zeile.length;
   const beleg: Beleg = {
@@ -65,6 +65,7 @@ function struktur(
   };
   if (extra?.abgehakt !== undefined) beleg.abgehakt = extra.abgehakt;
   if (extra?.zahl !== undefined) beleg.zahl = extra.zahl;
+  if (extra?.stufe !== undefined) beleg.stufe = extra.stufe;
   return beleg;
 }
 
@@ -137,10 +138,16 @@ export function leseDokument(text: string): Dokument {
       i = fund.naechst;
       continue;
     }
-    if (stueck.zeile.startsWith(UEBERSCHRIFT_MARKER)) {
-      const inline = zeileInline(stueck, UEBERSCHRIFT_MARKER.length);
-      bloecke.push({ art: 'ueberschrift', teile: inline.teile });
-      belege.push(struktur('ueberschrift', stueck, UEBERSCHRIFT_MARKER.length), ...inline.belege);
+    const kopf = kopfMarke(stueck.zeile);
+    if (kopf) {
+      const inline = zeileInline(stueck, kopf.laenge);
+      bloecke.push(
+        kopf.stufe > 0
+          ? { art: 'ueberschrift', teile: inline.teile, stufe: kopf.stufe }
+          : { art: 'ueberschrift', teile: inline.teile },
+      );
+      const extra = kopf.stufe > 0 ? { stufe: kopf.stufe } : undefined;
+      belege.push(struktur('ueberschrift', stueck, kopf.laenge, extra), ...inline.belege);
       i += 1;
       continue;
     }

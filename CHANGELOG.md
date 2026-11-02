@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.8.0
+
+A topic lists its pages. The page title is the first heading, and sections are the level-two headings on that page.
+
+While you capture, #topic/page/section shows where the note goes and files it there. You can undo that. An open editor is never overwritten.
+
 ## 1.7.3
 
 The start page uses the same editor as a note. The format bar and typing shortcuts work while you capture. Topic tags stay colored, and Enter on a phone does not file the note.

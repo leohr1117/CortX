@@ -70,8 +70,8 @@ describe('library api', () => {
     expect(gross.json()).toMatchObject({
       topic: 'Work',
       notes: [
-        { text: 'Second', created: '2026-11-01T14:32:00.000Z', topic: 'Work' },
-        { text: 'First', created: '2026-10-28T08:20:00.000Z', topic: 'Work' },
+        { text: '# Second', created: '2026-11-01T14:32:00.000Z', topic: 'Work' },
+        { text: '# First', created: '2026-10-28T08:20:00.000Z', topic: 'Work' },
       ],
     });
 
@@ -85,7 +85,7 @@ describe('library api', () => {
     const lisbon = encodeURIComponent('Travel \u2013 Lisbon');
     const reise = await server.inject({ method: 'GET', url: `/api/library/notes?topic=${lisbon}` });
     expect(reise.statusCode).toBe(200);
-    expect(reise.json()).toMatchObject({ topic: 'Travel \u2013 Lisbon', notes: [{ text: 'Flight' }] });
+    expect(reise.json()).toMatchObject({ topic: 'Travel \u2013 Lisbon', notes: [{ text: '# Flight' }] });
   });
 
   it('rejects a missing, unknown, or invalid topic', async () => {

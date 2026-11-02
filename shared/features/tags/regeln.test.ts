@@ -1,14 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { INBOX_NAME } from '../../kern/grenzen.ts';
 import type { Thema } from '../../kern/modell.ts';
-import {
-  entferneTag,
-  ersetzeTag,
-  findeTags,
-  planeAblage,
-  tagAnCaret,
-  vorschlaege,
-} from './regeln.ts';
+import { planeAblage, vorschlaege } from '../seiten/index.ts';
+import { entferneTag, ersetzeTag, findeTags, tagAnCaret } from './regeln.ts';
 
 const themen: Thema[] = [
   { name: 'Work', count: 14 },
@@ -28,14 +22,16 @@ describe('tag rules', () => {
     expect(findeTags('C# and see#work')).toEqual([]);
   });
 
-  it('stops a tag at a slash and files only that name', () => {
-    expect(findeTags('#school/math')).toEqual([{ name: 'school', start: 0, end: 7 }]);
-    expect(tagAnCaret('#school/math', 3)).toEqual({ name: 'school', start: 0, end: 7 });
+  it('reads a slash path as one tag and files the page', () => {
+    expect(findeTags('#school/math')).toEqual([{ name: 'school/math', start: 0, end: 12 }]);
+    expect(tagAnCaret('#school/math', 3)).toEqual({ name: 'school/math', start: 0, end: 12 });
     expect(planeAblage('See #school/math', themen)).toMatchObject({
-      text: 'See /math',
+      text: 'See',
       topicName: 'school',
+      seite: 'math',
       source: 'tag',
       neu: true,
+      neuSeite: true,
     });
   });
 
@@ -100,9 +96,9 @@ describe('tag rules', () => {
 
   it('lists matching topics, counts, and a new-topic row while typing', () => {
     const liste = vorschlaege('wo', themen);
-    expect(liste.treffer.map((thema) => [thema.name, thema.count])).toEqual([
-      ['Work', 14],
-      ['Workout', 6],
+    expect(liste.treffer.map((eintrag) => [eintrag.name, eintrag.zahl])).toEqual([
+      ['Work', '14'],
+      ['Workout', '6'],
     ]);
     expect(liste.neu).toBe(true);
     expect(liste.neuText).toBe('New topic “wo”');

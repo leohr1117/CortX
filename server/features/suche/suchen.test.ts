@@ -4,7 +4,7 @@ import type { FastifyInstance } from 'fastify';
 import { SUCH_LIMIT, SUCH_MAX } from '../../../shared/features/suche/index.ts';
 import { SPEICHER } from '../../../shared/kern/grenzen.ts';
 import { migriere, oeffneDatenbank } from '../../kern/db.ts';
-import { MIGRATIONEN } from '../../kern/migrationen.ts';
+import { migrationsSql } from '../../kern/migrationen.ts';
 import { PROBE_KONTO, oeffneAngemeldet } from '../zugang/attrappe.ts';
 import { sucheNotizen } from './index.ts';
 
@@ -142,9 +142,9 @@ describe('note search', () => {
     }
     const liste = await treffer(server, 'needle');
     expect(liste.hits).toHaveLength(SUCH_LIMIT);
-    expect(liste.hits[0]?.text).toBe(`needle ${SUCH_LIMIT}`);
-    expect(liste.hits.at(-1)?.text).toBe('needle 1');
-    expect(liste.hits.some((hit) => hit.text === 'needle 0')).toBe(false);
+    expect(liste.hits[0]?.text).toBe(`# needle ${SUCH_LIMIT}`);
+    expect(liste.hits.at(-1)?.text).toBe('# needle 1');
+    expect(liste.hits.some((hit) => hit.text === '# needle 0')).toBe(false);
   });
 
   it('follows filing, editing, moving, topic changes, delete, and undo', async () => {
@@ -153,12 +153,12 @@ describe('note search', () => {
     await lege(server, 'A quiet shelf #Shelf');
 
     const zuerst = await treffer(server, 'lantern');
-    expect(zuerst.hits).toEqual([expect.objectContaining({ id, topic: 'Shop', text: 'Lantern in the shop' })]);
+    expect(zuerst.hits).toEqual([expect.objectContaining({ id, topic: 'Shop', text: '# Lantern in the shop' })]);
 
     const edit = await server.inject({
       method: 'POST',
       url: `/api/notes/${id}`,
-      payload: { text: 'Only the budget remains' },
+      payload: { text: 'Only the budget remains', version: 1 },
     });
     expect(edit.statusCode).toBe(200);
     expect((await treffer(server, 'lantern')).hits).toEqual([]);
@@ -227,7 +227,7 @@ describe('note search', () => {
     const db = new DatabaseSync(SPEICHER);
     dbs.push(db);
     db.exec('PRAGMA foreign_keys = OFF');
-    for (let index = 0; index < 5; index += 1) db.exec(MIGRATIONEN[index] ?? '');
+    for (let index = 0; index < 5; index += 1) db.exec(migrationsSql(index));
     db.exec('PRAGMA user_version = 5');
     db.exec('PRAGMA foreign_keys = ON');
     const inbox = db.prepare(`SELECT id FROM "topic" WHERE name_key = 'inbox'`).get() as { id: number };
@@ -240,7 +240,7 @@ describe('note search', () => {
     db.prepare('UPDATE "note" SET account_id = ? WHERE account_id IS NULL').run('konto');
     const treffer = sucheNotizen(db, 'lantern', 'konto');
     expect(treffer).toHaveLength(1);
-    expect(treffer[0]).toMatchObject({ text: 'already filed lantern', topic: 'Inbox' });
+    expect(treffer[0]).toMatchObject({ text: '# already filed lantern', topic: 'Inbox' });
     expect(sucheNotizen(db, 'lantern', 'other-account')).toEqual([]);
     const trigger = db
       .prepare("SELECT name FROM sqlite_master WHERE type = 'trigger' AND name LIKE 'note_fts_%' ORDER BY name")

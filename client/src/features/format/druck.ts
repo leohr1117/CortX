@@ -1,4 +1,4 @@
-import { WICHTIG_ZEILE, leseDokument, type Beleg } from '../../../../shared/features/format/index.ts';
+import { WICHTIG_ZEILE, kopfMarke, leseDokument, type Beleg } from '../../../../shared/features/format/index.ts';
 
 export interface Druck {
   fett: boolean;
@@ -47,7 +47,7 @@ export function leseDruck(text: string, start: number, ende: number): Druck {
     strich: hat('streich'),
     code: hat('code') || codeblock,
     link: hat('link'),
-    ueberschrift: zeile.startsWith('= '),
+    ueberschrift: kopfMarke(zeile) !== null,
     liste: istListe(zeile),
     haken: istHaken(zeile),
     wichtig: hat('wichtig') || zeile.startsWith(WICHTIG_ZEILE),

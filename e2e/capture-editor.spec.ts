@@ -114,7 +114,7 @@ test('the capture tag menu and filing follow the keyboard', async ({ page }, tes
     await expect(liste).toHaveCount(0);
     await page.keyboard.press('Control+Enter');
   }
-  await expect(page.getByRole('status')).toContainText('Filed in');
+  await expect(page.getByRole('status')).toContainText('Added to');
   await expect(page.getByRole('status')).toContainText(thema);
   await erwarteQuelle(page, '');
   await expect(page.getByRole('button', { name: 'File' })).toBeDisabled();

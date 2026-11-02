@@ -3,7 +3,8 @@ import type { VorschlagListe } from '../../../../shared/features/tags/index.ts';
 import { HashIcon, PlusIcon } from '../../ui/icons.tsx';
 
 function nameMitFund(name: string, fragment: string): ReactNode {
-  if (fragment.length === 0 || !name.toLocaleLowerCase().startsWith(fragment.toLocaleLowerCase())) return name;
+  const nadel = fragment.toLocaleLowerCase();
+  if (fragment.length === 0 || !name.toLocaleLowerCase().startsWith(nadel)) return name;
   return (
     <>
       <b>{name.slice(0, fragment.length)}</b>
@@ -36,10 +37,10 @@ export function Vorschlag({
       role="listbox"
       style={fest ? { position: 'fixed', top, left } : { top, left }}
     >
-      {liste.treffer.map((thema, index) => (
+      {liste.treffer.map((eintrag, index) => (
         <div
           id={`vorschlag-${index}`}
-          key={thema.name}
+          key={`${index}-${eintrag.einsetzen}`}
           role="option"
           aria-selected={index === aktiv}
           className={index === aktiv ? 'z akt' : 'z'}
@@ -49,8 +50,8 @@ export function Vorschlag({
           }}
         >
           <HashIcon />
-          <span className="n">{nameMitFund(thema.name, fragment)}</span>
-          <span className="w">{thema.count}</span>
+          <span className="n">{nameMitFund(eintrag.name, fragment)}</span>
+          {eintrag.zahl !== null ? <span className="w">{eintrag.zahl}</span> : null}
         </div>
       ))}
       {liste.neu && liste.treffer.length > 0 ? <div className="tr" /> : null}

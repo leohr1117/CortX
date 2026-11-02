@@ -1,20 +1,20 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Link } from 'react-router';
 import type { EditorView } from '@codemirror/view';
-import { legeInWarteschlange, liesEntwurf, schreibEntwurf, spuele } from '../offline/index.ts';
-import { ersetzeTag, gleicherName, planeAblage, tagAnCaret, vorschlaege } from '../../../../shared/features/tags/index.ts';
+import { seitentitel, type AblagePlan, type SeiteKurz } from '../../../../shared/features/seiten/index.ts';
+import { caretEbene, ersetzeSegment, ersetzeTag, planeAblage, tagAnCaret, vorschlaege } from '../../../../shared/features/tags/index.ts';
 import { NOTE_TEXT_MAX } from '../../../../shared/kern/grenzen.ts';
 import type { Thema } from '../../../../shared/kern/modell.ts';
 import { BibliothekIcon, WolkeAusIcon } from '../../ui/icons.tsx';
 import { Editor } from '../format/index.ts';
-import { ladeThemen, legeNotizAb, verschiebeNotiz } from './api.ts';
+import { legeInWarteschlange, liesEntwurf, schreibEntwurf, spuele } from '../offline/index.ts';
+import { ApiFehler, ladeSeiten, ladeThemen, legeNotizAb, macheRueckgaengig } from './api.ts';
 import { fangStrgEnter, setzeHinweis, tagFeld, tastenWennOffen, type TagAktionen } from './erkennung.ts';
 import { useMenuePlatz } from './menuePlatz.ts';
 import { Vorschlag } from './Vorschlag.tsx';
-import { Wechsel } from './Wechsel.tsx';
 
 type Meldung =
-  | { art: 'abgelegt'; id: number; thema: string }
+  | { art: 'abgelegt'; id: number; ziel: string; undo: string }
   | { art: 'offline'; clientId: string }
   | { art: 'fehler'; text: string };
 
@@ -31,12 +31,10 @@ export function CaptureAnsicht() {
   const [text, setText] = useState('');
   const [caret, setCaret] = useState(0);
   const [themen, setThemen] = useState<Thema[]>([]);
+  const [seiten, setSeiten] = useState<SeiteKurz[]>([]);
   const [meldung, setMeldung] = useState<Meldung | null>(null);
   const [speichert, setSpeichert] = useState(false);
   const [bereit, setBereit] = useState(false);
-  const [wechsel, setWechsel] = useState(false);
-  const [wechselFehler, setWechselFehler] = useState<string | null>(null);
-  const [bewegt, setBewegt] = useState(false);
   const [zu, setZu] = useState<string | null>(null);
   const [wahlFuer, setWahlFuer] = useState('');
   const [wahl, setWahl] = useState(0);
@@ -47,19 +45,8 @@ export function CaptureAnsicht() {
   const feld = gebaut.current;
   const sperre = useRef(false);
   const beruehrt = useRef(false);
-  const geschoben = useRef(false);
   const echo = useRef<string | null>(null);
   const zielCaret = useRef<number | null>(null);
-
-  const schliesse = useCallback(() => {
-    setWechsel(false);
-    setWechselFehler(null);
-    if (geschoben.current) {
-      geschoben.current = false;
-      window.history.back();
-    }
-    sichtRef.current?.focus();
-  }, []);
 
   function setzeAussen(wert: string, stelle: number) {
     echo.current = wert;
@@ -87,28 +74,18 @@ export function CaptureAnsicht() {
   }
 
   useEffect(() => {
-    const beiPop = () => {
-      if (!geschoben.current) return;
-      geschoben.current = false;
-      setWechsel(false);
-      setWechselFehler(null);
-      sichtRef.current?.focus();
-    };
-    window.addEventListener('popstate', beiPop);
-    return () => window.removeEventListener('popstate', beiPop);
-  }, []);
-
-  useEffect(() => {
     sichtRef.current?.focus();
     const los = fangStrgEnter(sichtRef, aktionen);
     let aktiv = true;
     void (async () => {
-      const [entwurf, liste] = await Promise.all([
+      const [entwurf, liste, katalog] = await Promise.all([
         liesEntwurf().catch(() => ''),
         ladeThemen().catch(() => [] as Thema[]),
+        ladeSeiten().catch(() => [] as SeiteKurz[]),
       ]);
       if (!aktiv) return;
       setThemen(liste);
+      setSeiten(katalog);
       if (!beruehrt.current && entwurf.length > 0) setzeAussen(entwurf, entwurf.length);
       setBereit(true);
     })();
@@ -130,16 +107,23 @@ export function CaptureAnsicht() {
       void spuele((eintrag) => legeNotizAb(eintrag.text, eintrag.clientId)).then((stand) => {
         if (!aktiv) return;
         if (stand.erledigt.length > 0) {
-          void ladeThemen()
-            .then((liste) => {
-              if (aktiv) setThemen(liste);
-            })
-            .catch(() => undefined);
+          void Promise.all([ladeThemen().catch(() => null), ladeSeiten().catch(() => null)]).then(([liste, katalog]) => {
+            if (!aktiv) return;
+            if (liste) setThemen(liste);
+            if (katalog) setSeiten(katalog);
+          });
         }
         setMeldung((alt) => {
           if (alt?.art === 'offline') {
             const treffer = stand.erledigt.find((eintrag) => eintrag.clientId === alt.clientId);
-            if (treffer) return { art: 'abgelegt', id: treffer.notiz.id, thema: treffer.notiz.topic };
+            if (treffer) {
+              return {
+                art: 'abgelegt',
+                id: treffer.notiz.id,
+                ziel: treffer.notiz.ziel ?? treffer.notiz.topic,
+                undo: treffer.notiz.undo ?? '',
+              };
+            }
             return alt;
           }
           if (!alt && stand.rest.length > 0) {
@@ -159,12 +143,15 @@ export function CaptureAnsicht() {
   }, []);
 
   const tag = tagAnCaret(text, caret);
+  const relativ = tag ? caret - tag.start - 1 : 0;
+  const lage = tag ? caretEbene(tag.name, relativ) : null;
   const schluessel = tag ? `${tag.start}:${tag.name}` : '';
-  const liste = tag && zu !== schluessel ? vorschlaege(tag.name, themen) : null;
+  const liste = tag && lage && lage.ebene <= 2 && zu !== schluessel ? vorschlaege(tag.name, themen, seiten, relativ) : null;
   const offen = liste !== null && (liste.treffer.length > 0 || liste.neu);
   const aktiv = wahlFuer === schluessel ? wahl : (liste?.gewaehlt ?? 0);
-  const plan = text.trim().length === 0 ? null : planeAblage(text, themen);
+  const plan = text.trim().length === 0 ? null : planeAblage(text, themen, seiten);
   const leer = text.trim().length === 0;
+  const gesperrt = leer || speichert || plan?.ungueltig === true;
   const pos = useMenuePlatz(offen, tag?.start ?? -1, text, sichtRef);
 
   useLayoutEffect(() => {
@@ -194,10 +181,10 @@ export function CaptureAnsicht() {
     beruehrt.current = true;
     const editor = sichtRef.current;
     if (index < liste.treffer.length) {
-      const name = liste.treffer[index]?.name;
-      if (!name) return;
-      const neu = ersetzeTag(text, tag, name);
-      setZu(`${tag.start}:${name}`);
+      const einsetzen = liste.treffer[index]?.einsetzen;
+      if (!einsetzen) return;
+      const neu = tag.name.includes('/') ? ersetzeSegment(text, tag, einsetzen, relativ) : ersetzeTag(text, tag, einsetzen);
+      setZu(`${tag.start}:${neu.text.slice(tag.start + 1, neu.caret)}`);
       if (!editor) {
         setzeAussen(neu.text, neu.caret);
         return;
@@ -215,43 +202,39 @@ export function CaptureAnsicht() {
     editor?.focus();
   }
 
-  function oeffneWechsel() {
-    if (meldung?.art !== 'abgelegt') return;
-    setWechselFehler(null);
-    setWechsel(true);
-    if (!geschoben.current) {
-      window.history.pushState({ cortexWechsel: true }, '');
-      geschoben.current = true;
-    }
-    void ladeThemen()
-      .then((neu) => setThemen(neu))
-      .catch(() => undefined);
+  async function katalogNeu() {
+    const [liste, katalog] = await Promise.all([ladeThemen().catch(() => null), ladeSeiten().catch(() => null)]);
+    if (liste) setThemen(liste);
+    if (katalog) setSeiten(katalog);
   }
 
-  async function waehleThema(name: string) {
-    if (meldung?.art !== 'abgelegt' || bewegt) return;
-    if (gleicherName(name, meldung.thema)) {
-      schliesse();
-      return;
-    }
-    setBewegt(true);
-    setWechselFehler(null);
+  async function rueckgaengig() {
+    if (meldung?.art !== 'abgelegt' || meldung.undo.length === 0 || sperre.current) return;
+    sperre.current = true;
     try {
-      const notiz = await verschiebeNotiz(meldung.id, name);
-      setMeldung({ art: 'abgelegt', id: notiz.id, thema: notiz.topic });
-      const neu = await ladeThemen().catch(() => null);
-      if (neu) setThemen(neu);
-      schliesse();
-    } catch {
-      setWechselFehler('Could not move the note.');
+      await macheRueckgaengig(meldung.undo);
+      setMeldung(null);
+      await katalogNeu();
+      sichtRef.current?.focus();
+    } catch (grund: unknown) {
+      setMeldung({ art: 'fehler', text: grund instanceof ApiFehler ? grund.message : 'Could not undo.' });
     } finally {
-      setBewegt(false);
+      sperre.current = false;
     }
   }
 
   async function ablegen() {
     const roh = sichtRef.current?.state.doc.toString() ?? text;
-    if (sperre.current || wechsel || roh.trim().length === 0) return;
+    const zielPlan = planeAblage(roh, themen, seiten);
+    if (sperre.current || roh.trim().length === 0) return;
+    if (zielPlan?.ungueltig) {
+      setMeldung({ art: 'fehler', text: zielPlan.hinweis ?? 'Could not file the note.' });
+      return;
+    }
+    if (zielPlan?.seite && !zielPlan.neuSeite && zielPlan.text.trim().length === 0) {
+      setMeldung({ art: 'fehler', text: 'Write something to add.' });
+      return;
+    }
     if (roh.length > NOTE_TEXT_MAX) {
       setMeldung({ art: 'fehler', text: 'Could not file the note.' });
       return;
@@ -266,16 +249,21 @@ export function CaptureAnsicht() {
       beruehrt.current = true;
       if (ergebnis.art === 'abgelehnt') {
         setzeAussen(roh, roh.length);
-        setMeldung({ art: 'fehler', text: 'Could not file the note.' });
+        setMeldung({ art: 'fehler', text: ergebnis.grund ?? 'Could not file the note.' });
         sichtRef.current?.focus();
         return;
       }
       setZu(null);
       setzeAussen('', 0);
       if (ergebnis.art === 'abgelegt') {
-        setMeldung({ art: 'abgelegt', id: ergebnis.notiz.id, thema: ergebnis.notiz.topic });
-        const neu = await ladeThemen().catch(() => null);
-        if (neu) setThemen(neu);
+        const abgelegt = ergebnis.notiz;
+        setMeldung({
+          art: 'abgelegt',
+          id: abgelegt.id,
+          ziel: abgelegt.ziel ?? `${abgelegt.topic} > ${seitentitel(abgelegt.text)}`,
+          undo: abgelegt.undo ?? '',
+        });
+        await katalogNeu();
       } else {
         setMeldung({ art: 'offline', clientId: ergebnis.clientId });
       }
@@ -307,7 +295,7 @@ export function CaptureAnsicht() {
       if (tag) setZu(schluessel);
     },
     waehlen: () => waehle(aktiv),
-    gesperrt: () => wechsel,
+    gesperrt: () => false,
   };
 
   return (
@@ -332,7 +320,7 @@ export function CaptureAnsicht() {
           <Vorschlag
             liste={liste}
             aktiv={aktiv}
-            fragment={tag?.name ?? ''}
+            fragment={lage?.fragment ?? ''}
             top={pos.top}
             left={pos.left}
             fest
@@ -341,7 +329,7 @@ export function CaptureAnsicht() {
         ) : null}
       </main>
       <footer className="fuss">
-        <div className="ziel">{plan ? <>Goes to <b>{plan.topicName}</b></> : null}</div>
+        <div className="ziel">{plan ? <ZielText plan={plan} /> : null}</div>
         <div className="kbd" aria-hidden="true">
           <span className="win">Ctrl</span>
           <i className="win">+</i>
@@ -351,22 +339,26 @@ export function CaptureAnsicht() {
         </div>
         <button
           type="button"
-          className={leer || speichert ? 'btn aus' : 'btn'}
-          disabled={leer || speichert}
+          className={gesperrt ? 'btn aus' : 'btn'}
+          disabled={gesperrt}
           onClick={() => void ablegen()}
         >
           File
         </button>
       </footer>
-      {meldung?.art === 'abgelegt' && !wechsel ? (
+      {meldung?.art === 'abgelegt' ? (
         <div className="toast" role="status">
           <span className="t">
-            Filed in <b>{meldung.thema}</b>
+            Added to <b>{meldung.ziel}</b>
           </span>
-          <span className="dot">·</span>
-          <button type="button" className="a" onClick={oeffneWechsel}>
-            Change
-          </button>
+          {meldung.undo.length > 0 ? (
+            <>
+              <span className="dot">·</span>
+              <button type="button" className="a" onClick={() => void rueckgaengig()}>
+                Undo
+              </button>
+            </>
+          ) : null}
         </div>
       ) : null}
       {meldung?.art === 'offline' ? (
@@ -380,19 +372,23 @@ export function CaptureAnsicht() {
           <span className="t">{meldung.text}</span>
         </div>
       ) : null}
-      {wechsel && meldung?.art === 'abgelegt' ? (
-        <>
-          <div className="scrim" onClick={schliesse} />
-          <Wechsel
-            themen={themen}
-            aktuell={meldung.thema}
-            hinweis={wechselFehler}
-            gesperrt={bewegt}
-            onSchliessen={schliesse}
-            onWahl={(name) => void waehleThema(name)}
-          />
-        </>
-      ) : null}
     </div>
+  );
+}
+
+function ZielText({ plan }: { plan: AblagePlan }) {
+  if (plan.ungueltig) return plan.hinweis;
+  return (
+    <>
+      {'Goes to '}
+      {plan.teile.map((teil, index) => (
+        <span key={`${index}-${teil.name}`}>
+          {index > 0 ? ' > ' : null}
+          <b>{teil.name}</b>
+          {teil.neu ? ' (new)' : null}
+        </span>
+      ))}
+      {plan.hinweis ? ` · ${plan.hinweis}` : null}
+    </>
   );
 }

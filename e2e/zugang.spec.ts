@@ -128,5 +128,5 @@ test('an offline draft can be filed without an account and syncs after sign-in',
   await page.getByRole('button', { name: 'Sign in' }).click();
   await expect(page.getByRole('textbox', { name: 'Note' })).toBeVisible();
   await expect.poll(() => warteschlangeLaenge(page)).toBe(0);
-  await expect.poll(() => inboxEnthaelt(page, text)).toBe(true);
+  await expect.poll(() => inboxEnthaelt(page, `# ${text}`)).toBe(true);
 });

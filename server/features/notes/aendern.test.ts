@@ -82,7 +82,7 @@ describe('note edit and delete', () => {
     const gleich = await server.inject({
       method: 'POST',
       url: `/api/notes/${id}`,
-      payload: { text: vorher.text },
+      payload: { text: vorher.text, version: 1 },
     });
     expect(gleich.statusCode).toBe(200);
     expect(fest(db, id)).toEqual(vorher);
@@ -90,7 +90,7 @@ describe('note edit and delete', () => {
     const gespeichert = await server.inject({
       method: 'POST',
       url: `/api/notes/${id}`,
-      payload: { text: '  Call tomorrow, bring the notes  ' },
+      payload: { text: '  Call tomorrow, bring the notes  ', version: 1 },
     });
     expect(gespeichert.statusCode).toBe(200);
     expect(gespeichert.json()).toMatchObject({ id, text: 'Call tomorrow, bring the notes  ', topic: 'Inbox' });
@@ -103,7 +103,7 @@ describe('note edit and delete', () => {
     const { server, db } = await paar();
     const id = await notiz(server, 'Keep me');
     const vorher = fest(db, id);
-    const leer = await server.inject({ method: 'POST', url: `/api/notes/${id}`, payload: { text: '  \n  ' } });
+    const leer = await server.inject({ method: 'POST', url: `/api/notes/${id}`, payload: { text: '  \n  ', version: 1 } });
     expect(leer.statusCode).toBe(400);
     expect(leer.json()).toEqual({ error: 'Write something to save.' });
     expect(fest(db, id)).toEqual(vorher);
@@ -115,13 +115,13 @@ describe('note edit and delete', () => {
       (await server.inject({ method: 'POST', url: `/api/notes/${id}`, payload: { text: 'a'.repeat(NOTE_TEXT_MAX + 1) } }))
         .statusCode,
     ).toBe(400);
-    expect((await server.inject({ method: 'POST', url: '/api/notes/99', payload: { text: 'Missing' } })).statusCode).toBe(
+    expect((await server.inject({ method: 'POST', url: '/api/notes/99', payload: { text: 'Missing', version: 1 } })).statusCode).toBe(
       404,
     );
     expect(fest(db, id)).toEqual(vorher);
     const gelesen = await server.inject({ method: 'GET', url: `/api/notes/${id}` });
     expect(gelesen.statusCode).toBe(200);
-    expect(gelesen.json()).toMatchObject({ id, text: 'Keep me' });
+    expect(gelesen.json()).toMatchObject({ id, text: '# Keep me' });
     expect((await server.inject({ method: 'GET', url: '/api/notes/nope' })).statusCode).toBe(404);
   });
 
@@ -162,7 +162,7 @@ describe('note edit and delete', () => {
 
     const zurueck = await server.inject({ method: 'POST', url: '/api/notes/undo', payload: { token } });
     expect(zurueck.statusCode).toBe(200);
-    expect(zurueck.json()).toMatchObject({ id, text: 'Pinned thought', topic: 'Work', source: 'ai', aiConfidence: 0.4 });
+    expect(zurueck.json()).toMatchObject({ id, text: '# Pinned thought', topic: 'Work', source: 'ai', aiConfidence: 0.4 });
     expect(fest(db, id)).toEqual(vorher);
     expect(korrekturen(db)).toEqual(korrekturVorher);
     expect(db.prepare('SELECT token FROM "topic_undo"').all()).toEqual([{ token: themaToken }]);

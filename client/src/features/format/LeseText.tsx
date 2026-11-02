@@ -74,13 +74,26 @@ function Haken({ punkte, verlinken }: { punkte: readonly LeseHakenPunkt[]; verli
   ));
 }
 
-function Block({ block, verlinken }: { block: LeseBlock; verlinken: boolean }) {
+function Block({
+  block,
+  verlinken,
+  abschnitt,
+}: {
+  block: LeseBlock;
+  verlinken: boolean;
+  abschnitt: number | null;
+}) {
   if (block.art === 'ueberschrift') {
-    return (
-      <h3>
-        <Teile teile={block.teile} verlinken={verlinken} />
-      </h3>
-    );
+    const inhalt = <Teile teile={block.teile} verlinken={verlinken} />;
+    if (block.stufe === 1) return <h2 className="titel">{inhalt}</h2>;
+    if (block.stufe === 2) {
+      return (
+        <h2 className="abschnitt" id={abschnitt === null ? undefined : `abschnitt-${abschnitt}`}>
+          {inhalt}
+        </h2>
+      );
+    }
+    return <h3>{inhalt}</h3>;
   }
   if (block.art === 'liste') {
     const Tag = block.geordnet ? 'ol' : 'ul';
@@ -124,11 +137,13 @@ function Block({ block, verlinken }: { block: LeseBlock; verlinken: boolean }) {
 
 export function LeseText({ text, verlinken = false }: { text: string; verlinken?: boolean }) {
   const baum = leseBaum(text);
+  let nummer = 0;
   return (
     <div className="lesetext">
-      {baum.map((block, index) => (
-        <Block key={index} block={block} verlinken={verlinken} />
-      ))}
+      {baum.map((block, index) => {
+        const abschnitt = block.art === 'ueberschrift' && block.stufe === 2 ? nummer++ : null;
+        return <Block key={index} block={block} verlinken={verlinken} abschnitt={abschnitt} />;
+      })}
     </div>
   );
 }

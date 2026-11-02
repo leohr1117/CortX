@@ -12,4 +12,5 @@ export interface Notiz {
   topic: string;
   source: NoteSource;
   aiConfidence: number | null;
+  version: number;
 }

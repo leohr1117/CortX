@@ -6,6 +6,7 @@ import { AppFehler } from '../../kern/fehler.ts';
 import { verlangeKonto } from '../zugang/index.ts';
 import { loescheNotiz, speichereText, stelleNotizHer } from './aendern.ts';
 import { legeAb } from './ablage.ts';
+import { listeSeiten } from './katalog.ts';
 import { alsNotiz, liesNotizNachId } from './lesen.ts';
 import { verschiebe } from './verschieben.ts';
 
@@ -26,7 +27,7 @@ const ziel = z
   .strict();
 
 const idForm = z.object({ id: z.string().regex(/^[1-9]\d*$/) });
-const textBody = z.object({ text: z.string().max(NOTE_TEXT_MAX) }).strict();
+const textBody = z.object({ text: z.string().max(NOTE_TEXT_MAX), version: z.number().int().positive() }).strict();
 const undoBody = z.object({ token: z.uuid() }).strict();
 
 function notizId(params: unknown): number {
@@ -41,7 +42,12 @@ export function notizRouten(api: FastifyInstance, db: DatabaseSync): void {
     const body = eingang.safeParse(anfrage.body);
     if (!body.success) throw new AppFehler(400, UNGUELTIG);
     const ergebnis = legeAb(db, body.data.text, body.data.clientId ?? null, konto);
-    return antwort.status(ergebnis.neu ? 201 : 200).send(ergebnis.notiz);
+    return antwort.status(ergebnis.neu ? 201 : 200).send({ ...ergebnis.notiz, ziel: ergebnis.ziel, undo: ergebnis.undo });
+  });
+
+  api.get('/seiten', async (anfrage) => {
+    const konto = verlangeKonto(anfrage);
+    return { seiten: listeSeiten(db, konto) };
   });
 
   api.post('/notes/undo', async (anfrage) => {
@@ -61,7 +67,7 @@ export function notizRouten(api: FastifyInstance, db: DatabaseSync): void {
     const konto = verlangeKonto(anfrage);
     const body = textBody.safeParse(anfrage.body);
     if (!body.success) throw new AppFehler(400, UNGUELTIG);
-    return speichereText(db, notizId(anfrage.params), body.data.text, konto);
+    return speichereText(db, notizId(anfrage.params), body.data.text, body.data.version, konto);
   });
 
   api.post('/notes/:id/delete', async (anfrage) => loescheNotiz(db, notizId(anfrage.params), verlangeKonto(anfrage)));

@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { DatabaseSync } from 'node:sqlite';
 import { SPEICHER } from '../../shared/kern/grenzen.ts';
 import { migriere, oeffneDatenbank } from './db.ts';
-import { MIGRATIONEN } from './migrationen.ts';
+import { MIGRATIONEN, migrationsSql } from './migrationen.ts';
 import { verweigereEchteDatenbank } from './testpfad.ts';
 
 describe('database', () => {
@@ -39,7 +39,7 @@ describe('database', () => {
     const db = new DatabaseSync(SPEICHER);
     offen.push(db);
     db.exec('PRAGMA foreign_keys = ON');
-    db.exec(MIGRATIONEN[0] ?? '');
+    db.exec(migrationsSql(0));
     db.exec('PRAGMA user_version = 1');
     const thema = db.prepare('SELECT id FROM topic').get() as { id: number };
     db.prepare(
@@ -54,7 +54,8 @@ describe('database', () => {
       client_id: string | null;
       account_id: string | null;
     };
-    expect(notiz).toEqual({ text: 'keep me', pinned: 0, client_id: null, account_id: null });
+    expect(notiz).toEqual({ text: '# keep me', pinned: 0, client_id: null, account_id: null });
+    expect(db.prepare('SELECT text FROM "note_revision"').get()).toEqual({ text: 'keep me' });
     const indexiert = db.prepare('SELECT count(*) AS n FROM note_fts').get() as { n: number };
     expect(Number(indexiert.n)).toBe(1);
     const treffer = db.prepare('SELECT rowid FROM note_fts WHERE note_fts MATCH ?').all('"keep"');
@@ -94,10 +95,10 @@ describe('database', () => {
     const db = new DatabaseSync(SPEICHER);
     offen.push(db);
     db.exec('PRAGMA foreign_keys = OFF');
-    for (let index = 0; index < 6; index += 1) db.exec(MIGRATIONEN[index] ?? '');
+    for (let index = 0; index < 6; index += 1) db.exec(migrationsSql(index));
     db.exec('PRAGMA user_version = 6');
     db.exec('PRAGMA foreign_keys = ON');
-    const sql = MIGRATIONEN.find((eintrag) => eintrag.includes('version_hint'));
+    const sql = MIGRATIONEN.find((eintrag) => typeof eintrag === 'string' && eintrag.includes('version_hint'));
     expect(sql).toBeTruthy();
     expect(sql).not.toMatch(/DELETE/i);
     expect(sql).not.toMatch(/DROP/i);
@@ -127,7 +128,12 @@ describe('database', () => {
     migriere(db);
     const version = db.prepare('PRAGMA user_version').get() as { user_version: number };
     expect(version.user_version).toBe(MIGRATIONEN.length);
-    expect(db.prepare('SELECT text, account_id FROM "note" ORDER BY id').all()).toEqual(vorher);
+    expect(db.prepare('SELECT text, account_id FROM "note" ORDER BY id').all()).toEqual(
+      vorher.map((zeile) => {
+        const alt = zeile as { text: string; account_id: string | null };
+        return { text: `# ${alt.text}`, account_id: alt.account_id };
+      }),
+    );
     expect(db.prepare('SELECT name, account_id FROM "topic" ORDER BY id').all()).toEqual(themen);
     const stand = db.prepare('SELECT account_id, notified, seen FROM "version_hint" ORDER BY account_id').all();
     expect(stand).toEqual([
@@ -136,7 +142,7 @@ describe('database', () => {
     ]);
     migriere(db);
     expect(db.prepare('SELECT text FROM "note" ORDER BY id').all()).toEqual(
-      vorher.map((zeile) => ({ text: (zeile as { text: string }).text })),
+      vorher.map((zeile) => ({ text: `# ${(zeile as { text: string }).text}` })),
     );
     const nochmal = db.prepare('SELECT COUNT(*) AS n FROM "version_hint"').get() as { n: number };
     expect(Number(nochmal.n)).toBe(2);

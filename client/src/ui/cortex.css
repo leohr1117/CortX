@@ -612,13 +612,27 @@ a.tx:focus-visible {
   stroke-width: 2.4;
 }
 .lesetext strong { font-weight: 600; }
-.lesetext h3 {
+.lesetext h3,
+.lesetext h2.titel,
+.lesetext h2.abschnitt {
   font-size: 18px;
   line-height: 24px;
   font-weight: 600;
   min-height: 24px;
 }
-.lesetext h3 strong { font-weight: 700; }
+.lesetext h2.abschnitt { scroll-margin-top: 72px; }
+.lesetext h3 strong,
+.lesetext h2.titel strong,
+.lesetext h2.abschnitt strong { font-weight: 700; }
+.verzeichnis {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin: 0 0 16px;
+  font-size: 13px;
+  line-height: 18px;
+}
+.verzeichnis a { color: var(--haupt); }
 .notiz .zeit {
   font-size: 13px;
   line-height: 18px;
@@ -776,10 +790,14 @@ input.feld::placeholder { color: var(--leise); }
 }
 .notizblatt .lesetext .lauf,
 .notizblatt .lesetext h3,
+.notizblatt .lesetext h2.titel,
+.notizblatt .lesetext h2.abschnitt,
 .notizblatt .lesetext li,
 .notizblatt .lesetext .hakenzeile,
 .notizblatt .lesetext .wichtigzeile { min-height: 28px; }
-.notizblatt .lesetext h3 { font-size: 20px; line-height: 28px; }
+.notizblatt .lesetext h3,
+.notizblatt .lesetext h2.titel,
+.notizblatt .lesetext h2.abschnitt { font-size: 20px; line-height: 28px; }
 .ablage {
   font-size: 13px;
   line-height: 18px;
@@ -800,10 +818,14 @@ input.feld::placeholder { color: var(--leise); }
   .notizblatt .lesetext { font-size: 20px; line-height: 32px; }
   .notizblatt .lesetext .lauf,
   .notizblatt .lesetext h3,
+  .notizblatt .lesetext h2.titel,
+  .notizblatt .lesetext h2.abschnitt,
   .notizblatt .lesetext li,
   .notizblatt .lesetext .hakenzeile,
   .notizblatt .lesetext .wichtigzeile { min-height: 32px; }
-  .notizblatt .lesetext h3 { font-size: 22px; line-height: 32px; }
+  .notizblatt .lesetext h3,
+  .notizblatt .lesetext h2.titel,
+  .notizblatt .lesetext h2.abschnitt { font-size: 22px; line-height: 32px; }
 }
 
 .login {

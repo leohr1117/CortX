@@ -16,12 +16,10 @@ import {
 } from './index.ts';
 
 describe('markdown beside the existing notation', () => {
-  it('keeps a hash at the start of a line as text', () => {
+  it('reads a hash heading and keeps a hash tag as text', () => {
     expect(leseBaum('# Title\n#work\n= Real')).toEqual([
-      {
-        art: 'absatz',
-        zeilen: [[{ art: 'text', text: '# Title' }], [{ art: 'text', text: '#work' }]],
-      },
+      { art: 'ueberschrift', teile: [{ art: 'text', text: 'Title' }], stufe: 1 },
+      { art: 'absatz', zeilen: [[{ art: 'text', text: '#work' }]] },
       { art: 'ueberschrift', teile: [{ art: 'text', text: 'Real' }] },
     ]);
   });

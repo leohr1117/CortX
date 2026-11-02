@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { ablageZeile, planeNotizText, textMeldung } from '../../../../shared/features/edit/index.ts';
+import { abschnittNamen, seitentitel } from '../../../../shared/features/seiten/index.ts';
 import type { Notiz } from '../../../../shared/kern/modell.ts';
 import { AugeIcon, StiftIcon } from '../../ui/icons.tsx';
 import { Editor, LeseText } from '../format/index.ts';
@@ -36,6 +37,7 @@ export function NotizSeite() {
   const [basis, setBasis] = useState('');
   const [modus, setModus] = useState<Modus>('lesen');
   const [fehler, setFehler] = useState<string | null>(id === null ? 'Note not found.' : null);
+  const [hinweis, setHinweis] = useState<string | null>(null);
   const [bereit, setBereit] = useState(false);
   const [menue, setMenue] = useState(false);
   const [wechsel, setWechsel] = useState(false);
@@ -67,6 +69,7 @@ export function NotizSeite() {
     setBereit(false);
     setModus('lesen');
     setFehler(null);
+    setHinweis(null);
     setMenue(false);
     setWechsel(false);
     weg.current = false;
@@ -131,15 +134,36 @@ export function NotizSeite() {
       return 'ok';
     }
     try {
-      const gespeichert = await speichereNotiz(aktuell.id, plan.text);
+      const gespeichert = await speichereNotiz(aktuell.id, plan.text, aktuell.version);
       if (!da.current || weg.current) return 'ok';
       basisRef.current = gespeichert.text;
+      notizRef.current = gespeichert;
       setBasis(gespeichert.text);
       setNotiz(gespeichert);
       if (feldRef.current === text) setFeld(gespeichert.text);
       if (zeigen) setFehler(null);
+      setHinweis(null);
       return 'ok';
     } catch (grund: unknown) {
+      if (grund instanceof NotizFehler && grund.status === 409) {
+        try {
+          const neu = await ladeNotiz(aktuell.id);
+          if (!da.current || weg.current) return 'ok';
+          basisRef.current = neu.text;
+          feldRef.current = neu.text;
+          notizRef.current = neu;
+          setBasis(neu.text);
+          setFeld(neu.text);
+          setNotiz(neu);
+          setFehler(null);
+          setHinweis('This page changed. Reloaded the latest text.');
+          void schreibNotizEntwurf(neu.id, '').catch(() => undefined);
+          return 'ok';
+        } catch {
+          if (da.current) setFehler('This page changed. Reload it and try again.');
+          return 'fehler';
+        }
+      }
       if (!da.current || weg.current) return 'netz';
       const netz = grund instanceof NotizFehler && grund.status === null;
       if (zeigen) setFehler(grund instanceof NotizFehler ? grund.message : 'Could not save the note.');
@@ -198,7 +222,9 @@ export function NotizSeite() {
     }
   }
 
-  const hinweis = notiz ? ablageZeile(notiz, new Date()) : '';
+  const zeile = notiz ? ablageZeile(notiz, new Date()) : '';
+  const pfad = notiz ? `${notiz.topic} > ${seitentitel(feld) || 'Untitled'}` : undefined;
+  const namen = notiz && modus === 'lesen' ? abschnittNamen(feld) : [];
   const aktion = notiz ? (
     <div className="kopf-aktion">
       <button
@@ -226,11 +252,27 @@ export function NotizSeite() {
 
   return (
     <div className="app">
-      <Kopf zurueck="/library" zurueckLabel="Back" onZurueck={() => void zurueck()} aktion={aktion} />
+      <Kopf titel={pfad} zurueck="/library" zurueckLabel="Back" onZurueck={() => void zurueck()} aktion={aktion} />
       <main className={modus === 'schreiben' ? 'inhalt notizblatt schreiben' : 'inhalt notizblatt'}>
         {fehler && !notiz ? <p className="leer1">{fehler}</p> : null}
         {notiz && modus === 'lesen' ? (
           <>
+            {namen.length > 0 ? (
+              <nav className="verzeichnis" aria-label="On this page">
+                {namen.map((name, index) => (
+                  <a
+                    key={`${index}-${name}`}
+                    href={`#abschnitt-${index}`}
+                    onClick={(event) => {
+                      event.preventDefault();
+                      document.getElementById(`abschnitt-${index}`)?.scrollIntoView({ block: 'start' });
+                    }}
+                  >
+                    {name}
+                  </a>
+                ))}
+              </nav>
+            ) : null}
             <LeseText text={feld} verlinken />
             <TerminZeile text={feld} created={notiz.created} />
           </>
@@ -242,6 +284,7 @@ export function NotizSeite() {
             onText={(wert) => {
               setFeld(wert);
               setFehler(null);
+              setHinweis(null);
             }}
           />
         ) : null}
@@ -250,7 +293,12 @@ export function NotizSeite() {
             {fehler}
           </p>
         ) : null}
-        {notiz ? <p className="ablage">{hinweis}</p> : null}
+        {hinweis ? (
+          <p className="ablage" role="status">
+            {hinweis}
+          </p>
+        ) : null}
+        {notiz ? <p className="ablage">{zeile}</p> : null}
       </main>
       {wechsel && notiz ? (
         <ThemenWahl

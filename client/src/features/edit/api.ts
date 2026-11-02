@@ -50,8 +50,8 @@ export function ladeNotiz(id: number): Promise<Notiz> {
   return hole(`/api/notes/${id}`, 'Could not load the note.');
 }
 
-export async function speichereNotiz(id: number, text: string): Promise<Notiz> {
-  const antwort = await sende(`/api/notes/${id}`, { text });
+export async function speichereNotiz(id: number, text: string, version: number): Promise<Notiz> {
+  const antwort = await sende(`/api/notes/${id}`, { text, version });
   if (!antwort.ok) return liesFehler(antwort, 'Could not save the note.');
   return (await antwort.json()) as Notiz;
 }

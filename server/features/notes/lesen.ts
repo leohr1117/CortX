@@ -11,6 +11,7 @@ export interface NotizZeile {
   aiConfidence: number | null;
   pinned: number;
   clientId: string | null;
+  version: number;
 }
 
 const SELECT = `
@@ -23,7 +24,8 @@ const SELECT = `
     "note".source AS source,
     "note".ai_confidence AS aiConfidence,
     "note".pinned AS pinned,
-    "note".client_id AS clientId
+    "note".client_id AS clientId,
+    "note".version AS version
   FROM "note"
   JOIN "topic" ON "topic".id = "note".topic_id
 `;
@@ -38,6 +40,7 @@ function zeile(roh: unknown): NotizZeile | null {
     pinned: Number(wert.pinned),
     aiConfidence: wert.aiConfidence === null || wert.aiConfidence === undefined ? null : Number(wert.aiConfidence),
     clientId: wert.clientId ?? null,
+    version: Number(wert.version ?? 1),
   };
 }
 
@@ -49,6 +52,7 @@ export function alsNotiz(wert: NotizZeile): Notiz {
     topic: wert.topic,
     source: wert.source,
     aiConfidence: wert.aiConfidence,
+    version: wert.version,
   };
 }
 

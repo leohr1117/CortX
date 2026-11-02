@@ -73,6 +73,7 @@ export interface LeseHaken {
 export interface LeseUeberschrift {
   art: 'ueberschrift';
   teile: LeseTeil[];
+  stufe?: number;
 }
 
 export interface LeseWichtig {
@@ -110,6 +111,7 @@ export interface Beleg {
   ziel?: string;
   abgehakt?: boolean;
   zahl?: string;
+  stufe?: number;
 }
 
 export interface Dokument {

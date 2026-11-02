@@ -38,7 +38,7 @@ describe('filing api', () => {
     const antwort = await post(server, '  Buy milk  ');
     expect(antwort.statusCode).toBe(201);
     expect(antwort.json()).toMatchObject({
-      text: 'Buy milk',
+      text: '# Buy milk',
       topic: 'Inbox',
       source: 'manual',
       aiConfidence: null,
@@ -51,9 +51,9 @@ describe('filing api', () => {
     const server = await app();
     const erste = await post(server, 'Call #Garten tomorrow');
     expect(erste.statusCode).toBe(201);
-    expect(erste.json()).toMatchObject({ text: 'Call tomorrow', topic: 'Garten', source: 'tag' });
+    expect(erste.json()).toMatchObject({ text: '# Call tomorrow', topic: 'Garten', source: 'tag' });
     const zweite = await post(server, 'Again #garten');
-    expect(zweite.json()).toMatchObject({ text: 'Again', topic: 'Garten', source: 'tag' });
+    expect(zweite.json()).toMatchObject({ text: '# Again', topic: 'Garten', source: 'tag' });
     const themen = await server.inject({ method: 'GET', url: '/api/topics' });
     expect(themen.json()).toEqual({
       topics: [
@@ -71,7 +71,7 @@ describe('filing api', () => {
     }
     await post(server, 'one #Workout');
     const abgelegt = await post(server, 'Fix #wo and #home');
-    expect(abgelegt.json()).toMatchObject({ text: 'Fix and #home', topic: 'Work', source: 'tag' });
+    expect(abgelegt.json()).toMatchObject({ text: '# Fix and #home', topic: 'Work', source: 'tag' });
   });
 
   it('rejects empty, mistyped, and oversized notes', async () => {
@@ -109,7 +109,7 @@ describe('filing api', () => {
     expect(zweite.statusCode).toBe(200);
     expect(zweite.json()).toMatchObject({
       id: erste.json().id,
-      text: 'Buy milk',
+      text: '# Buy milk',
       topic: 'Inbox',
       source: 'manual',
     });
@@ -130,7 +130,7 @@ describe('filing api', () => {
       payload: { topic: 'home' },
     });
     expect(gleich.statusCode).toBe(200);
-    expect(gleich.json()).toMatchObject({ topic: 'Home', source: 'tag', text: 'Call tomorrow' });
+    expect(gleich.json()).toMatchObject({ topic: 'Home', source: 'tag', text: '# Call tomorrow' });
     expect((db.prepare('SELECT COUNT(*) AS anzahl FROM correction').get() as { anzahl: number }).anzahl).toBe(0);
 
     const verschoben = await server.inject({
@@ -202,5 +202,63 @@ describe('filing api', () => {
     };
     expect(fest.pinned).toBe(0);
     expect((db.prepare('SELECT COUNT(*) AS anzahl FROM correction').get() as { anzahl: number }).anzahl).toBe(0);
+  });
+
+  it('appends to a page or section and keeps a stale edit', async () => {
+    const { server, db } = await paar();
+    const seite = await post(server, 'Limits #school/Mathe');
+    expect(seite.statusCode).toBe(201);
+    expect(seite.json()).toMatchObject({ text: '# Mathe\n\nLimits', topic: 'school', ziel: 'school > Mathe' });
+    const id = seite.json().id as number;
+    const vorher = db.prepare('SELECT source, created FROM note WHERE id = ?').get(id) as {
+      source: string;
+      created: string;
+    };
+
+    const leer = await post(server, '#school/Mathe');
+    expect(leer.statusCode).toBe(400);
+    expect(leer.json()).toEqual({ error: 'Write something to add.' });
+    expect((await post(server, 'Too #a/b/c/d')).json()).toEqual({ error: 'A path has at most three levels.' });
+    expect((await post(server, 'Gap #a//b')).json()).toEqual({ error: 'That path is missing a name.' });
+
+    const ende = await post(server, 'First block #school/mathe');
+    expect(ende.statusCode).toBe(200);
+    expect(ende.json()).toMatchObject({ id, ziel: 'Mathe', text: '# Mathe\n\nLimits\n\nFirst block' });
+    expect(db.prepare('SELECT text, version FROM note_revision WHERE note_id = ?').all(id)).toEqual([
+      { text: '# Mathe\n\nLimits', version: 1 },
+    ]);
+
+    const abschnitt = await post(server, 'Inside #school/Mathe/Analysis');
+    expect(abschnitt.json()).toMatchObject({
+      ziel: 'Mathe > Analysis',
+      text: '# Mathe\n\nLimits\n\nFirst block\n\n## Analysis\n\nInside',
+    });
+    const beweise = await post(server, 'Next #school/Mathe/Proofs');
+    expect(beweise.json().text).toBe(
+      '# Mathe\n\nLimits\n\nFirst block\n\n## Analysis\n\nInside\n\n## Proofs\n\nNext',
+    );
+    const mitten = await post(server, 'Still #school/Mathe/Analysis');
+    const mittenText =
+      '# Mathe\n\nLimits\n\nFirst block\n\n## Analysis\n\nInside\n\nStill\n\n## Proofs\n\nNext';
+    expect(mitten.json()).toMatchObject({ ziel: 'Mathe > Analysis', text: mittenText });
+    expect(db.prepare('SELECT source, created FROM note WHERE id = ?').get(id)).toEqual(vorher);
+    expect((db.prepare('SELECT COUNT(*) AS anzahl FROM note').get() as { anzahl: number }).anzahl).toBe(1);
+
+    const konflikt = await server.inject({
+      method: 'POST',
+      url: `/api/notes/${id}`,
+      payload: { text: 'stale draft', version: 1 },
+    });
+    expect(konflikt.statusCode).toBe(409);
+    expect(konflikt.json()).toEqual({ error: 'This page changed. Reload it and try again.' });
+    expect((db.prepare('SELECT text FROM note WHERE id = ?').get(id) as { text: string }).text).toBe(mittenText);
+
+    const zurueck = await server.inject({
+      method: 'POST',
+      url: '/api/notes/undo',
+      payload: { token: mitten.json().undo },
+    });
+    expect(zurueck.statusCode).toBe(200);
+    expect((db.prepare('SELECT text FROM note WHERE id = ?').get(id) as { text: string }).text).toBe(beweise.json().text);
   });
 });

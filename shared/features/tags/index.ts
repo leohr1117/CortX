@@ -5,11 +5,17 @@ export {
   gleicherName,
   loeseThema,
   passendeThemen,
-  planeAblage,
   sortiereThemen,
   tagAnCaret,
+  type TagFund,
+} from './regeln.ts';
+export {
+  caretEbene,
+  ersetzeSegment,
+  planeAblage,
   vorschlaege,
   type AblagePlan,
-  type TagFund,
+  type SeiteKurz,
+  type VorschlagEintrag,
   type VorschlagListe,
-} from './regeln.ts';
+} from '../seiten/pfad.ts';

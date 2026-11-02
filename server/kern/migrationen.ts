@@ -1,4 +1,15 @@
-export const MIGRATIONEN: readonly string[] = [
+import type { DatabaseSync } from 'node:sqlite';
+import { wandleSeiten } from './seitenmigration.ts';
+
+export type MigrationsSchritt = string | ((db: DatabaseSync) => void);
+
+export function migrationsSql(index: number): string {
+  const schritt = MIGRATIONEN[index];
+  if (typeof schritt !== 'string') throw new Error('That migration step is not SQL.');
+  return schritt;
+}
+
+export const MIGRATIONEN: readonly MigrationsSchritt[] = [
   `
   CREATE TABLE "topic" (
     id INTEGER PRIMARY KEY,
@@ -135,5 +146,8 @@ export const MIGRATIONEN: readonly string[] = [
   UNION
   SELECT account_id, NULL, NULL FROM "note_undo" WHERE account_id IS NOT NULL;
   `,
+  (db) => {
+    wandleSeiten(db);
+  },
 ];
 
