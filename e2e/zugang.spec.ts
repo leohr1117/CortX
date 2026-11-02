@@ -1,9 +1,8 @@
 import { expect, test, type Page } from '@playwright/test';
-import { MOCK_PORT } from '../server/features/zugang/mock.ts';
 import { ANMELDE_NAME, ANMELDE_PASSWORT } from './anmelden.ts';
 import { liesEntwurf, warteBereit, warteschlangeLaenge } from './lokal.ts';
 
-const PASSWORT_SEITE = `http://127.0.0.1:${MOCK_PORT}/mehr/profil/passwort`;
+const PASSWORT_SEITE = 'https://stride.leohr.de/mehr/profil/passwort';
 
 const BILDER = 'tmp-test/screens';
 
@@ -93,6 +92,9 @@ test('sign-in rejects a bad password, opens the app, and signs out', async ({ pa
 test('change-password redirects without a session', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible();
+  await page.route('https://stride.leohr.de/**', (route) =>
+    route.fulfill({ status: 200, contentType: 'text/html', body: '<!doctype html><title>Stride</title>' }),
+  );
   const antwort = await page.goto('/.well-known/change-password');
   const herkunft = antwort?.request().redirectedFrom();
   expect(herkunft?.url()).toContain('/.well-known/change-password');

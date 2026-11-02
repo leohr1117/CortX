@@ -12,5 +12,7 @@ describe('stride password page', () => {
     expect(stridePasswortZiel('https://stride.example/api/zugang')).toBe(
       'https://stride.example/mehr/profil/passwort',
     );
+    expect(stridePasswortZiel('https://stride.leohr.de')).toBe('https://stride.leohr.de/mehr/profil/passwort');
+    expect(stridePasswortZiel('https://stride.leohr.de/')).toBe('https://stride.leohr.de/mehr/profil/passwort');
   });
 });

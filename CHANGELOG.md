@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.5.4
+
+Change password in a password manager opens the Stride page.
+
 ## 1.5.3
 
 What's new lists each version, newest first. After an update, CortX tells you once. A dot on the library menu stays until you open What's new.

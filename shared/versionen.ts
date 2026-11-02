@@ -6,6 +6,11 @@ export interface Versionseintrag {
 
 export const VERSIONEN: readonly Versionseintrag[] = [
   {
+    version: '1.5.4',
+    datum: '2026-11-02',
+    zeilen: ['Change password in a password manager opens the Stride page.'],
+  },
+  {
     version: '1.5.3',
     datum: '2026-11-02',
     zeilen: [

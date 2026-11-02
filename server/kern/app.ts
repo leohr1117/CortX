@@ -12,7 +12,7 @@ import { versionsRouten } from '../features/version/index.ts';
 import { zugangRouten, type Dienste } from '../features/zugang/index.ts';
 import { strideHttp } from '../features/zugang/stride.ts';
 import { stridePasswortZiel } from '../../shared/features/zugang/index.ts';
-import { strideUrl } from './config.ts';
+import { stridePublicUrl, strideUrl } from './config.ts';
 import { AppFehler } from './fehler.ts';
 
 const UNGUELTIG = 'The note text is missing or invalid.';
@@ -37,7 +37,7 @@ export async function erstelleApp(
   };
   const app = Fastify({ logger: protokoll(stufe) });
   app.decorateRequest('kontoId', null);
-  const passwortZiel = stridePasswortZiel(strideUrl());
+  const passwortZiel = stridePasswortZiel(stridePublicUrl());
 
   app.get('/.well-known/change-password', async (_anfrage, antwort) => {
     antwort.header('Cache-Control', 'no-store');

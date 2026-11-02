@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import type { DatabaseSync } from 'node:sqlite';
-import { FEHLER_GLOBAL, FEHLER_JE_IP, STRIDE_COOKIE, STRIDE_PRUEF_MS, stridePasswortZiel } from '../../../shared/features/zugang/index.ts';
+import { FEHLER_GLOBAL, FEHLER_JE_IP, STRIDE_COOKIE, STRIDE_PRUEF_MS } from '../../../shared/features/zugang/index.ts';
 import { SPEICHER } from '../../../shared/kern/grenzen.ts';
 import { erstelleApp } from '../../kern/app.ts';
 import { strideUrl } from '../../kern/config.ts';
@@ -287,14 +287,27 @@ describe('account session', () => {
   });
 
   it('redirects the password change page without a session', async () => {
-    const server = await app(async () => {
-      throw new Error('stride must not be called');
-    });
-    const antwort = await server.inject({ method: 'GET', url: '/.well-known/change-password' });
-    expect(antwort.statusCode).toBe(302);
-    expect(antwort.headers.location).toBe(stridePasswortZiel(strideUrl()));
-    expect(antwort.headers['set-cookie']).toBeUndefined();
-    const bibliothek = await server.inject({ method: 'GET', url: '/api/library' });
-    expect(bibliothek.statusCode).toBe(401);
+    const vorher = process.env.CORTX_STRIDE_PUBLIC_URL;
+    const pruefe = async (ziel: string) => {
+      const server = await app(async () => {
+        throw new Error('stride must not be called');
+      });
+      const antwort = await server.inject({ method: 'GET', url: '/.well-known/change-password' });
+      expect(antwort.statusCode).toBe(302);
+      expect(antwort.headers.location).toBe(ziel);
+      expect(antwort.headers['set-cookie']).toBeUndefined();
+      const bibliothek = await server.inject({ method: 'GET', url: '/api/library' });
+      expect(bibliothek.statusCode).toBe(401);
+    };
+    try {
+      delete process.env.CORTX_STRIDE_PUBLIC_URL;
+      expect(strideUrl()).toMatch(/\/api\/zugang$/);
+      await pruefe('https://stride.leohr.de/mehr/profil/passwort');
+      process.env.CORTX_STRIDE_PUBLIC_URL = 'https://stride.example/';
+      await pruefe('https://stride.example/mehr/profil/passwort');
+    } finally {
+      if (vorher === undefined) delete process.env.CORTX_STRIDE_PUBLIC_URL;
+      else process.env.CORTX_STRIDE_PUBLIC_URL = vorher;
+    }
   });
 });
