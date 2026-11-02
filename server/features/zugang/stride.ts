@@ -44,7 +44,7 @@ export function strideHttp(url: string, hole: typeof fetch = globalThis.fetch): 
     if (ruf.art === 'anmelden') {
       kopf['content-type'] = 'application/json';
       init.headers = kopf;
-      init.body = JSON.stringify({ name: ruf.name, passwort: ruf.passwort });
+      init.body = JSON.stringify({ benutzername: ruf.name, passwort: ruf.passwort });
     }
     try {
       const antwort = await hole(ziel, init);

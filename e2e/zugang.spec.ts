@@ -14,14 +14,14 @@ async function inboxEnthaelt(page: Page, text: string): Promise<boolean> {
 test('sign-in rejects a bad password, opens the app, and signs out', async ({ page }, testInfo) => {
   await page.goto('/');
   await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible();
-  await expect(page.getByLabel('Email')).toBeFocused();
+  await expect(page.getByLabel('Username')).toBeFocused();
   await expect(page.getByText('Change your password in Stride.')).toBeVisible();
   await page.screenshot({ path: `${BILDER}/${testInfo.project.name}-08-login.png` });
 
-  await page.getByLabel('Email').fill(ANMELDE_NAME);
+  await page.getByLabel('Username').fill(ANMELDE_NAME);
   await page.getByLabel('Password').fill('wrong-password');
   await page.getByRole('button', { name: 'Sign in' }).click();
-  await expect(page.getByRole('alert')).toHaveText('The email or password is wrong.');
+  await expect(page.getByRole('alert')).toHaveText('The username or password is wrong.');
   await page.screenshot({ path: `${BILDER}/${testInfo.project.name}-08-login-fehler.png` });
 
   await page.getByLabel('Password').fill(ANMELDE_PASSWORT);
@@ -54,7 +54,7 @@ test('an offline draft can be filed without an account and syncs after sign-in',
   await page.evaluate(() => window.dispatchEvent(new Event('online')));
   await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible();
   await expect.poll(() => warteschlangeLaenge(page)).toBe(1);
-  await page.getByLabel('Email').fill(ANMELDE_NAME);
+  await page.getByLabel('Username').fill(ANMELDE_NAME);
   await page.getByLabel('Password').fill(ANMELDE_PASSWORT);
   await page.getByRole('button', { name: 'Sign in' }).click();
   await expect(page.getByRole('textbox', { name: 'Note' })).toBeVisible();

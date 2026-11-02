@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.4.1
+
+Sign in with your Stride username and password. The sign-in field is a username. A wrong password, too many attempts, or a sign-in Stride cannot accept is reported as that. If Stride cannot be reached, try again later.
+
 ## 1.4.0
 
 Reading a note can show a date. A date or a time in the text, in English or German, shows under the note: "tomorrow 3pm", "morgen 15 Uhr", "next Monday", "03.11.", a weekday, or a clock time such as "15:30". It shows on a topic, in Inbox, and in search results. The day is taken in Europe/Berlin from when the note was written. The saved text stays plain. Capture and edit stay as they are.

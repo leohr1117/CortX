@@ -8,6 +8,7 @@ export {
   PASSWORT_MAX,
   SITZUNG_MS,
   SITZUNG_SEKUNDEN,
+  STRIDE_COOKIE,
   STRIDE_PRUEF_MS,
   STRIDE_TIMEOUT_MS,
 } from './grenzen.ts';

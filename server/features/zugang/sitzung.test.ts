@@ -1,13 +1,29 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import type { DatabaseSync } from 'node:sqlite';
-import { FEHLER_GLOBAL, FEHLER_JE_IP, STRIDE_PRUEF_MS } from '../../../shared/features/zugang/index.ts';
+import { FEHLER_GLOBAL, FEHLER_JE_IP, STRIDE_COOKIE, STRIDE_PRUEF_MS } from '../../../shared/features/zugang/index.ts';
 import { SPEICHER } from '../../../shared/kern/grenzen.ts';
 import { erstelleApp } from '../../kern/app.ts';
 import { oeffneDatenbank } from '../../kern/db.ts';
 import type { StridePruefer, StrideRoh, StrideRuf } from './stride.ts';
 
 const START = Date.parse('2026-11-01T00:00:00.000Z');
+
+function strideOk(benutzername: string, token: string): StrideRoh {
+  return {
+    status: 200,
+    body: { modus: 'bereit', benutzername, rolle: 'inhaber', admin: false },
+    setCookie: `${STRIDE_COOKIE}=${token}; HttpOnly; Path=/; SameSite=Lax`,
+  };
+}
+
+function strideAus(): StrideRoh {
+  return {
+    status: 200,
+    body: { modus: 'anmelden', benutzername: null, rolle: null, admin: false },
+    setCookie: null,
+  };
+}
 
 function cookieAus(kopf: string | string[] | undefined): string {
   const zeile = Array.isArray(kopf) ? kopf[0] : kopf;
@@ -40,9 +56,11 @@ describe('account session', () => {
   function strideFuer(konten: Record<string, string>, nach: (ruf: StrideRuf) => StrideRoh | Promise<StrideRoh>): StridePruefer {
     return async (ruf) => {
       if (ruf.art === 'nachpruefen') return nach(ruf);
-      const kontoId = konten[ruf.name];
-      if (!kontoId || ruf.passwort !== 'secret') return { status: 401, body: { ok: false }, setCookie: null };
-      return { status: 200, body: { konto: { id: kontoId } }, setCookie: `stride=${kontoId}; HttpOnly` };
+      const token = konten[ruf.name];
+      if (!token || ruf.passwort !== 'secret') {
+        return { status: 401, body: { fehler: 'Anmeldung fehlgeschlagen.' }, setCookie: null };
+      }
+      return strideOk(ruf.name, token);
     };
   }
 
@@ -78,7 +96,7 @@ describe('account session', () => {
     expect(satz).toContain('SameSite=Lax');
     expect(satz).toContain('Secure');
     const gehoert = daten.prepare('SELECT account_id FROM "note"').get() as { account_id: string };
-    expect(gehoert.account_id).toBe('konto-a');
+    expect(gehoert.account_id).toBe('ada@example.com');
 
     const bibliothek = await server.inject({ method: 'GET', url: '/api/library', headers: { cookie } });
     expect(bibliothek.statusCode).toBe(200);
@@ -91,7 +109,7 @@ describe('account session', () => {
       payload: { name: 'ada@example.com', passwort: 'nope' },
     });
     expect(falsch.statusCode).toBe(401);
-    expect(falsch.json()).toEqual({ error: 'The email or password is wrong.' });
+    expect(falsch.json()).toEqual({ error: 'The username or password is wrong.' });
     expect((await server.inject({ method: 'POST', url: '/api/zugang', payload: { name: '' } })).statusCode).toBe(400);
 
     const weg = await server.inject({ method: 'POST', url: '/api/abmelden', headers: { cookie } });
@@ -162,10 +180,8 @@ describe('account session', () => {
 
     const globalServer = await app(async (ruf) => {
       aufrufe += 1;
-      if (ruf.name === 'ok@example.com') {
-        return { status: 200, body: { id: 'konto-ok' }, setCookie: null };
-      }
-      return { status: 401, body: { ok: false }, setCookie: null };
+      if (ruf.name === 'ok@example.com') return strideOk(ruf.name, 'ok');
+      return { status: 401, body: { fehler: 'Anmeldung fehlgeschlagen.' }, setCookie: null };
     });
     for (let index = 0; index < FEHLER_GLOBAL; index += 1) {
       const antwort = await globalServer.inject({
@@ -194,11 +210,11 @@ describe('account session', () => {
         if (ruf.art === 'nachpruefen') {
           checks += 1;
           if (art === 'down') throw new Error('down');
-          if (art === 'tot') return { status: 401, body: { ok: false }, setCookie: null };
-          return { status: 200, body: { konto: { id: 'konto-a' } }, setCookie: null };
+          if (art === 'tot') return strideAus();
+          return strideOk('ada@example.com', 'abc');
         }
         if (art === 'down') return { status: 0, body: null, setCookie: null };
-        return { status: 200, body: { konto: { id: 'konto-a' } }, setCookie: 'stride=abc; HttpOnly' };
+        return strideOk('ada@example.com', 'abc');
       },
       () => jetzt,
     );
@@ -207,7 +223,8 @@ describe('account session', () => {
       url: '/api/zugang',
       payload: { name: 'ada@example.com', passwort: 'secret' },
     });
-    expect(aus.statusCode).toBe(503);
+    expect(aus.statusCode).toBe(502);
+    expect(aus.json()).toEqual({ error: 'Stride is not reachable. Try again later.' });
     art = 'ok';
     const login = await server.inject({
       method: 'POST',
@@ -225,5 +242,46 @@ describe('account session', () => {
     jetzt += STRIDE_PRUEF_MS;
     art = 'tot';
     expect((await server.inject({ method: 'GET', url: '/api/topics', headers: { cookie } })).statusCode).toBe(401);
+  });
+
+  it('maps an input error and a lock, and rejects a sign-in that is not a session', async () => {
+    const eingabe = await app(async () => ({
+      status: 400,
+      body: { fehler: 'Der Benutzername fehlt.' },
+      setCookie: null,
+    }));
+    const leer = await eingabe.inject({
+      method: 'POST',
+      url: '/api/zugang',
+      payload: { name: 'ada@example.com', passwort: 'secret' },
+    });
+    expect(leer.statusCode).toBe(400);
+    expect(leer.json()).toEqual({ error: 'Enter your username and password.' });
+
+    const gesperrt = await app(async () => ({
+      status: 429,
+      body: { fehler: 'Zu viele Versuche. Bitte später erneut versuchen.' },
+      setCookie: null,
+    }));
+    const limit = await gesperrt.inject({
+      method: 'POST',
+      url: '/api/zugang',
+      payload: { name: 'ada@example.com', passwort: 'secret' },
+    });
+    expect(limit.statusCode).toBe(429);
+    expect(limit.json()).toEqual({ error: 'Too many sign-in attempts. Try again later.' });
+
+    const fremd = await app(async () => ({
+      status: 200,
+      body: { konto: { id: 'konto-a' } },
+      setCookie: 'stride=abc; HttpOnly',
+    }));
+    const kaputt = await fremd.inject({
+      method: 'POST',
+      url: '/api/zugang',
+      payload: { name: 'ada@example.com', passwort: 'secret' },
+    });
+    expect(kaputt.statusCode).toBe(502);
+    expect(kaputt.json()).toEqual({ error: 'Could not sign in.' });
   });
 });

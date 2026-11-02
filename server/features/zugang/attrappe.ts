@@ -1,21 +1,28 @@
 import type { FastifyInstance, InjectOptions } from 'fastify';
 import type { DatabaseSync } from 'node:sqlite';
+import { STRIDE_COOKIE } from '../../../shared/features/zugang/grenzen.ts';
 import { erstelleApp } from '../../kern/app.ts';
-import type { StridePruefer } from './stride.ts';
+import type { StridePruefer, StrideRoh } from './stride.ts';
 
 export const PROBE_NAME = 'ada@example.com';
 export const PROBE_PASSWORT = 'probe-passwort';
-export const PROBE_KONTO = 'probe-konto';
+export const PROBE_KONTO = PROBE_NAME;
+
+function bereit(benutzername: string, cookie: string | null): StrideRoh {
+  return {
+    status: 200,
+    body: { modus: 'bereit', benutzername, rolle: 'inhaber', admin: false },
+    setCookie: cookie,
+  };
+}
 
 export function probeStride(): StridePruefer {
   return async (ruf) => {
-    if (ruf.art === 'nachpruefen') {
-      return { status: 200, body: { konto: { id: PROBE_KONTO } }, setCookie: null };
-    }
+    if (ruf.art === 'nachpruefen') return bereit(PROBE_NAME, null);
     if (ruf.name === PROBE_NAME && ruf.passwort === PROBE_PASSWORT) {
-      return { status: 200, body: { konto: { id: PROBE_KONTO } }, setCookie: 'stride=probe; HttpOnly' };
+      return bereit(PROBE_NAME, `${STRIDE_COOKIE}=probe; HttpOnly; Path=/; SameSite=Lax`);
     }
-    return { status: 401, body: { ok: false }, setCookie: null };
+    return { status: 401, body: { fehler: 'Anmeldung fehlgeschlagen.' }, setCookie: null };
   };
 }
 

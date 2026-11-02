@@ -1,7 +1,8 @@
-import { KONTO_ID_MAX } from './grenzen.ts';
+import { KONTO_ID_MAX, STRIDE_COOKIE } from './grenzen.ts';
 
 export type AnmeldungDeutung =
-  | { art: 'ok'; kontoId: string; material: string | null }
+  | { art: 'ok'; kontoId: string; material: string }
+  | { art: 'eingabe' }
   | { art: 'abgelehnt' }
   | { art: 'limit' }
   | { art: 'nicht_erreichbar' }
@@ -14,17 +15,13 @@ export type NachpruefungDeutung =
   | { art: 'nicht_erreichbar' }
   | { art: 'unbekannt' };
 
+const ABGEMELDET = new Set(['anmelden', 'einrichten', 'passwort', 'benutzername']);
+
 function text(wert: unknown): string | null {
-  if (typeof wert === 'string') {
-    const sauber = wert.trim();
-    if (!sauber || sauber.length > KONTO_ID_MAX || /[\r\n]/.test(sauber)) return null;
-    return sauber;
-  }
-  if (typeof wert === 'number' && Number.isFinite(wert)) {
-    const sauber = String(wert);
-    return sauber.length <= KONTO_ID_MAX ? sauber : null;
-  }
-  return null;
+  if (typeof wert !== 'string') return null;
+  const sauber = wert.trim();
+  if (!sauber || sauber.length > KONTO_ID_MAX || /[\r\n]/.test(sauber)) return null;
+  return sauber;
 }
 
 function objekt(wert: unknown): Record<string, unknown> | null {
@@ -32,64 +29,67 @@ function objekt(wert: unknown): Record<string, unknown> | null {
   return wert as Record<string, unknown>;
 }
 
-function negativ(body: unknown): boolean {
+function modusVon(body: unknown): string | null {
   const obj = objekt(body);
-  if (!obj) return false;
-  if (obj.ok === false || obj.success === false || obj.gueltig === false || obj.valid === false) return true;
-  if (typeof obj.error === 'string' && obj.error.trim()) return true;
-  if (typeof obj.fehler === 'string' && obj.fehler.trim()) return true;
-  return false;
+  return obj && typeof obj.modus === 'string' ? obj.modus : null;
 }
 
-function sucheId(body: unknown): string | null {
+function nameVon(body: unknown): string | null {
   const obj = objekt(body);
   if (!obj) return null;
-  for (const schluessel of ['kontoId', 'konto_id', 'accountId', 'account_id']) {
-    const wert = text(obj[schluessel]);
-    if (wert) return wert;
-  }
-  for (const nest of ['konto', 'account', 'user']) {
-    const innen = objekt(obj[nest]);
-    if (!innen) continue;
-    const wert = text(innen.id) ?? text(innen.kontoId) ?? text(innen.konto_id);
-    if (wert) return wert;
-  }
-  return text(obj.id);
+  return text(obj.benutzername);
 }
 
-export function materialAus(setCookie: string | null, body: unknown): string | null {
-  if (setCookie) {
-    const paare = setCookie
-      .split(',')
-      .map((stueck) => stueck.split(';')[0]?.trim() ?? '')
-      .filter((paar) => paar.includes('=') && !/[\r\n]/.test(paar));
-    if (paare.length > 0) return paare.join('; ');
-  }
-  const obj = objekt(body);
-  if (!obj) return null;
-  for (const schluessel of ['sitzung', 'session', 'token']) {
-    const wert = text(obj[schluessel]);
-    if (wert) return wert;
+export function materialAus(setCookie: string | null): string | null {
+  if (!setCookie) return null;
+  for (const stueck of setCookie.split(',')) {
+    const paar = stueck.split(';')[0]?.trim() ?? '';
+    const trenn = paar.indexOf('=');
+    if (trenn <= 0) continue;
+    const schluessel = paar.slice(0, trenn).trim();
+    const wert = paar.slice(trenn + 1).trim();
+    if (schluessel !== STRIDE_COOKIE || !wert || /[\r\n]/.test(wert)) continue;
+    return `${STRIDE_COOKIE}=${wert}`;
   }
   return null;
 }
 
-export function deuteAnmeldung(status: number, body: unknown, setCookie: string | null): AnmeldungDeutung {
+type StatusDeutung =
+  | { art: 'eingabe' }
+  | { art: 'abgelehnt' }
+  | { art: 'limit' }
+  | { art: 'nicht_erreichbar' }
+  | { art: 'unbekannt' };
+
+function statusDeutung(status: number): StatusDeutung | null {
   if (status === 0 || status >= 500) return { art: 'nicht_erreichbar' };
   if (status === 429) return { art: 'limit' };
+  if (status === 400) return { art: 'eingabe' };
   if (status === 401 || status === 403) return { art: 'abgelehnt' };
   if (status < 200 || status >= 300) return { art: 'unbekannt' };
-  if (negativ(body)) return { art: 'abgelehnt' };
-  const kontoId = sucheId(body);
-  if (!kontoId) return { art: 'unbekannt' };
-  return { art: 'ok', kontoId, material: materialAus(setCookie, body) };
+  return null;
+}
+
+export function deuteAnmeldung(status: number, body: unknown, setCookie: string | null): AnmeldungDeutung {
+  const vorher = statusDeutung(status);
+  if (vorher) return vorher;
+  if (modusVon(body) !== 'bereit') return { art: 'unbekannt' };
+  const kontoId = nameVon(body);
+  const material = materialAus(setCookie);
+  if (!kontoId || !material) return { art: 'unbekannt' };
+  return { art: 'ok', kontoId, material };
 }
 
 export function deuteNachpruefung(status: number, body: unknown): NachpruefungDeutung {
-  if (status === 0 || status >= 500) return { art: 'nicht_erreichbar' };
-  if (status === 429) return { art: 'limit' };
-  if (status === 401 || status === 403) return { art: 'abgelehnt' };
-  if (status < 200 || status >= 300) return { art: 'unbekannt' };
-  if (negativ(body)) return { art: 'abgelehnt' };
-  return { art: 'ok', kontoId: sucheId(body) };
+  const vorher = statusDeutung(status);
+  if (vorher?.art === 'eingabe') return { art: 'unbekannt' };
+  if (vorher) return vorher;
+  const modus = modusVon(body);
+  if (modus === 'bereit') {
+    const kontoId = nameVon(body);
+    if (!kontoId) return { art: 'unbekannt' };
+    return { art: 'ok', kontoId };
+  }
+  if (modus && ABGEMELDET.has(modus)) return { art: 'abgelehnt' };
+  return { art: 'unbekannt' };
 }

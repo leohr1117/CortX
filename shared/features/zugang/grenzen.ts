@@ -1,4 +1,5 @@
 export const COOKIE_NAME = 'cortex_session';
+export const STRIDE_COOKIE = 'ascend_sitzung';
 export const SITZUNG_SEKUNDEN = 400 * 24 * 60 * 60;
 export const SITZUNG_MS = SITZUNG_SEKUNDEN * 1000;
 export const STRIDE_PRUEF_MS = 24 * 60 * 60 * 1000;

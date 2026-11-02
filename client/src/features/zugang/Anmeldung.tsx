@@ -5,8 +5,8 @@ import { useSitzung } from './Sitzung.tsx';
 export function Anmeldung() {
   const { anmelden } = useSitzung();
   const navigate = useNavigate();
-  const emailFeld = useRef<HTMLInputElement>(null);
-  const [email, setEmail] = useState('');
+  const nameFeld = useRef<HTMLInputElement>(null);
+  const [name, setName] = useState('');
   const [passwort, setPasswort] = useState('');
   const [sichtbar, setSichtbar] = useState(false);
   const [fehler, setFehler] = useState<string | null>(null);
@@ -14,7 +14,7 @@ export function Anmeldung() {
 
   useEffect(() => {
     document.documentElement.dataset.bereit = '1';
-    emailFeld.current?.focus();
+    nameFeld.current?.focus();
   }, []);
 
   async function sende(event: FormEvent<HTMLFormElement>) {
@@ -26,7 +26,7 @@ export function Anmeldung() {
       const antwort = await fetch('/api/zugang', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: email, passwort }),
+        body: JSON.stringify({ name, passwort }),
       });
       if (!antwort.ok) {
         let meldung = 'Could not sign in.';
@@ -66,20 +66,18 @@ export function Anmeldung() {
             Cortex
           </div>
           <p className="sub">Sign in with your Stride account.</p>
-          <label className="lab" htmlFor="email">
-            Email
+          <label className="lab" htmlFor="username">
+            Username
           </label>
           <input
-            ref={emailFeld}
-            id="email"
+            ref={nameFeld}
+            id="username"
             className="feld"
-            type="email"
+            type="text"
             name="username"
             autoComplete="username"
-            inputMode="email"
-            placeholder="name@example.com"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
+            value={name}
+            onChange={(event) => setName(event.target.value)}
           />
           <label className="lab" htmlFor="password">
             Password

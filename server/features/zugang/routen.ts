@@ -22,8 +22,8 @@ declare module 'fastify' {
   }
 }
 
-const FEHLT = 'Enter your email and password.';
-const FALSCH = 'The email or password is wrong.';
+const FEHLT = 'Enter your username and password.';
+const FALSCH = 'The username or password is wrong.';
 const WEG = 'Stride is not reachable. Try again later.';
 const LIMIT = 'Too many sign-in attempts. Try again later.';
 const KAPUTT = 'Could not sign in.';
@@ -74,10 +74,13 @@ export function verlangeKonto(anfrage: FastifyRequest): string {
   return anfrage.kontoId;
 }
 
-function antwortFuer(art: 'abgelehnt' | 'limit' | 'nicht_erreichbar' | 'unbekannt'): { status: number; error: string } {
+function antwortFuer(
+  art: 'eingabe' | 'abgelehnt' | 'limit' | 'nicht_erreichbar' | 'unbekannt',
+): { status: number; error: string } {
+  if (art === 'eingabe') return { status: 400, error: FEHLT };
   if (art === 'abgelehnt') return { status: 401, error: FALSCH };
   if (art === 'limit') return { status: 429, error: LIMIT };
-  if (art === 'nicht_erreichbar') return { status: 503, error: WEG };
+  if (art === 'nicht_erreichbar') return { status: 502, error: WEG };
   return { status: 502, error: KAPUTT };
 }
 

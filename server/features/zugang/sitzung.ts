@@ -15,6 +15,7 @@ import type { StridePruefer, StrideRoh } from './stride.ts';
 
 export type ZugangErgebnis =
   | { art: 'ok'; token: string }
+  | { art: 'eingabe' }
   | { art: 'abgelehnt' }
   | { art: 'limit' }
   | { art: 'nicht_erreichbar' }
@@ -106,7 +107,9 @@ export async function meldeAn(
   return transaktion(db, () => {
     raeume(db, jetzt);
     if (deutung.art !== 'ok') {
-      if (deutung.art === 'limit' || deutung.art === 'nicht_erreichbar') return { art: deutung.art };
+      if (deutung.art === 'eingabe' || deutung.art === 'limit' || deutung.art === 'nicht_erreichbar') {
+        return { art: deutung.art };
+      }
       if (begrenzt(db, clientIp, jetzt)) return { art: 'limit' as const };
       merkeFehler(db, clientIp, jetzt);
       return { art: deutung.art };
