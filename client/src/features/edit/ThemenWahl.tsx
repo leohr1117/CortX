@@ -38,7 +38,7 @@ export function ThemenWahl({
   }, []);
 
   useEffect(() => {
-    window.history.pushState({ cortexWechsel: true }, '');
+    window.history.pushState({ cortxWechsel: true }, '');
     geschoben.current = true;
     const beiPop = () => {
       if (!geschoben.current) return;

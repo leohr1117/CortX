@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { App } from './app.tsx';
 import { registriereServiceWorker } from './pwa.ts';
 import { setzeSystem } from './ui/system.ts';
-import './ui/cortex.css';
+import './ui/cortx.css';
 
 setzeSystem();
 registriereServiceWorker();

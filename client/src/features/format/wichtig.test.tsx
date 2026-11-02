@@ -67,7 +67,7 @@ describe('wichtig on the page', () => {
   });
 
   it('uses a gold highlight with enough contrast and no red', () => {
-    const css = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '../../ui/cortex.css'), 'utf8');
+    const css = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '../../ui/cortx.css'), 'utf8');
     const hintergrund = '#f3e2a8';
     const schrift = '#1a1a1a';
     const balken = '#b8892e';

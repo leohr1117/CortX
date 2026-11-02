@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.8.8
+
+Housekeeping only. CortX looks and works the same.
+
 ## 1.8.7
 
 Bold, italic, strike, important, and code can be turned on and off with the format buttons in any order, including when they are nested. Turning one off removes only that format. The button shows whether it is on.
