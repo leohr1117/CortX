@@ -6,6 +6,14 @@ export interface Versionseintrag {
 
 export const VERSIONEN: readonly Versionseintrag[] = [
   {
+    version: '1.7.1',
+    datum: '2026-11-02',
+    zeilen: [
+      'Updates arrive more reliably.',
+      'The installed app picks up the new version.',
+    ],
+  },
+  {
     version: '1.7.0',
     datum: '2026-11-02',
     zeilen: [

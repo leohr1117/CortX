@@ -1,8 +1,8 @@
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { stridePasswortZiel } from '../../shared/features/zugang/index.ts';
-import { datenbankPfad, lesePort, stridePublicUrl, strideUrl } from './config.ts';
-import { istTestlauf } from './testpfad.ts';
+import { clientDist, datenbankPfad, lesePort, stridePublicUrl, strideUrl } from './config.ts';
+import { istTestlauf, WURZEL } from './testpfad.ts';
 
 describe('config', () => {
   it('defaults to 3100 and rejects Stride and invalid ports', () => {
@@ -57,6 +57,26 @@ describe('config', () => {
     expect(istTestlauf({ CORTEX_TEST: '1' })).toBe(true);
     expect(istTestlauf({ CORTX_TEST: '0', CORTEX_TEST: '1' })).toBe(false);
     expect(istTestlauf({})).toBe(false);
+  });
+
+  it('serves client/dist when the client folder is not set', () => {
+    expect(clientDist({})).toBe(path.join(WURZEL, 'client', 'dist'));
+  });
+
+  it('serves client/dist when the client folder is empty', () => {
+    expect(clientDist({ CORTX_CLIENT_DIST: '' })).toBe(path.join(WURZEL, 'client', 'dist'));
+  });
+
+  it('resolves a relative client folder from the project root', () => {
+    expect(clientDist({ CORTX_CLIENT_DIST: 'client/auslieferung' })).toBe(
+      path.resolve(WURZEL, 'client/auslieferung'),
+    );
+  });
+
+  it('keeps an absolute client folder unchanged', () => {
+    const absolut = `${path.parse(WURZEL).root}cortx-auslieferung${path.sep}dist${path.sep}`;
+    expect(path.isAbsolute(absolut)).toBe(true);
+    expect(clientDist({ CORTX_CLIENT_DIST: absolut })).toBe(absolut);
   });
 
   it('reads the public stride address for the password page', () => {

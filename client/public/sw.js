@@ -1,4 +1,4 @@
-const CACHE = 'cortex-1.5.1';
+const CACHE = '__CORTX_CACHE__';
 
 self.addEventListener('install', (event) => {
   event.waitUntil(self.skipWaiting());

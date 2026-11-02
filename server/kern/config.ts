@@ -29,8 +29,11 @@ export function logLevel(): string {
   return process.env.LOG_LEVEL ?? 'warn';
 }
 
-export function clientDist(): string {
-  return path.join(WURZEL, 'client', 'dist');
+export function clientDist(env: NodeJS.ProcessEnv = process.env): string {
+  const gesetzt = env.CORTX_CLIENT_DIST;
+  if (gesetzt === undefined || gesetzt === '') return path.join(WURZEL, 'client', 'dist');
+  if (path.isAbsolute(gesetzt)) return gesetzt;
+  return path.resolve(WURZEL, gesetzt);
 }
 
 export function strideUrl(): string {

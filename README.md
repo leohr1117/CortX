@@ -52,6 +52,7 @@ npm start              # Server mit fertigem Build
 |---|---|
 | `PORT` | Port des Servers, Standard 3100 |
 | `CORTX_DB` | Pfad der Datenbank, Standard `data/cortex.db` |
+| `CORTX_CLIENT_DIST` | Ordner der ausgelieferten Oberfläche, Standard `client/dist` |
 | `CORTX_STRIDE_URL` | Anmeldeadresse von Stride, Standard `http://127.0.0.1:3000/api/zugang` |
 | `CORTX_STRIDE_PUBLIC_URL` | Öffentliche Stride-Adresse für „Passwort ändern“, Standard `https://stride.leohr.de` |
 | `LOG_LEVEL` | Log-Stufe, Standard `warn` |
