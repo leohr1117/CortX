@@ -165,6 +165,7 @@ describe('install icon', () => {
     expect(lies('public/manifest.webmanifest')).not.toContain('/icons/icon-512.png"');
     const sw = lies('public/sw.js');
     expect(sw).toContain('cortex-1.5.1');
+    expect(sw).toContain('/.well-known/');
     expect(sw).not.toContain('cortex-1.0.0');
     expect(sw).not.toContain('/icons/icon-192.png');
 

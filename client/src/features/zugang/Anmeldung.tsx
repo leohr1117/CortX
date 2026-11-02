@@ -1,5 +1,6 @@
 import { type FormEvent, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
+import { NAME_MAX, PASSWORT_MAX } from '../../../../shared/features/zugang/index.ts';
 import { useSitzung } from './Sitzung.tsx';
 
 export function Anmeldung() {
@@ -37,6 +38,7 @@ export function Anmeldung() {
           meldung = 'Could not sign in.';
         }
         setFehler(meldung);
+        setPasswort('');
         setSendet(false);
         return;
       }
@@ -44,6 +46,7 @@ export function Anmeldung() {
       anmelden();
     } catch {
       setFehler('Stride is not reachable. Try again later.');
+      setPasswort('');
       setSendet(false);
     }
   }
@@ -51,7 +54,7 @@ export function Anmeldung() {
   return (
     <div className="app">
       <main className="login">
-        <form noValidate onSubmit={(event) => void sende(event)}>
+        <form method="post" noValidate onSubmit={(event) => void sende(event)}>
           <div className="marke">
             <svg className="logo" viewBox="0 0 28 28" aria-hidden="true">
               <rect x="1" y="1" width="26" height="26" rx="8" fill="#f2f2f2" />
@@ -76,6 +79,10 @@ export function Anmeldung() {
             type="text"
             name="username"
             autoComplete="username"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+            maxLength={NAME_MAX}
             value={name}
             onChange={(event) => setName(event.target.value)}
           />
@@ -89,6 +96,10 @@ export function Anmeldung() {
               type={sichtbar ? 'text' : 'password'}
               name="password"
               autoComplete="current-password"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              maxLength={PASSWORT_MAX}
               value={passwort}
               onChange={(event) => setPasswort(event.target.value)}
             />
@@ -97,6 +108,7 @@ export function Anmeldung() {
               className="zeig"
               aria-controls="password"
               aria-pressed={sichtbar}
+              aria-label={sichtbar ? 'Hide password' : 'Show password'}
               onClick={() => setSichtbar((wert) => !wert)}
             >
               {sichtbar ? 'Hide' : 'Show'}

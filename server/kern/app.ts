@@ -10,6 +10,7 @@ import { sucheRouten } from '../features/suche/index.ts';
 import { themenRouten } from '../features/topics/index.ts';
 import { zugangRouten, type Dienste } from '../features/zugang/index.ts';
 import { strideHttp } from '../features/zugang/stride.ts';
+import { stridePasswortZiel } from '../../shared/features/zugang/index.ts';
 import { strideUrl } from './config.ts';
 import { AppFehler } from './fehler.ts';
 
@@ -35,6 +36,12 @@ export async function erstelleApp(
   };
   const app = Fastify({ logger: protokoll(stufe) });
   app.decorateRequest('kontoId', null);
+  const passwortZiel = stridePasswortZiel(strideUrl());
+
+  app.get('/.well-known/change-password', async (_anfrage, antwort) => {
+    antwort.header('Cache-Control', 'no-store');
+    return antwort.redirect(passwortZiel, 302);
+  });
 
   app.setErrorHandler((fehler: FastifyError | Error, anfrage, antwort) => {
     if (fehler instanceof ZodError || fehler instanceof AppFehler) {

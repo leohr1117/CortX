@@ -1,9 +1,10 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import type { DatabaseSync } from 'node:sqlite';
-import { FEHLER_GLOBAL, FEHLER_JE_IP, STRIDE_COOKIE, STRIDE_PRUEF_MS } from '../../../shared/features/zugang/index.ts';
+import { FEHLER_GLOBAL, FEHLER_JE_IP, STRIDE_COOKIE, STRIDE_PRUEF_MS, stridePasswortZiel } from '../../../shared/features/zugang/index.ts';
 import { SPEICHER } from '../../../shared/kern/grenzen.ts';
 import { erstelleApp } from '../../kern/app.ts';
+import { strideUrl } from '../../kern/config.ts';
 import { oeffneDatenbank } from '../../kern/db.ts';
 import type { StridePruefer, StrideRoh, StrideRuf } from './stride.ts';
 
@@ -283,5 +284,17 @@ describe('account session', () => {
     });
     expect(kaputt.statusCode).toBe(502);
     expect(kaputt.json()).toEqual({ error: 'Could not sign in.' });
+  });
+
+  it('redirects the password change page without a session', async () => {
+    const server = await app(async () => {
+      throw new Error('stride must not be called');
+    });
+    const antwort = await server.inject({ method: 'GET', url: '/.well-known/change-password' });
+    expect(antwort.statusCode).toBe(302);
+    expect(antwort.headers.location).toBe(stridePasswortZiel(strideUrl()));
+    expect(antwort.headers['set-cookie']).toBeUndefined();
+    const bibliothek = await server.inject({ method: 'GET', url: '/api/library' });
+    expect(bibliothek.statusCode).toBe(401);
   });
 });

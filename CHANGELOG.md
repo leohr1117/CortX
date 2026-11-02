@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.5.2
+
+Sign in with a password manager. The username stays if the password is wrong, and you can show the password while you type. Change your password in Stride.
+
 ## 1.5.1
 
 The home screen name is CortX. The icon is three lines of a note, the top one white and the ones under it gray, on a full dark square. A maskable icon fills the phone's shape, so no white ring shows around it.
