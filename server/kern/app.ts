@@ -6,6 +6,7 @@ import type { DatabaseSync } from 'node:sqlite';
 import { ZodError } from 'zod';
 import { bibliothekRouten } from '../features/library/index.ts';
 import { notizRouten } from '../features/notes/index.ts';
+import { sucheRouten } from '../features/suche/index.ts';
 import { themenRouten } from '../features/topics/index.ts';
 import { zugangRouten, type Dienste } from '../features/zugang/index.ts';
 import { strideHttp } from '../features/zugang/stride.ts';
@@ -55,6 +56,7 @@ export async function erstelleApp(
       themenRouten(api, db);
       notizRouten(api, db);
       bibliothekRouten(api, db);
+      sucheRouten(api, db);
     },
     { prefix: '/api' },
   );

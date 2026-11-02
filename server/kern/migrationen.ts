@@ -94,5 +94,28 @@ export const MIGRATIONEN: readonly string[] = [
     claimed TEXT NOT NULL
   );
   `,
+  `
+  CREATE VIRTUAL TABLE note_fts USING fts5(
+    text,
+    content='note',
+    content_rowid='id',
+    tokenize='unicode61 remove_diacritics 1'
+  );
+
+  CREATE TRIGGER note_fts_insert AFTER INSERT ON "note" BEGIN
+    INSERT INTO note_fts(rowid, text) VALUES (new.id, new.text);
+  END;
+
+  CREATE TRIGGER note_fts_delete AFTER DELETE ON "note" BEGIN
+    INSERT INTO note_fts(note_fts, rowid, text) VALUES ('delete', old.id, old.text);
+  END;
+
+  CREATE TRIGGER note_fts_update AFTER UPDATE ON "note" BEGIN
+    INSERT INTO note_fts(note_fts, rowid, text) VALUES ('delete', old.id, old.text);
+    INSERT INTO note_fts(rowid, text) VALUES (new.id, new.text);
+  END;
+
+  INSERT INTO note_fts(note_fts) VALUES ('rebuild');
+  `,
 ];
 

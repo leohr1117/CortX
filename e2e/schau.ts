@@ -195,6 +195,27 @@ export function setzeThema(name: string, notizen: readonly SaatNotiz[]): void {
   });
 }
 
+export function legeFremdeNotiz(text: string): void {
+  schreib((db) => {
+    const konto = 'other-account';
+    const jetzt = new Date().toISOString();
+    const vorhanden = db.prepare(`SELECT id FROM "topic" WHERE name_key = 'inbox' AND account_id = ?`).get(konto) as
+      | { id: number }
+      | undefined;
+    const themaId = vorhanden
+      ? vorhanden.id
+      : Number(
+          db
+            .prepare(`INSERT INTO "topic" (name, name_key, created, account_id) VALUES ('Inbox', 'inbox', ?, ?)`)
+            .run(jetzt, konto).lastInsertRowid,
+        );
+    db.prepare(
+      `INSERT INTO "note" (text, created, topic_id, source, ai_confidence, client_id, pinned, account_id)
+       VALUES (?, ?, ?, 'manual', NULL, NULL, 0, ?)`,
+    ).run(text, jetzt, themaId, konto);
+  });
+}
+
 export function loescheNotizen(nurInbox: boolean): void {
   schreib((db) => {
     const konto = kontoId(db);

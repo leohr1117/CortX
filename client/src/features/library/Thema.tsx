@@ -52,7 +52,7 @@ function NotizZeile({
   onDelete: () => void;
 }) {
   return (
-    <article className="notiz">
+    <article className="notiz" id={`note-${notiz.id}`}>
       <div className="tx">
         <p>{notiz.text}</p>
         <div className="zeit">{uhrzeit(notiz.created)}</div>
@@ -106,6 +106,12 @@ export function ThemaAnsicht() {
       aktiv = false;
     };
   }, [name]);
+
+  useEffect(() => {
+    const roh = params.get('note');
+    if (!roh || !notizen || !/^[1-9]\d*$/.test(roh)) return;
+    document.getElementById(`note-${roh}`)?.scrollIntoView({ block: 'center' });
+  }, [params, notizen]);
 
   useEffect(() => {
     if (dialog !== 'rename' && dialog !== 'merge') return;

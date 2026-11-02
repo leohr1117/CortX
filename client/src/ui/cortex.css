@@ -380,6 +380,11 @@ html[data-os="mac"] .kbd .mac { display: inline-flex; }
   outline: none;
 }
 .suche input::placeholder { color: var(--leise); }
+.suche.fund { margin: 16px var(--rand) 16px; }
+.suche.fund:focus-within {
+  outline: 2px solid var(--fokus);
+  outline-offset: 2px;
+}
 .wl { overflow: auto; max-height: calc(100dvh - 220px); }
 .wl .tr { height: 1px; background: var(--trenner); margin: 4px 0; }
 .wz {
@@ -456,7 +461,6 @@ svg.i.ok {
   border-top: 1px solid var(--trenner);
   border-bottom: 1px solid var(--trenner);
 }
-.liste.anfang { margin-top: 16px; }
 .zeile {
   min-height: 56px;
   display: flex;
@@ -566,6 +570,7 @@ svg.i.ok {
   .ab { margin-left: 0; margin-right: 0; }
   .liste { border: 1px solid var(--trenner); border-radius: 8px; }
   .leer1 { margin-left: 0; }
+  .suche.fund { margin-left: 0; margin-right: 0; }
   .blatt .bf { display: flex; justify-content: flex-end; }
   .blatt .bf .btn { width: auto; min-width: 120px; }
   .toast.ruhe { bottom: 40px; }

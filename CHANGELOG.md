@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.0
+
+Search your notes from the library. The field looks through every topic and Inbox. Each match shows the note and its topic, newest first. Open a match to read that note where it was filed.
+
 ## 1.0.0
 
 The first release of Cortex. Write a note and move on. The app files it for you.

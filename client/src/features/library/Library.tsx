@@ -16,6 +16,7 @@ import {
   vergissPflege,
   type PflegeMeldung,
 } from '../topics/index.ts';
+import { Suchleiste, Trefferliste, sucheNotizen, type SuchTreffer } from '../suche/index.ts';
 import { AbmeldenKnopf } from '../zugang/index.ts';
 import { ladeBibliothek, themaPfad } from './api.ts';
 import { Kopf } from './Kopf.tsx';
@@ -43,10 +44,15 @@ export function LibraryAnsicht() {
   const meldung = ausOrt ?? gemerkt;
   const [stand, setStand] = useState<Bibliothek | null>(null);
   const [fehler, setFehler] = useState(false);
+  const [frage, setFrage] = useState('');
+  const [treffer, setTreffer] = useState<SuchTreffer[] | null>(null);
+  const [suchFehler, setSuchFehler] = useState(false);
   const [undoFehler, setUndoFehler] = useState<string | null>(null);
   const [machtRueck, setMachtRueck] = useState(false);
   const anfrage = useRef(0);
+  const suchLauf = useRef(0);
   const jetzt = new Date();
+  const sucht = frage.trim().length > 0;
 
   useEffect(() => {
     const id = anfrage.current + 1;
@@ -70,6 +76,33 @@ export function LibraryAnsicht() {
   useEffect(() => {
     setUndoFehler(null);
   }, [meldung?.token]);
+
+  useEffect(() => {
+    const text = frage.trim();
+    if (!text) return;
+    const id = suchLauf.current + 1;
+    suchLauf.current = id;
+    let aktiv = true;
+    sucheNotizen(text)
+      .then((liste) => {
+        if (aktiv && suchLauf.current === id) {
+          setTreffer(liste);
+          setSuchFehler(false);
+        }
+      })
+      .catch(() => {
+        if (aktiv && suchLauf.current === id) setSuchFehler(true);
+      });
+    return () => {
+      aktiv = false;
+    };
+  }, [frage]);
+
+  function beiSuche(wert: string) {
+    setFrage(wert);
+    setTreffer(null);
+    setSuchFehler(false);
+  }
 
   async function rueckgaengig() {
     if (!meldung || machtRueck) return;
@@ -105,11 +138,14 @@ export function LibraryAnsicht() {
     <div className="app">
       <Kopf titel="Library" zurueck="/" zurueckLabel="Back to Capture" aktion={<AbmeldenKnopf />} />
       <main className="inhalt">
-        {fehler ? <p className="leer1">Could not load the library.</p> : null}
-        {stand && leer ? <p className="leer1">No notes yet.</p> : null}
-        {stand && !leer ? (
+        <Suchleiste wert={frage} onChange={beiSuche} />
+        {sucht && suchFehler ? <p className="leer1">Could not search.</p> : null}
+        {sucht && !suchFehler && treffer ? <Trefferliste treffer={treffer} /> : null}
+        {!sucht && fehler ? <p className="leer1">Could not load the library.</p> : null}
+        {!sucht && stand && leer ? <p className="leer1">No notes yet.</p> : null}
+        {!sucht && stand && !leer ? (
           <>
-            <div className="liste anfang">
+            <div className="liste">
               <Zeile zeile={stand.inbox} inbox jetzt={jetzt} />
             </div>
             {themen.length > 0 ? (
