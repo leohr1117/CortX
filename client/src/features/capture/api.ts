@@ -71,9 +71,10 @@ export async function legeNotizAb(text: string, clientId: string): Promise<Ablag
   return leseJson<AblageAntwort>(antwort);
 }
 
-export async function macheRueckgaengig(token: string): Promise<void> {
+export async function macheRueckgaengig(token: string): Promise<string | null> {
   const antwort = await sende('/api/notes/undo', { token });
-  await leseJson<Notiz>(antwort);
+  const daten = await leseJson<{ erfasst?: unknown }>(antwort);
+  return typeof daten.erfasst === 'string' ? daten.erfasst : null;
 }
 
 export async function verschiebeNotiz(id: number, topic: string): Promise<Notiz> {

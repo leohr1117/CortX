@@ -19,6 +19,7 @@ import {
 export interface SyncTreffer {
   clientId: string;
   notiz: DateiNotiz;
+  text: string;
 }
 
 export interface SyncStand {
@@ -51,7 +52,7 @@ async function spueleOffen(sende: Senden): Promise<SyncStand> {
     try {
       const notiz = await sende(eintrag);
       await entferneQueueOffen(eintrag.clientId);
-      erledigt.push({ clientId: eintrag.clientId, notiz });
+      erledigt.push({ clientId: eintrag.clientId, notiz, text: eintrag.text });
     } catch (fehler) {
       dauerhaft = istDauerhaft(httpStatus(fehler));
       grund = fehler instanceof Error ? fehler.message : null;

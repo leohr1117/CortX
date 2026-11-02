@@ -1,6 +1,6 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { meldeAn } from './anmelden.ts';
-import { erwarteQuelle, setzeQuelle } from './feld.ts';
+import { cursorKopf, erwarteQuelle, setzeQuelle } from './feld.ts';
 import { leereLokal } from './lokal.ts';
 
 const BILDER = 'tmp-test/screens';
@@ -254,6 +254,44 @@ test('change moves the note onto an existing or new topic', async ({ page }, tes
   await expect(page.getByRole('heading', { level: 1 })).toContainText(tastatur);
   await page.reload();
   await expect(page.getByRole('heading', { level: 1 })).toContainText(tastatur);
+});
+
+test('undo after filing puts the text back', async ({ page }, testInfo) => {
+  test.setTimeout(90_000);
+  const inbox = `Keys ${testInfo.project.name}`;
+  await setzeQuelle(page, inbox);
+  await page.getByRole('button', { name: 'File' }).click();
+  await expect(page.getByRole('status')).toContainText('Added to');
+  await expect(page.getByRole('status')).toContainText('Inbox');
+  await erwarteQuelle(page, '');
+  await page.getByRole('button', { name: 'Undo' }).click();
+  await expect(page.getByRole('button', { name: 'Undo' })).toHaveCount(0);
+  await erwarteQuelle(page, inbox);
+  await expect.poll(() => cursorKopf(page)).toBe(inbox.length);
+  await expect(page.getByRole('textbox', { name: 'Note' })).toBeFocused();
+  const nachInbox = await page.request.get('/api/library/notes?topic=Inbox');
+  expect(nachInbox.ok()).toBeTruthy();
+  const inboxTexte = ((await nachInbox.json()) as { notes: Array<{ text: string }> }).notes.map((notiz) => notiz.text);
+  expect(inboxTexte).not.toContain(inbox);
+
+  const thema = `Shelf${testInfo.project.name}`;
+  const roh = `#${thema}/Spare\nUnder the mat`;
+  await setzeQuelle(page, roh);
+  await page.getByRole('button', { name: 'File' }).click();
+  await expect(page.getByRole('status')).toContainText('Spare');
+  await erwarteQuelle(page, '');
+  const gelegt = await page.request.get(`/api/library/notes?topic=${encodeURIComponent(thema)}`);
+  expect(gelegt.ok()).toBeTruthy();
+  expect(((await gelegt.json()) as { notes: Array<{ text: string }> }).notes.map((notiz) => notiz.text)).toContain(
+    'Spare\n\nUnder the mat',
+  );
+  await page.getByRole('button', { name: 'Undo' }).click();
+  await expect(page.getByRole('button', { name: 'Undo' })).toHaveCount(0);
+  await erwarteQuelle(page, roh);
+  await expect.poll(() => cursorKopf(page)).toBe(roh.length);
+  const nachSeite = await page.request.get(`/api/library/notes?topic=${encodeURIComponent(thema)}`);
+  expect(nachSeite.ok()).toBeTruthy();
+  expect(((await nachSeite.json()) as { notes: Array<{ text: string }> }).notes).toEqual([]);
 });
 
 test('library returns to capture', async ({ page }) => {

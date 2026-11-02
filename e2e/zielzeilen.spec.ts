@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
 import { meldeAn } from './anmelden.ts';
-import { setzeQuelle } from './feld.ts';
+import { cursorKopf, erwarteQuelle, setzeQuelle } from './feld.ts';
 import { leereLokal, warteBereit } from './lokal.ts';
 
 const BILDER = 'tmp-test/screens';
@@ -58,6 +58,8 @@ test('target lines split one note across pages', async ({ page }, testInfo) => {
     ]);
     await page.getByRole('button', { name: 'Undo' }).click();
     await expect(page.getByRole('status')).toHaveCount(0);
+    await erwarteQuelle(page, TEILEN);
+    await expect.poll(() => cursorKopf(page)).toBe(TEILEN.length);
     token = '';
     const danach = await texte(page, 'school');
     expect(danach).not.toContain('Thema1\n\ntext1\ntext1 text1');
@@ -96,6 +98,8 @@ test('text before the first target line goes to the inbox', async ({ page }, tes
     expect(seiten[0]?.startsWith('# ')).toBe(false);
     await page.getByRole('button', { name: 'Undo' }).click();
     await expect(page.getByRole('status')).toHaveCount(0);
+    await erwarteQuelle(page, roh);
+    await expect.poll(() => cursorKopf(page)).toBe(roh.length);
     token = '';
     expect(await texte(page, 'Inbox')).not.toContain('starts in the inbox');
     expect(await texte(page, thema)).toEqual([]);

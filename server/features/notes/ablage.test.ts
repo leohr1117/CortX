@@ -277,6 +277,7 @@ describe('filing api', () => {
       payload: { token: mitten.json().undo },
     });
     expect(zurueck.statusCode).toBe(200);
+    expect(zurueck.json().erfasst).toBe('#school/Mathe/Analysis Still');
     expect((db.prepare('SELECT text FROM note WHERE id = ?').get(id) as { text: string }).text).toBe(beweise.json().text);
   });
 
@@ -299,6 +300,7 @@ describe('filing api', () => {
       payload: { token: koerper.undo },
     });
     expect(zurueck.statusCode).toBe(200);
+    expect(zurueck.json().erfasst).toBe(roh);
     const danach = await server.inject({ method: 'GET', url: '/api/library/notes?topic=school' });
     expect((danach.json() as { notes: unknown[] }).notes).toEqual([]);
     const themen = await server.inject({ method: 'GET', url: '/api/topics' });
@@ -317,5 +319,53 @@ describe('filing api', () => {
     expect((schule.json() as { notes: Array<{ text: string }> }).notes.map((notiz) => notiz.text)).toEqual([
       'Thema1\n\nstays #tag',
     ]);
+  });
+
+  it('undo of filing returns the original text and removes only that filing', async () => {
+    const { server, db } = await paar();
+    const inboxRoh = '  Buy milk  ';
+    const inbox = await post(server, inboxRoh);
+    expect(inbox.statusCode).toBe(201);
+    const inboxId = inbox.json().id as number;
+    const inboxZurueck = await server.inject({
+      method: 'POST',
+      url: '/api/notes/undo',
+      payload: { token: inbox.json().undo },
+    });
+    expect(inboxZurueck.statusCode).toBe(200);
+    expect(inboxZurueck.json().erfasst).toBe(inboxRoh);
+    expect(inboxZurueck.json().text).toBe('Buy milk');
+    expect(db.prepare('SELECT id FROM "note" WHERE id = ?').get(inboxId)).toBeUndefined();
+
+    const seiteRoh = '#school/Mathe Limits';
+    const seite = await post(server, seiteRoh);
+    expect(seite.statusCode).toBe(201);
+    const seiteId = seite.json().id as number;
+    const seiteZurueck = await server.inject({
+      method: 'POST',
+      url: '/api/notes/undo',
+      payload: { token: seite.json().undo },
+    });
+    expect(seiteZurueck.statusCode).toBe(200);
+    expect(seiteZurueck.json().erfasst).toBe(seiteRoh);
+    expect(db.prepare('SELECT id FROM "note" WHERE id = ?').get(seiteId)).toBeUndefined();
+
+    const neu = await post(server, seiteRoh);
+    expect(neu.statusCode).toBe(201);
+    const neuId = neu.json().id as number;
+    const neuText = neu.json().text as string;
+    const abschnittRoh = '#school/Mathe/Analysis Inside';
+    const abschnitt = await post(server, abschnittRoh);
+    expect(abschnitt.statusCode).toBe(200);
+    const abschnittZurueck = await server.inject({
+      method: 'POST',
+      url: '/api/notes/undo',
+      payload: { token: abschnitt.json().undo },
+    });
+    expect(abschnittZurueck.statusCode).toBe(200);
+    expect(abschnittZurueck.json().erfasst).toBe(abschnittRoh);
+    expect((db.prepare('SELECT text FROM "note" WHERE id = ?').get(neuId) as { text: string }).text).toBe(neuText);
+    const bleiben = await server.inject({ method: 'GET', url: '/api/library/notes?topic=school' });
+    expect((bleiben.json() as { notes: Array<{ text: string }> }).notes.map((notiz) => notiz.text)).toEqual([neuText]);
   });
 });

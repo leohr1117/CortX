@@ -191,10 +191,16 @@ interface SammelSchritt {
   nachher: number | null;
 }
 
-function sammelBild(payload: string): SammelSchritt[] | null {
+interface SammelBild {
+  schritte: SammelSchritt[];
+  erfasst: string | null;
+}
+
+function sammelBild(payload: string): SammelBild | null {
   try {
-    const roh = JSON.parse(payload) as { art?: unknown; schritte?: unknown };
+    const roh = JSON.parse(payload) as { art?: unknown; schritte?: unknown; erfasst?: unknown };
     if (roh.art !== 'sammel' || !Array.isArray(roh.schritte) || roh.schritte.length === 0) return null;
+    if (roh.erfasst !== undefined && (typeof roh.erfasst !== 'string' || roh.erfasst.length > NOTE_TEXT_MAX)) return null;
     const schritte: SammelSchritt[] = [];
     for (const schritt of roh.schritte) {
       if (!schritt || typeof schritt !== 'object') return null;
@@ -208,7 +214,7 @@ function sammelBild(payload: string): SammelSchritt[] | null {
       }
       schritte.push({ art: 'anlegen', id: eintrag.id, text: eintrag.text, version: eintrag.version, nachher: null });
     }
-    return schritte;
+    return { schritte, erfasst: typeof roh.erfasst === 'string' ? roh.erfasst : null };
   } catch {
     return null;
   }
@@ -235,22 +241,32 @@ function schrittZurueck(db: DatabaseSync, schritt: SammelSchritt, kontoId: strin
   return alsNotiz(notiz);
 }
 
-function sammelZurueck(db: DatabaseSync, schritte: readonly SammelSchritt[], kontoId: string): Notiz {
+function mitErfasst(notiz: Notiz, erfasst: string | null): Notiz & { erfasst?: string } {
+  if (erfasst === null) return notiz;
+  return { ...notiz, erfasst };
+}
+
+function sammelZurueck(
+  db: DatabaseSync,
+  schritte: readonly SammelSchritt[],
+  erfasst: string | null,
+  kontoId: string,
+): Notiz & { erfasst?: string } {
   let letzte: Notiz | null = null;
   for (const schritt of schritte) letzte = schrittZurueck(db, schritt, kontoId);
   if (!letzte) throw new AppFehler(500, GEHT_NICHT);
   db.prepare('DELETE FROM "note_undo" WHERE account_id = ?').run(kontoId);
-  return letzte;
+  return mitErfasst(letzte, erfasst);
 }
 
-export function stelleNotizHer(db: DatabaseSync, token: string, kontoId: string): Notiz {
+export function stelleNotizHer(db: DatabaseSync, token: string, kontoId: string): Notiz & { erfasst?: string } {
   return transaktion(db, () => {
     const zeile = db.prepare('SELECT payload FROM "note_undo" WHERE token = ? AND account_id = ?').get(token, kontoId) as
       | { payload: string }
       | undefined;
     if (!zeile) throw new AppFehler(404, NICHTS);
     const sammel = sammelBild(zeile.payload);
-    if (sammel) return sammelZurueck(db, sammel, kontoId);
+    if (sammel) return sammelZurueck(db, sammel.schritte, sammel.erfasst, kontoId);
     const seitenUndo = seitenBild(zeile.payload);
     if (seitenUndo) return seitenZurueck(db, seitenUndo, kontoId);
     const bild = liesBild(zeile.payload);

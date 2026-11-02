@@ -32,6 +32,7 @@ async function vollstaendig(ziel: Locator): Promise<void> {
 async function oeffne(page: Page, text: string): Promise<void> {
   await page.locator('.notiz', { hasText: text }).locator('a.tx').click();
   await expect(page).toHaveURL(/\/library\/note\?id=\d+/);
+  await expect(page.getByRole('heading', { level: 1 })).toContainText(text);
 }
 
 test.beforeAll(() => {
@@ -55,7 +56,7 @@ test('a note opens for reading and continues as a writing surface', async ({ pag
     ]);
 
     await page.goto('/library/topic?name=Work');
-    await expect(page.getByRole('heading', { name: 'Work', level: 1 })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Work', level: 1, exact: true })).toBeVisible();
     const zeile = page.locator('.notiz', { hasText: 'Sprint summary' });
     await expect(zeile.getByRole('heading', { level: 3 })).toHaveText('Sprint summary');
     await expect(zeile.locator('li')).toHaveText('three bullets');
@@ -87,7 +88,7 @@ test('a note opens for reading and continues as a writing surface', async ({ pag
     await expect(page).toHaveURL(/\/library\/note\?id=\d+/);
     await expect(page.getByRole('heading', { level: 3, name: 'Sprint summary' })).toBeVisible();
     await page.getByRole('button', { name: 'Back' }).click();
-    await expect(page.getByRole('heading', { name: 'Work', level: 1 })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Work', level: 1, exact: true })).toBeVisible();
 
     await oeffne(page, 'Sprint summary');
     await expect(page.getByRole('heading', { level: 1, name: 'Work > Sprint summary' })).toBeVisible();
@@ -148,7 +149,7 @@ test('a note opens for reading and continues as a writing surface', async ({ pag
     await setzeQuelle(page, ZURUECK);
     await page.getByRole('button', { name: 'Back' }).click();
     await expect(page.getByRole('alertdialog')).toHaveCount(0);
-    await expect(page.getByRole('heading', { name: 'Work', level: 1 })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Work', level: 1, exact: true })).toBeVisible();
     await expect(page.getByText(ZURUECK)).toBeVisible();
 
     await oeffne(page, ZURUECK);
@@ -198,7 +199,7 @@ test('change and delete stay on the note menu and on the note page', async ({ pa
     ]);
 
     await page.goto('/library/topic?name=Work');
-    await expect(page.getByRole('heading', { name: 'Work', level: 1 })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Work', level: 1, exact: true })).toBeVisible();
     const liste = page.locator('.notiz', { hasText: LISTE });
     await liste.getByRole('button', { name: 'Note actions' }).click();
     await expect(page.getByRole('menuitem')).toHaveText([/^Change$/, /^Delete$/]);
@@ -218,7 +219,7 @@ test('change and delete stay on the note menu and on the note page', async ({ pa
     await expect(page.getByText(LISTE)).toBeVisible();
     await page.goto('/library/topic?name=Work');
     await oeffne(page, SEITE);
-    await page.getByRole('button', { name: 'Note actions' }).click();
+    await page.getByRole('banner').getByRole('button', { name: 'Note actions' }).click();
     await expect(page.getByRole('menuitem')).toHaveText([/^Change$/, /^Delete$/]);
     await page.getByRole('menuitem', { name: 'Change', exact: true }).click();
     await dialog.getByRole('option', { name: /^Home\b/ }).click();
@@ -234,9 +235,9 @@ test('change and delete stay on the note menu and on the note page', async ({ pa
 
     await page.goto('/library/topic?name=Work');
     await oeffne(page, SEITE_WEG);
-    await page.getByRole('button', { name: 'Note actions' }).click();
+    await page.getByRole('banner').getByRole('button', { name: 'Note actions' }).click();
     await page.getByRole('menuitem', { name: 'Delete', exact: true }).click();
-    await expect(page.getByRole('heading', { name: 'Work', level: 1 })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Work', level: 1, exact: true })).toBeVisible();
     await expect(page.getByText(SEITE_WEG)).toHaveCount(0);
     await expect(page.getByRole('status')).toHaveText(/Note deleted/);
     await expect(page.getByRole('button', { name: 'Undo' })).toBeVisible();
@@ -250,7 +251,7 @@ test('change and delete stay on the note menu and on the note page', async ({ pa
     await expect(page.getByText(LISTE_WEG)).toHaveCount(0);
     await expect(page.getByRole('status')).toHaveText(/Note deleted/);
     await page.reload();
-    await expect(page.getByRole('heading', { name: 'Work', level: 1 })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Work', level: 1, exact: true })).toBeVisible();
     await expect(page.getByText(LISTE_WEG)).toHaveCount(0);
     await page.getByRole('button', { name: 'Undo' }).click();
     await expect(page.getByText(LISTE_WEG)).toBeVisible();

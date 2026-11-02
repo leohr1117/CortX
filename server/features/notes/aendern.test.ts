@@ -163,6 +163,7 @@ describe('note edit and delete', () => {
     const zurueck = await server.inject({ method: 'POST', url: '/api/notes/undo', payload: { token } });
     expect(zurueck.statusCode).toBe(200);
     expect(zurueck.json()).toMatchObject({ id, text: 'Pinned thought', topic: 'Work', source: 'ai', aiConfidence: 0.4 });
+    expect(zurueck.json()).not.toHaveProperty('erfasst');
     expect(fest(db, id)).toEqual(vorher);
     expect(korrekturen(db)).toEqual(korrekturVorher);
     expect(db.prepare('SELECT token FROM "topic_undo"').all()).toEqual([{ token: themaToken }]);

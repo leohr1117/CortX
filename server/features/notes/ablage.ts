@@ -179,7 +179,7 @@ export function legeAb(db: DatabaseSync, roh: string, clientId: string | null, k
       notiz: alsNotiz(letzte),
       neu: irgendeinNeu,
       ziel: ziele.join(' · '),
-      undo: merkeUndo(db, kontoId, { art: 'sammel', schritte }),
+      undo: merkeUndo(db, kontoId, { art: 'sammel', schritte, erfasst: roh }),
     };
   });
 }

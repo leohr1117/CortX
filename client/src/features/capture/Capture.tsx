@@ -9,13 +9,14 @@ import { BibliothekIcon, WolkeAusIcon } from '../../ui/icons.tsx';
 import { Editor } from '../format/index.ts';
 import { legeInWarteschlange, liesEntwurf, schreibEntwurf, spuele } from '../offline/index.ts';
 import { ApiFehler, ladeSeiten, ladeThemen, legeNotizAb, macheRueckgaengig } from './api.ts';
+import { caretNachAblageRueck, textNachAblageRueck } from './rueck.ts';
 import { fangStrgEnter, setzeHinweis, tagFeld, tastenWennOffen, type TagAktionen } from './erkennung.ts';
 import { useMenuePlatz } from './menuePlatz.ts';
 import { Vorschlag } from './Vorschlag.tsx';
 import { leeresAnhaengen, ZielText } from './Ziel.tsx';
 
 type Meldung =
-  | { art: 'abgelegt'; id: number; ziel: string; undo: string }
+  | { art: 'abgelegt'; id: number; ziel: string; undo: string; text: string }
   | { art: 'offline'; clientId: string }
   | { art: 'fehler'; text: string };
 
@@ -123,6 +124,7 @@ export function CaptureAnsicht() {
                 id: treffer.notiz.id,
                 ziel: treffer.notiz.ziel ?? treffer.notiz.topic,
                 undo: treffer.notiz.undo ?? '',
+                text: treffer.text,
               };
             }
             return alt;
@@ -211,10 +213,17 @@ export function CaptureAnsicht() {
 
   async function rueckgaengig() {
     if (meldung?.art !== 'abgelegt' || meldung.undo.length === 0 || sperre.current) return;
+    const gemerkt = meldung.text;
+    const token = meldung.undo;
     sperre.current = true;
     try {
-      await macheRueckgaengig(meldung.undo);
+      const text = textNachAblageRueck(await macheRueckgaengig(token), gemerkt);
+      if (text === null) {
+        setMeldung({ art: 'fehler', text: 'Could not undo.' });
+        return;
+      }
       setMeldung(null);
+      setzeAussen(text, caretNachAblageRueck(text));
       await katalogNeu();
       sichtRef.current?.focus();
     } catch (grund: unknown) {
@@ -263,6 +272,7 @@ export function CaptureAnsicht() {
           id: abgelegt.id,
           ziel: abgelegt.ziel ?? pfadText(abgelegt.topic, seitentitel(abgelegt.text)),
           undo: abgelegt.undo ?? '',
+          text: roh,
         });
         await katalogNeu();
       } else {

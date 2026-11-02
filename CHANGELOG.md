@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.8.6
+
+Undo after filing puts the text back into the capture field. The note you just filed is removed. A note that was split across pages comes back as one text.
+
 ## 1.8.5
 
 The row that creates a topic, page, or section stays at the bottom of suggestion lists and of the topic picker. The matches above it scroll, and the last match stays reachable.

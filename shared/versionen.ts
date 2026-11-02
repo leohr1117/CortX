@@ -6,6 +6,14 @@ export interface Versionseintrag {
 
 export const VERSIONEN: readonly Versionseintrag[] = [
   {
+    version: '1.8.6',
+    datum: '2026-11-02',
+    zeilen: [
+      'Undo after filing puts your text back into the capture field.',
+      'The note you just filed is removed. A note split across pages comes back as one text.',
+    ],
+  },
+  {
     version: '1.8.5',
     datum: '2026-11-02',
     zeilen: [
