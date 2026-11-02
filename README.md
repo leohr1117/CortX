@@ -9,7 +9,7 @@ Live: [cortx.leohr.de](https://cortx.leohr.de)
 - **Erfassen:** Notiz schreiben und mit „File“ oder Strg/Cmd+Enter ablegen. Das Thema lässt sich direkt danach noch ändern.
 - **Bibliothek:** Alle Themen auf einen Blick. Themen umbenennen, zusammenführen oder löschen, mit Rückgängig.
 - **Notizen:** Jede Notiz hat eine eigene Seite zum Lesen und Bearbeiten. Änderungen werden automatisch gespeichert. Löschen lässt sich rückgängig machen.
-- **Formatierung:** Zeilen mit `- ` werden zur Liste, `[]` und `[x]` zu Kästchen, `**Text**` wird fett, `= ` macht eine Überschrift. Gespeichert wird reiner Text.
+- **Formatierung:** Gespeichert wird reiner Text. Fett, kursiv, durchgestrichen, Code, Listen, Kästchen, Links und Überschriften werden beim Lesen gezeigt. Im Editor bleibt derselbe Text, mit einer Formatleiste: auf dem Handy über der Tastatur, auf einem großen Bildschirm bei einer Markierung. `**`, `- ` und `[ ]` können beim Tippen umgewandelt werden. `#` bleibt ein Themen-Tag. In der Bibliothek gibt es den Schalter „Convert shortcuts while typing“.
 - **Termine:** Datums- und Zeitangaben im Text („morgen 15 Uhr“, „next Monday“, „03.11.“) werden unter der Notiz als Datum angezeigt.
 - **Suche:** Durchsucht alle Themen und die Inbox.
 - **Offline:** Entwürfe bleiben auf dem Gerät, offline abgelegte Notizen werden nach der Anmeldung abgeglichen. Installierbar als PWA.

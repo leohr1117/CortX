@@ -1,152 +1,194 @@
-export interface LeseTextTeil {
-  art: 'text';
-  text: string;
+import type { Beleg, BelegArt, Dokument, LeseBlock, LeseHakenPunkt, LeseListe, LeseTeil } from './baum.ts';
+import { leseInline } from './inline.ts';
+import {
+  UEBERSCHRIFT_MARKER,
+  hakenVon,
+  listenLaenge,
+  nummerLaenge,
+  zaunAuf,
+  zaunZu,
+  zeilenStuecke,
+  type ZeilenStueck,
+} from './zeile.ts';
+
+export type {
+  Beleg,
+  BelegArt,
+  Dokument,
+  LeseAbsatz,
+  LeseBlock,
+  LeseCodeBlock,
+  LeseCodeTeil,
+  LeseFettTeil,
+  LeseHaken,
+  LeseHakenPunkt,
+  LeseKursivTeil,
+  LeseLinkTeil,
+  LeseListe,
+  LeseStreichTeil,
+  LeseTeil,
+  LeseTextTeil,
+  LeseUeberschrift,
+  LeseVerschachtelt,
+} from './baum.ts';
+export { UEBERSCHRIFT_MARKER } from './zeile.ts';
+
+function besonders(zeile: string): boolean {
+  return (
+    zaunAuf(zeile) !== null ||
+    zeile.startsWith(UEBERSCHRIFT_MARKER) ||
+    hakenVon(zeile) !== null ||
+    listenLaenge(zeile) > 0 ||
+    nummerLaenge(zeile) > 0
+  );
 }
 
-export interface LeseFettTeil {
-  art: 'fett';
-  text: string;
+function struktur(
+  art: BelegArt,
+  stueck: ZeilenStueck,
+  laenge: number,
+  extra?: { abgehakt?: boolean; zahl?: string },
+): Beleg {
+  const ganzBis = stueck.von + stueck.zeile.length;
+  const beleg: Beleg = {
+    art,
+    von: stueck.von + laenge,
+    bis: ganzBis,
+    ganzVon: stueck.von,
+    ganzBis,
+    marker: laenge > 0 ? [[stueck.von, stueck.von + laenge]] : [],
+  };
+  if (extra?.abgehakt !== undefined) beleg.abgehakt = extra.abgehakt;
+  if (extra?.zahl !== undefined) beleg.zahl = extra.zahl;
+  return beleg;
 }
 
-export type LeseTeil = LeseTextTeil | LeseFettTeil;
-
-export interface LeseAbsatz {
-  art: 'absatz';
-  zeilen: LeseTeil[][];
+function zeileInline(stueck: ZeilenStueck, laenge: number): { teile: LeseTeil[]; belege: Beleg[] } {
+  return leseInline(stueck.zeile.slice(laenge), stueck.von + laenge);
 }
 
-export interface LeseListe {
-  art: 'liste';
-  punkte: LeseTeil[][];
+function codeText(roh: string): string {
+  const ohne = roh.replaceAll('\r', '');
+  return ohne.endsWith('\n') ? ohne.slice(0, -1) : ohne;
 }
 
-export interface LeseHakenPunkt {
-  abgehakt: boolean;
-  teile: LeseTeil[];
-}
-
-export interface LeseHaken {
-  art: 'haken';
-  punkte: LeseHakenPunkt[];
-}
-
-export interface LeseUeberschrift {
-  art: 'ueberschrift';
-  teile: LeseTeil[];
-}
-
-export type LeseBlock = LeseAbsatz | LeseListe | LeseHaken | LeseUeberschrift;
-
-const LISTE = '- ';
-const OFFEN = '[]';
-const ZU = '[x]';
-const FETT = '**';
-export const UEBERSCHRIFT_MARKER = '= ';
-
-function ohneWagen(zeile: string): string {
-  return zeile.endsWith('\r') ? zeile.slice(0, -1) : zeile;
-}
-
-function koerper(zeile: string, marker: string): string {
-  const rest = zeile.slice(marker.length);
-  return rest.startsWith(' ') ? rest.slice(1) : rest;
-}
-
-function haengeText(teile: LeseTeil[], text: string): void {
-  if (text.length === 0) return;
-  const letzte = teile[teile.length - 1];
-  if (letzte?.art === 'text') {
-    letzte.text += text;
-    return;
-  }
-  teile.push({ art: 'text', text });
-}
-
-function leseTeile(zeile: string): LeseTeil[] {
-  const teile: LeseTeil[] = [];
-  let cursor = 0;
-  while (cursor < zeile.length) {
-    const auf = zeile.indexOf(FETT, cursor);
-    if (auf < 0) {
-      haengeText(teile, zeile.slice(cursor));
+function liesZaun(
+  text: string,
+  stuecke: readonly ZeilenStueck[],
+  index: number,
+  zeichen: string,
+  lang: number,
+): { block: LeseBlock; belege: Beleg[]; naechst: number } {
+  const auf = stuecke[index]!;
+  let zu: ZeilenStueck | null = null;
+  let j = index + 1;
+  while (j < stuecke.length) {
+    if (zaunZu(stuecke[j]!.zeile, zeichen, lang)) {
+      zu = stuecke[j]!;
       break;
     }
-    const zu = zeile.indexOf(FETT, auf + FETT.length);
-    if (zu < 0 || zu === auf + FETT.length) {
-      haengeText(teile, zeile.slice(cursor, auf + FETT.length));
-      cursor = auf + FETT.length;
-      continue;
-    }
-    haengeText(teile, zeile.slice(cursor, auf));
-    teile.push({ art: 'fett', text: zeile.slice(auf + FETT.length, zu) });
-    cursor = zu + FETT.length;
+    j += 1;
   }
-  return teile;
+  const inhaltVon = auf.nach;
+  const inhaltBis = zu ? zu.von : text.length;
+  const marker: Array<[number, number]> = [[auf.von, auf.von + auf.zeile.length]];
+  let ganzBis = auf.von + auf.zeile.length;
+  if (zu) {
+    marker.push([zu.von, zu.von + zu.zeile.length]);
+    ganzBis = zu.von + zu.zeile.length;
+  } else if (text.length > ganzBis) {
+    ganzBis = text.length;
+  }
+  return {
+    block: { art: 'codeblock', text: codeText(text.slice(inhaltVon, inhaltBis)) },
+    belege: [
+      {
+        art: 'codeblock',
+        von: inhaltVon,
+        bis: inhaltBis,
+        ganzVon: auf.von,
+        ganzBis,
+        marker,
+      },
+    ],
+    naechst: zu ? j + 1 : stuecke.length,
+  };
 }
 
-function hakenVon(zeile: string): { abgehakt: boolean; rest: string } | null {
-  if (zeile.startsWith(ZU)) return { abgehakt: true, rest: koerper(zeile, ZU) };
-  if (zeile.startsWith(OFFEN)) return { abgehakt: false, rest: koerper(zeile, OFFEN) };
-  return null;
+export function leseDokument(text: string): Dokument {
+  if (text.length === 0) return { bloecke: [], belege: [] };
+  const stuecke = zeilenStuecke(text);
+  const bloecke: LeseBlock[] = [];
+  const belege: Beleg[] = [];
+  let i = 0;
+  while (i < stuecke.length) {
+    const stueck = stuecke[i]!;
+    const zaun = zaunAuf(stueck.zeile);
+    if (zaun) {
+      const fund = liesZaun(text, stuecke, i, zaun.zeichen, zaun.lang);
+      bloecke.push(fund.block);
+      belege.push(...fund.belege);
+      i = fund.naechst;
+      continue;
+    }
+    if (stueck.zeile.startsWith(UEBERSCHRIFT_MARKER)) {
+      const inline = zeileInline(stueck, UEBERSCHRIFT_MARKER.length);
+      bloecke.push({ art: 'ueberschrift', teile: inline.teile });
+      belege.push(struktur('ueberschrift', stueck, UEBERSCHRIFT_MARKER.length), ...inline.belege);
+      i += 1;
+      continue;
+    }
+    const kasten = hakenVon(stueck.zeile);
+    if (kasten) {
+      const punkte: LeseHakenPunkt[] = [];
+      while (i < stuecke.length) {
+        const zeile = stuecke[i]!;
+        const haken = hakenVon(zeile.zeile);
+        if (!haken) break;
+        const inline = zeileInline(zeile, haken.laenge);
+        punkte.push({ abgehakt: haken.abgehakt, teile: inline.teile });
+        belege.push(struktur('haken', zeile, haken.laenge, { abgehakt: haken.abgehakt }), ...inline.belege);
+        i += 1;
+      }
+      bloecke.push({ art: 'haken', punkte });
+      continue;
+    }
+    const liste = listenLaenge(stueck.zeile);
+    const nummer = nummerLaenge(stueck.zeile);
+    if (liste > 0 || nummer > 0) {
+      const geordnet = nummer > 0;
+      const punkte: LeseTeil[][] = [];
+      while (i < stuecke.length) {
+        const zeile = stuecke[i]!;
+        const laenge = geordnet ? nummerLaenge(zeile.zeile) : listenLaenge(zeile.zeile);
+        if (laenge === 0) break;
+        const inline = zeileInline(zeile, laenge);
+        punkte.push(inline.teile);
+        const extra = geordnet ? { zahl: zeile.zeile.slice(0, laenge - 2) } : undefined;
+        belege.push(struktur(geordnet ? 'nummer' : 'liste', zeile, laenge, extra), ...inline.belege);
+        i += 1;
+      }
+      const block: LeseListe = geordnet ? { art: 'liste', punkte, geordnet: true } : { art: 'liste', punkte };
+      bloecke.push(block);
+      continue;
+    }
+    const zeilen: LeseTeil[][] = [];
+    while (i < stuecke.length && !besonders(stuecke[i]!.zeile)) {
+      const zeile = stuecke[i]!;
+      const inline = zeileInline(zeile, 0);
+      zeilen.push(inline.teile);
+      belege.push(...inline.belege);
+      i += 1;
+    }
+    bloecke.push({ art: 'absatz', zeilen });
+  }
+  return { bloecke, belege };
 }
 
 export function leseBaum(text: string): LeseBlock[] {
-  if (text.length === 0) return [];
-  const bloecke: LeseBlock[] = [];
-  let absatz: LeseTeil[][] | null = null;
-  let liste: LeseTeil[][] | null = null;
-  let haken: LeseHakenPunkt[] | null = null;
+  return leseDokument(text).bloecke;
+}
 
-  function schliesseAbsatz(): void {
-    if (!absatz) return;
-    bloecke.push({ art: 'absatz', zeilen: absatz });
-    absatz = null;
-  }
-
-  function schliesseListe(): void {
-    if (!liste) return;
-    bloecke.push({ art: 'liste', punkte: liste });
-    liste = null;
-  }
-
-  function schliesseHaken(): void {
-    if (!haken) return;
-    bloecke.push({ art: 'haken', punkte: haken });
-    haken = null;
-  }
-
-  for (const roh of text.split('\n')) {
-    const zeile = ohneWagen(roh);
-    if (zeile.startsWith(UEBERSCHRIFT_MARKER)) {
-      schliesseAbsatz();
-      schliesseListe();
-      schliesseHaken();
-      bloecke.push({ art: 'ueberschrift', teile: leseTeile(zeile.slice(UEBERSCHRIFT_MARKER.length)) });
-      continue;
-    }
-    if (zeile.startsWith(LISTE)) {
-      schliesseAbsatz();
-      schliesseHaken();
-      if (!liste) liste = [];
-      liste.push(leseTeile(zeile.slice(LISTE.length)));
-      continue;
-    }
-    const kasten = hakenVon(zeile);
-    if (kasten) {
-      schliesseAbsatz();
-      schliesseListe();
-      if (!haken) haken = [];
-      haken.push({ abgehakt: kasten.abgehakt, teile: leseTeile(kasten.rest) });
-      continue;
-    }
-    schliesseListe();
-    schliesseHaken();
-    if (!absatz) absatz = [];
-    absatz.push(leseTeile(zeile));
-  }
-
-  schliesseAbsatz();
-  schliesseListe();
-  schliesseHaken();
-  return bloecke;
+export function belege(text: string): Beleg[] {
+  return leseDokument(text).belege;
 }

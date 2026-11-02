@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import { expect, test } from '@playwright/test';
 import { meldeAn } from './anmelden.ts';
+import { erwarteQuelle } from './feld.ts';
 import { leereLokal } from './lokal.ts';
 import { setzeSchauspiel, sichereBestand, stelleBestand } from './schau.ts';
 
@@ -95,7 +96,8 @@ test('reading shows a list, checkboxes, and bold while the stored text stays pla
     await page.locator('.notiz').first().locator('a.tx').click();
     await page.getByRole('button', { name: 'Edit' }).click();
     const feld = page.getByRole('textbox', { name: 'Note' });
-    await expect(feld).toHaveValue(THEMA);
+    await expect(feld).toBeVisible();
+    await erwarteQuelle(page, THEMA);
     await expect(page.locator('.lesetext')).toHaveCount(0);
     await page.screenshot({ path: `${BILDER}/${testInfo.project.name}-read-edit.png` });
 

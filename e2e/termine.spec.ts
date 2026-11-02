@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
 import { erkenneTermin, terminText } from '../shared/features/termine/index.ts';
 import { meldeAn } from './anmelden.ts';
+import { erwarteQuelle } from './feld.ts';
 import { leereLokal } from './lokal.ts';
 import { setzeSchauspiel, sichereBestand, stelleBestand } from './schau.ts';
 
@@ -81,7 +82,7 @@ test('reading shows a date on a topic, in Inbox, and in search', async ({ page }
     await page.screenshot({ path: `${BILDER}/${testInfo.project.name}-date-topic.png` });
 
     await oeffneEdit(page);
-    await expect(page.getByRole('textbox', { name: 'Note' })).toHaveValue(THEMA);
+    await erwarteQuelle(page, THEMA);
     await expect(page.locator('.termin')).toHaveCount(0);
     await page.goto('/');
     const capture = page.getByRole('textbox', { name: 'Note' });

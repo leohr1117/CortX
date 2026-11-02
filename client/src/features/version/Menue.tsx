@@ -3,6 +3,7 @@ import { Link } from 'react-router';
 import { entscheideUpdateHinweis } from '../../../../shared/features/version/index.ts';
 import { AKTUELLE_VERSION } from '../../../../shared/versionen.ts';
 import { PunkteIcon } from '../../ui/icons.tsx';
+import { KuerzelSchalter } from '../format/index.ts';
 import { ladeStand } from './api.ts';
 
 export function BibliothekMenue() {
@@ -64,6 +65,10 @@ export function BibliothekMenue() {
         <div className="menue" id="bibliothek-menue" role="menu" aria-label="Library menu">
           <div className="stat" role="none" data-version={AKTUELLE_VERSION}>
             <span>Version {AKTUELLE_VERSION}</span>
+          </div>
+          <div className="tr" role="separator" />
+          <div role="none">
+            <KuerzelSchalter />
           </div>
           <div className="tr" role="separator" />
           <Link className="m" role="menuitem" to="/library/whats-new" onClick={() => setOffen(false)}>

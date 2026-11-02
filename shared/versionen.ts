@@ -6,6 +6,16 @@ export interface Versionseintrag {
 
 export const VERSIONEN: readonly Versionseintrag[] = [
   {
+    version: '1.6.0',
+    datum: '2026-11-02',
+    zeilen: [
+      'Notes stay as text, including the formatting marks.',
+      'Bold, italic, strike, code, lists, checkboxes, links, and headings show while you read.',
+      'Editing shows that same text, with a format bar.',
+      'On a phone the bar sits above the keyboard. On a larger screen it appears when you select text. Shortcuts such as ** and [ ] can turn into formatting while you type, and undo brings the shortcut back.',
+    ],
+  },
+  {
     version: '1.5.5',
     datum: '2026-11-02',
     zeilen: ['Housekeeping only. CortX looks and works the same.'],

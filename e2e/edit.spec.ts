@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { meldeAn } from './anmelden.ts';
+import { cursorKopf, erwarteQuelle, setzeQuelle } from './feld.ts';
 import { leereLokal, liesEntwurf, liesNotizEntwurf, warteBereit, warteschlangeLaenge } from './lokal.ts';
 import { setzeSchauspiel, sichereBestand, stelleBestand, type SaatNotiz } from './schau.ts';
 
@@ -102,19 +103,23 @@ test('a note opens for reading and continues as a writing surface', async ({ pag
     await page.getByRole('button', { name: 'Edit' }).click();
     const feld = page.getByRole('textbox', { name: 'Note' });
     await expect(feld).toBeFocused();
-    await expect(feld).toHaveValue(VORSCHAU);
-    await expect.poll(() => feld.evaluate((el: HTMLTextAreaElement) => el.selectionStart)).toBe(VORSCHAU.length);
+    await erwarteQuelle(page, VORSCHAU);
+    await expect.poll(() => cursorKopf(page)).toBe(VORSCHAU.length);
     await expect(feld).toHaveCSS('border-top-width', '0px');
     await expect(feld).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
     await expect(feld).toHaveCSS('color', 'rgb(242, 242, 242)');
     await expect(page.locator('.lesetext')).toHaveCount(0);
-    await expect(page.getByRole('button', { name: 'Heading' })).toBeVisible();
+    if (testInfo.project.name === 'handy') {
+      await expect(page.getByRole('button', { name: 'Heading' })).toBeVisible();
+    } else {
+      await expect(page.getByRole('button', { name: 'Heading' })).toHaveCount(0);
+    }
     await expect(page.getByRole('button', { name: 'Save' })).toHaveCount(0);
     await expect(page.locator('label')).toHaveCount(0);
     await expect(page.locator('.ablage')).toHaveText(/^Filed today at 09:12 via #work$/);
     await page.screenshot({ path: `${BILDER}/${testInfo.project.name}-note-edit.png` });
 
-    await feld.fill(KLAR);
+    await setzeQuelle(page, KLAR);
     await page.getByRole('button', { name: 'Read' }).click();
     await expect(page.locator('.lesetext')).toHaveText(KLAR);
     await expect(page.getByRole('button', { name: 'Edit' })).toBeVisible();
@@ -125,7 +130,7 @@ test('a note opens for reading and continues as a writing surface', async ({ pag
     expect(sichereBestand().corrections).toHaveLength(0);
 
     await page.getByRole('button', { name: 'Edit' }).click();
-    await feld.fill('   ');
+    await setzeQuelle(page, '   ');
     await page.getByRole('button', { name: 'Read' }).click();
     await expect(page.getByRole('alert')).toHaveText('Write something to save.');
     await expect(feld).toBeVisible();
@@ -133,14 +138,14 @@ test('a note opens for reading and continues as a writing surface', async ({ pag
     await expect(page).toHaveURL(/\/library\/note\?id=\d+/);
     await expect(page.getByRole('alert')).toHaveText('Write something to save.');
 
-    await feld.fill(AUTOMATISCH);
+    await setzeQuelle(page, AUTOMATISCH);
     await expect.poll(() => sichereBestand().notes.some((eintrag) => eintrag.text === AUTOMATISCH)).toBe(true);
     await expect(feld).toBeVisible();
     const automatisch = sichereBestand().notes.find((eintrag) => eintrag.text === AUTOMATISCH);
     expect(automatisch?.pinned).toBe(0);
     expect(automatisch?.created).toBe(erstellt);
 
-    await feld.fill(ZURUECK);
+    await setzeQuelle(page, ZURUECK);
     await page.getByRole('button', { name: 'Back' }).click();
     await expect(page.getByRole('alertdialog')).toHaveCount(0);
     await expect(page.getByRole('heading', { name: 'Work', level: 1 })).toBeVisible();
@@ -155,7 +160,7 @@ test('a note opens for reading and continues as a writing surface', async ({ pag
       return route.continue();
     });
     await page.context().setOffline(true);
-    await feld.fill(ENTWURF);
+    await setzeQuelle(page, ENTWURF);
     await expect.poll(() => liesNotizEntwurf(page, id)).toBe(ENTWURF);
     expect(await liesEntwurf(page)).toBe('');
     expect(await warteschlangeLaenge(page)).toBe(0);

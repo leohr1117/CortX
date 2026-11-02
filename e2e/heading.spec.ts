@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
 import { meldeAn } from './anmelden.ts';
+import { cursorKopf, erwarteQuelle, setzeAuswahl, setzeCursor } from './feld.ts';
 import { leereLokal } from './lokal.ts';
 import { setzeSchauspiel, sichereBestand, stelleBestand } from './schau.ts';
 
@@ -34,14 +35,6 @@ async function oeffneEdit(page: Page): Promise<void> {
   await expect(page.getByRole('textbox', { name: 'Note' })).toBeVisible();
 }
 
-async function setzeCursor(page: Page, index: number): Promise<void> {
-  await page.getByRole('textbox', { name: 'Note' }).evaluate((el: HTMLTextAreaElement, stelle: number) => {
-    el.focus();
-    el.setSelectionRange(stelle, stelle);
-    el.dispatchEvent(new Event('select', { bubbles: true }));
-  }, index);
-}
-
 test.beforeAll(() => {
   fs.mkdirSync(BILDER, { recursive: true });
 });
@@ -72,20 +65,22 @@ test('edit marks a heading and reading shows it while a tag stays text', async (
     await oeffneEdit(page);
     const feld = page.getByRole('textbox', { name: 'Note' });
     const kopf = page.getByRole('button', { name: 'Heading' });
-    await expect(feld).toHaveValue(THEMA);
+    await expect(feld).toBeVisible();
+    await erwarteQuelle(page, THEMA);
+    if (testInfo.project.name === 'desktop') await setzeAuswahl(page, 0, 1);
+    else await setzeCursor(page, 0);
     await expect(kopf).toHaveAttribute('aria-pressed', 'false');
-    await setzeCursor(page, 0);
     await kopf.click();
     const mitKopf = `= ${THEMA}`;
-    await expect(feld).toHaveValue(mitKopf);
+    await erwarteQuelle(page, mitKopf);
     await expect(kopf).toHaveAttribute('aria-pressed', 'true');
     await page.screenshot({ path: `${BILDER}/${testInfo.project.name}-heading-edit.png` });
 
     await kopf.click();
-    await expect(feld).toHaveValue(THEMA);
+    await erwarteQuelle(page, THEMA);
     await expect(kopf).toHaveAttribute('aria-pressed', 'false');
     await kopf.click();
-    await expect(feld).toHaveValue(mitKopf);
+    await erwarteQuelle(page, mitKopf);
     await page.getByRole('button', { name: 'Read' }).click();
     await page.getByRole('button', { name: 'Back' }).click();
 
@@ -140,12 +135,14 @@ test('edit marks a heading and reading shows it while a tag stays text', async (
     await page.goto('/library/topic?name=Work');
     await oeffneEdit(page);
     const nochmal = page.getByRole('textbox', { name: 'Note' });
-    await expect(nochmal).toHaveValue(mitKopf);
-    await expect.poll(async () => nochmal.evaluate((el: HTMLTextAreaElement) => el.selectionStart ?? -1)).toBe(mitKopf.length);
-    await setzeCursor(page, 0);
+    await expect(nochmal).toBeVisible();
+    await erwarteQuelle(page, mitKopf);
+    await expect.poll(() => cursorKopf(page)).toBe(mitKopf.length);
+    if (testInfo.project.name === 'desktop') await setzeAuswahl(page, 0, 1);
+    else await setzeCursor(page, 0);
     await expect(page.getByRole('button', { name: 'Heading' })).toHaveAttribute('aria-pressed', 'true');
     await page.getByRole('button', { name: 'Heading' }).click();
-    await expect(page.getByRole('textbox', { name: 'Note' })).toHaveValue(THEMA);
+    await erwarteQuelle(page, THEMA);
     await page.getByRole('button', { name: 'Read' }).click();
     await page.getByRole('button', { name: 'Back' }).click();
     await expect(page.getByRole('heading', { name: 'Work', level: 1 })).toBeVisible();

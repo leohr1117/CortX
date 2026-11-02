@@ -1,4 +1,4 @@
-import { UEBERSCHRIFT_MARKER } from './lesen.ts';
+import { UEBERSCHRIFT_MARKER } from './zeile.ts';
 
 export interface TextWahl {
   text: string;

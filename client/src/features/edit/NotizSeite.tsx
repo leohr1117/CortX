@@ -1,11 +1,9 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { ablageZeile, planeNotizText, textMeldung } from '../../../../shared/features/edit/index.ts';
-import { schalteUeberschrift, zeileIstUeberschrift } from '../../../../shared/features/format/index.ts';
-import { NOTE_TEXT_MAX } from '../../../../shared/kern/grenzen.ts';
 import type { Notiz } from '../../../../shared/kern/modell.ts';
 import { AugeIcon, StiftIcon } from '../../ui/icons.tsx';
-import { LeseText } from '../format/index.ts';
+import { Editor, LeseText } from '../format/index.ts';
 import { themaPfad } from '../library/api.ts';
 import { Kopf } from '../library/Kopf.tsx';
 import { liesNotizEntwurf, schreibNotizEntwurf } from '../offline/index.ts';
@@ -41,11 +39,6 @@ export function NotizSeite() {
   const [bereit, setBereit] = useState(false);
   const [menue, setMenue] = useState(false);
   const [wechsel, setWechsel] = useState(false);
-  const [ueberschrift, setUeberschrift] = useState(false);
-  const eingabe = useRef<HTMLTextAreaElement>(null);
-  const wahl = useRef({ start: 0, ende: 0 });
-  const rueck = useRef<{ start: number; ende: number } | null>(null);
-  const gesehen = useRef(false);
   const kette = useRef(Promise.resolve());
   const basisRef = useRef('');
   const feldRef = useRef('');
@@ -123,47 +116,6 @@ export function NotizSeite() {
     return () => window.removeEventListener('online', beiOnline);
   }, []);
 
-  useLayoutEffect(() => {
-    if (modus !== 'schreiben') {
-      gesehen.current = false;
-      return;
-    }
-    if (gesehen.current) return;
-    const el = eingabe.current;
-    if (!el) return;
-    gesehen.current = true;
-    el.focus();
-    const ende = el.value.length;
-    el.setSelectionRange(ende, ende);
-    wahl.current = { start: ende, ende };
-    setUeberschrift(zeileIstUeberschrift(el.value, ende));
-  }, [modus]);
-
-  useLayoutEffect(() => {
-    const ziel = rueck.current;
-    const el = eingabe.current;
-    if (!ziel || !el || modus !== 'schreiben') return;
-    rueck.current = null;
-    el.focus();
-    el.setSelectionRange(ziel.start, ziel.ende);
-    wahl.current = ziel;
-    setUeberschrift(zeileIstUeberschrift(el.value, ziel.start));
-  }, [feld, modus]);
-
-  useEffect(() => {
-    if (modus !== 'schreiben') return;
-    function beiAuswahl() {
-      const el = eingabe.current;
-      if (!el || document.activeElement !== el) return;
-      const start = el.selectionStart ?? 0;
-      const ende = el.selectionEnd ?? 0;
-      wahl.current = { start, ende };
-      setUeberschrift(zeileIstUeberschrift(el.value, start));
-    }
-    document.addEventListener('selectionchange', beiAuswahl);
-    return () => document.removeEventListener('selectionchange', beiAuswahl);
-  }, [modus]);
-
   async function schreibeEinmal(zeigen: boolean): Promise<Ausgang> {
     const aktuell = notizRef.current;
     const text = feldRef.current;
@@ -213,26 +165,6 @@ export function NotizSeite() {
   }
   sichereRef.current = sichere;
 
-  function merkeWahl(el: HTMLTextAreaElement) {
-    const start = el.selectionStart ?? 0;
-    const ende = el.selectionEnd ?? 0;
-    wahl.current = { start, ende };
-    setUeberschrift(zeileIstUeberschrift(el.value, start));
-  }
-
-  function umschalten() {
-    const el = eingabe.current;
-    const live = el !== null && document.activeElement === el;
-    const start = live ? (el.selectionStart ?? wahl.current.start) : wahl.current.start;
-    const ende = live ? (el.selectionEnd ?? wahl.current.ende) : wahl.current.ende;
-    const naechst = schalteUeberschrift(feld, start, ende);
-    wahl.current = { start: naechst.start, ende: naechst.ende };
-    rueck.current = { start: naechst.start, ende: naechst.ende };
-    setUeberschrift(zeileIstUeberschrift(naechst.text, naechst.start));
-    setFeld(naechst.text);
-    setFehler(null);
-  }
-
   async function zeigeLesen() {
     const aus = await sichere(true);
     if (aus === 'leer' || aus === 'fehler' || !da.current) return;
@@ -269,17 +201,6 @@ export function NotizSeite() {
   const hinweis = notiz ? ablageZeile(notiz, new Date()) : '';
   const aktion = notiz ? (
     <div className="kopf-aktion">
-      {modus === 'schreiben' ? (
-        <button
-          type="button"
-          className={ueberschrift ? 'schalt an' : 'schalt'}
-          aria-pressed={ueberschrift}
-          onMouseDown={(event) => event.preventDefault()}
-          onClick={umschalten}
-        >
-          Heading
-        </button>
-      ) : null}
       <button
         type="button"
         className="ib"
@@ -310,32 +231,19 @@ export function NotizSeite() {
         {fehler && !notiz ? <p className="leer1">{fehler}</p> : null}
         {notiz && modus === 'lesen' ? (
           <>
-            <LeseText text={feld} />
+            <LeseText text={feld} verlinken />
             <TerminZeile text={feld} created={notiz.created} />
           </>
         ) : null}
         {notiz && modus === 'schreiben' ? (
-          <div className="schreib klar">
-            <textarea
-              ref={eingabe}
-              value={feld}
-              maxLength={NOTE_TEXT_MAX}
-              spellCheck={false}
-              autoCapitalize="off"
-              autoCorrect="off"
-              autoComplete="off"
-              aria-label="Note"
-              aria-invalid={fehler ? true : undefined}
-              onChange={(event) => {
-                setFeld(event.target.value);
-                setFehler(null);
-                merkeWahl(event.target);
-              }}
-              onSelect={(event) => merkeWahl(event.currentTarget)}
-              onKeyUp={(event) => merkeWahl(event.currentTarget)}
-              onClick={(event) => merkeWahl(event.currentTarget)}
-            />
-          </div>
+          <Editor
+            text={feld}
+            ungueltig={Boolean(fehler)}
+            onText={(wert) => {
+              setFeld(wert);
+              setFehler(null);
+            }}
+          />
         ) : null}
         {fehler && notiz ? (
           <p className="feldfehler" role="alert">

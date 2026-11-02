@@ -1,6 +1,6 @@
 {
   "name": "cortx",
-  "version": "1.5.5",
+  "version": "1.6.0",
   "private": true,
   "type": "module",
   "engines": {
@@ -16,6 +16,9 @@
     "e2e:browsers": "playwright install chromium"
   },
   "dependencies": {
+    "@codemirror/commands": "^6.11.1",
+    "@codemirror/state": "^6.7.6",
+    "@codemirror/view": "^6.43.15",
     "@fastify/static": "^10.1.6",
     "fastify": "^5.12.7",
     "react": "^19.3.1",

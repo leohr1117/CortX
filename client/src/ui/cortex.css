@@ -936,3 +936,150 @@ input.feld::placeholder { color: var(--leise); }
 @media (min-width: 900px) {
   .login .btn.voll { width: 100%; }
 }
+
+.schreib.klar {
+  display: flex;
+  flex-direction: column;
+}
+.schreib .cm-host,
+.schreib .cm-editor,
+.schreib .cm-scroller {
+  height: 100%;
+  min-height: 0;
+}
+.schreib.klar .cm-host { flex: 1; min-height: 0; }
+.schreib .cm-editor { background: transparent; color: var(--haupt); }
+.schreib .cm-scroller {
+  font-family: inherit !important;
+  font-size: inherit !important;
+  line-height: inherit !important;
+  overflow: auto;
+}
+.schreib .cm-content {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--haupt);
+  caret-color: var(--fokus);
+}
+.schreib .cm-line { padding: 0; }
+.schreib .cm-editor.cm-focused { outline: none; }
+.schreib .cm-cursor { border-left-color: var(--fokus); }
+.schreib .cm-selectionBackground { background: rgba(96, 165, 250, 0.35) !important; }
+.schreib .cm-fett { font-weight: 600; }
+.schreib .cm-kursiv { font-style: italic; }
+.schreib .cm-strich { text-decoration: line-through; }
+.schreib .cm-code,
+.schreib .cm-codeblock {
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  font-size: 0.92em;
+}
+.schreib .cm-code {
+  background: var(--flaeche-2);
+  border-radius: 4px;
+}
+.schreib .cm-ueberschrift { font-weight: 650; font-size: 20px; }
+.schreib .cm-link { color: var(--fokus); }
+.schreib .cm-punkt,
+.schreib .cm-nummer { color: var(--haupt); }
+.schreib .cm-haken {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  margin-right: 8px;
+  border: 1.5px solid var(--feldrand);
+  border-radius: 4px;
+  vertical-align: -2px;
+  text-align: center;
+  line-height: 14px;
+  font-size: 11px;
+}
+.schreib .cm-haken.zu {
+  background: var(--haupt);
+  border-color: var(--haupt);
+  color: var(--grund);
+}
+.lesetext em { font-style: italic; }
+.lesetext s { text-decoration: line-through; }
+.lesetext code {
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  font-size: 0.92em;
+  background: var(--flaeche-2);
+  border-radius: 4px;
+  padding: 0 4px;
+}
+.lesetext pre {
+  margin: 0;
+  padding: 8px 10px;
+  background: var(--flaeche-2);
+  border-radius: 8px;
+  overflow-x: auto;
+}
+.lesetext pre code {
+  background: transparent;
+  padding: 0;
+  white-space: pre-wrap;
+}
+.lesetext a { color: var(--fokus); }
+.lesetext ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: punkt;
+}
+.lesetext ol li {
+  padding-left: 28px;
+  counter-increment: punkt;
+}
+.lesetext ol li::before {
+  content: counter(punkt) ".";
+  width: auto;
+  height: auto;
+  border-radius: 0;
+  background: none;
+  top: 0;
+  left: 0;
+}
+.format-leiste {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  z-index: 32;
+}
+.format-leiste .schalt {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+}
+.format-leiste .schalt.breit { width: auto; padding: 0 10px; }
+.format-leiste .schalt.fett { font-weight: 700; }
+.format-leiste .schalt.kursiv { font-style: italic; }
+.format-leiste .schalt.strich { text-decoration: line-through; }
+.format-leiste.mobil {
+  position: fixed;
+  left: 0;
+  right: 0;
+  background: var(--flaeche);
+  border-top: 1px solid var(--trenner);
+  padding: 6px 8px;
+  overflow-x: auto;
+}
+.format-leiste.schwebend {
+  position: fixed;
+  background: var(--flaeche);
+  border: 1px solid var(--trenner);
+  border-radius: 10px;
+  padding: 4px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+@media (max-width: 899px) {
+  .notizblatt.schreiben { padding-bottom: calc(72px + env(safe-area-inset-bottom)); }
+}
+.menue .schalter {
+  height: auto;
+  min-height: 48px;
+  white-space: normal;
+  align-items: flex-start;
+}

@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.6.0
+
+Notes stay as text. Bold, italic, strike, code, lists, checkboxes, links, and headings show while you read. The editor keeps that text, with a format bar and optional shortcuts while typing.
+
 ## 1.5.5
 
 Housekeeping only. CortX looks and works the same.
