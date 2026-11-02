@@ -3,7 +3,16 @@ import { neuesThemaZeile, sucheThemen } from '../../../../shared/features/topics
 import { gleicherName } from '../../../../shared/features/tags/index.ts';
 import { INBOX_NAME } from '../../../../shared/kern/grenzen.ts';
 import type { Thema } from '../../../../shared/kern/modell.ts';
+import { ListeMitNeu } from '../../ui/ListeMitNeu.tsx';
 import { HakenIcon, HashIcon, LupeIcon, PlusIcon, PosteingangIcon, SchliessenIcon } from '../../ui/icons.tsx';
+import { klickTipp, losTipp, merkTipp } from '../../ui/tipp.ts';
+
+interface Zeile {
+  key: string;
+  name: string;
+  neu: boolean;
+  count: number | null;
+}
 
 function zeilenAus(suche: string, themen: Thema[]) {
   const liste = sucheThemen(suche, themen);
@@ -13,7 +22,7 @@ function zeilenAus(suche: string, themen: Thema[]) {
     zeilen: [
       ...liste.map((thema) => ({ key: thema.name, name: thema.name, neu: false, count: thema.count })),
       ...(neu ? [{ key: `neu:${neu}`, name: neu, neu: true, count: null as number | null }] : []),
-    ],
+    ] as Zeile[],
   };
 }
 
@@ -38,6 +47,8 @@ export function Wechsel({
   const feld = useRef<HTMLInputElement>(null);
   const { liste, zeilen } = zeilenAus(suche, themen);
   const index = zeilen.length === 0 ? 0 : Math.min(aktiv, zeilen.length - 1);
+  const neuStelle = zeilen.findIndex((zeile) => zeile.neu);
+  const neuZeile = neuStelle >= 0 ? zeilen[neuStelle] : null;
 
   useEffect(() => {
     feld.current?.focus();
@@ -94,6 +105,31 @@ export function Wechsel({
     }
   }
 
+  function zeichne(zeile: Zeile, stelle: number) {
+    const gewaehlt = !zeile.neu && gleicherName(zeile.name, aktuell);
+    const tastatur = angefasst && stelle === index;
+    return (
+      <div
+        id={`wechsel-${stelle}`}
+        role="option"
+        aria-selected={gewaehlt}
+        className={['wz', gewaehlt ? 'sel' : '', tastatur ? 'akt' : ''].filter(Boolean).join(' ')}
+        onPointerDown={merkTipp}
+        onPointerUp={losTipp}
+        onClick={(event) => {
+          if (klickTipp(event)) return;
+          waehle(stelle);
+        }}
+      >
+        <span className="sym">
+          {zeile.neu ? <PlusIcon /> : gleicherName(zeile.name, INBOX_NAME) ? <PosteingangIcon /> : <HashIcon />}
+        </span>
+        <span className="n">{zeile.neu ? `New topic “${zeile.name}”` : zeile.name}</span>
+        {gewaehlt ? <HakenIcon /> : zeile.neu ? null : <span className="w">{zeile.count}</span>}
+      </div>
+    );
+  }
+
   return (
     <section className="blatt" role="dialog" aria-modal="true" aria-labelledby="wechsel-titel">
       <div className="griff" aria-hidden="true" />
@@ -122,31 +158,24 @@ export function Wechsel({
         />
       </label>
       {hinweis ? <p className="hinweis">{hinweis}</p> : null}
-      <div className="wl rolle" id="wechsel-liste" role="listbox" aria-label="Topics">
-        {zeilen.map((zeile, stelle) => {
-          const gewaehlt = !zeile.neu && gleicherName(zeile.name, aktuell);
-          const tastatur = angefasst && stelle === index;
-          const davorNeu = zeile.neu && liste.length > 0 && stelle === liste.length;
-          return (
-            <Fragment key={zeile.key}>
-              {davorNeu ? <div className="tr" /> : null}
-              <div
-                id={`wechsel-${stelle}`}
-                role="option"
-                aria-selected={gewaehlt}
-                className={['wz', gewaehlt ? 'sel' : '', tastatur ? 'akt' : ''].filter(Boolean).join(' ')}
-                onClick={() => waehle(stelle)}
-              >
-                <span className="sym">
-                  {zeile.neu ? <PlusIcon /> : gleicherName(zeile.name, INBOX_NAME) ? <PosteingangIcon /> : <HashIcon />}
-                </span>
-                <span className="n">{zeile.neu ? `New topic “${zeile.name}”` : zeile.name}</span>
-                {gewaehlt ? <HakenIcon /> : zeile.neu ? null : <span className="w">{zeile.count}</span>}
-              </div>
-            </Fragment>
-          );
-        })}
-      </div>
+      <ListeMitNeu
+        id="wechsel-liste"
+        className="wl"
+        label="Topics"
+        aktivId={angefasst && zeilen.length > 0 ? `wechsel-${index}` : undefined}
+        neu={
+          neuZeile ? (
+            <>
+              {liste.length > 0 ? <div className="tr" /> : null}
+              {zeichne(neuZeile, neuStelle)}
+            </>
+          ) : null
+        }
+      >
+        {zeilen.map((zeile, stelle) =>
+          zeile.neu ? null : <Fragment key={zeile.key}>{zeichne(zeile, stelle)}</Fragment>,
+        )}
+      </ListeMitNeu>
     </section>
   );
 }

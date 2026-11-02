@@ -63,6 +63,24 @@ describe('filing api', () => {
     });
   });
 
+  it('starts a new page when the path names only a topic', async () => {
+    const server = await app();
+    const erste = await post(server, '#Thema\nPage one');
+    expect(erste.statusCode).toBe(201);
+    expect(erste.json()).toMatchObject({ topic: 'Thema', text: 'Page one' });
+    const zweite = await post(server, '#thema\nPage two');
+    expect(zweite.statusCode).toBe(201);
+    expect(zweite.json().id).not.toBe(erste.json().id);
+    expect(zweite.json()).toMatchObject({ topic: 'Thema', text: 'Page two' });
+    const seiten = await server.inject({ method: 'GET', url: '/api/library/notes?topic=Thema' });
+    const texte = (seiten.json() as { notes: Array<{ text: string }> }).notes.map((notiz) => notiz.text).sort();
+    expect(texte).toEqual(['Page one', 'Page two']);
+    const themen = await server.inject({ method: 'GET', url: '/api/topics' });
+    expect(themen.json().topics).toEqual(
+      expect.arrayContaining([expect.objectContaining({ name: 'Thema', count: 2 })]),
+    );
+  });
+
   it('uses the first tag and resolves a prefix to the busiest topic', async () => {
     const server = await app();
     for (let index = 0; index < 3; index += 1) {

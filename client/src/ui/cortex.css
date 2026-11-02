@@ -467,6 +467,30 @@ html[data-os="mac"] .kbd .mac { display: inline-flex; }
   -webkit-overflow-scrolling: touch;
   touch-action: pan-y;
 }
+.mit-neu {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+.mit-neu > .rolle {
+  flex: 0 1 auto;
+  min-height: 0;
+}
+.mit-neu > .rolle:empty {
+  display: none;
+}
+.neu-fest {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  background: var(--flaeche);
+}
+.mit-neu .n {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .wl .tr { height: 1px; background: var(--trenner); margin: 4px 0; }
 .wz {
   height: 48px;

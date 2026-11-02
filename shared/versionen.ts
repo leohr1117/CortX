@@ -6,6 +6,14 @@ export interface Versionseintrag {
 
 export const VERSIONEN: readonly Versionseintrag[] = [
   {
+    version: '1.8.5',
+    datum: '2026-11-02',
+    zeilen: [
+      'The row that creates a topic, page, or section stays at the bottom while the matches scroll.',
+      'The last match stays reachable. A topic without a page still files a new page.',
+    ],
+  },
+  {
     version: '1.8.4',
     datum: '2026-11-02',
     zeilen: [

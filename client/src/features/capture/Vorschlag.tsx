@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import type { VorschlagListe } from '../../../../shared/features/tags/index.ts';
 import { HashIcon, PlusIcon } from '../../ui/icons.tsx';
+import { ListeMitNeu } from '../../ui/ListeMitNeu.tsx';
 import { klickTipp, losTipp, merkTipp } from '../../ui/tipp.ts';
 
 function nameMitFund(name: string, fragment: string): ReactNode {
@@ -33,15 +34,38 @@ export function Vorschlag({
   fest?: boolean;
   onWahl: (index: number) => void;
 }) {
+  const neuIndex = liste.treffer.length;
   return (
-    <div
+    <ListeMitNeu
       id="vorschlaege"
-      className="vorschlag rolle"
-      role="listbox"
+      className="vorschlag"
       style={fest ? { position: 'fixed', top, left, maxHeight } : { top, left, maxHeight }}
+      aktivId={`vorschlag-${aktiv}`}
       onPointerDown={(event) => {
         if (event.pointerType === 'mouse') event.preventDefault();
       }}
+      neu={
+        liste.neu ? (
+          <>
+            {liste.treffer.length > 0 ? <div className="tr" /> : null}
+            <div
+              id={`vorschlag-${neuIndex}`}
+              role="option"
+              aria-selected={aktiv === neuIndex}
+              className={aktiv === neuIndex ? 'z neu akt' : 'z neu'}
+              onPointerDown={merkTipp}
+              onPointerUp={losTipp}
+              onClick={(event) => {
+                if (klickTipp(event)) return;
+                onWahl(neuIndex);
+              }}
+            >
+              <PlusIcon />
+              <span className="n">{liste.neuText}</span>
+            </div>
+          </>
+        ) : null
+      }
     >
       {liste.treffer.map((eintrag, index) => (
         <div
@@ -62,24 +86,6 @@ export function Vorschlag({
           {eintrag.zahl !== null ? <span className="w">{eintrag.zahl}</span> : null}
         </div>
       ))}
-      {liste.neu && liste.treffer.length > 0 ? <div className="tr" /> : null}
-      {liste.neu ? (
-        <div
-          id={`vorschlag-${liste.treffer.length}`}
-          role="option"
-          aria-selected={aktiv === liste.treffer.length}
-          className={aktiv === liste.treffer.length ? 'z neu akt' : 'z neu'}
-          onPointerDown={merkTipp}
-          onPointerUp={losTipp}
-          onClick={(event) => {
-            if (klickTipp(event)) return;
-            onWahl(liste.treffer.length);
-          }}
-        >
-          <PlusIcon />
-          <span className="n">{liste.neuText}</span>
-        </div>
-      ) : null}
-    </div>
+    </ListeMitNeu>
   );
 }

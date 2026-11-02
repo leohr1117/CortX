@@ -188,8 +188,9 @@ test('suggestion lists scroll by touch, including while the keyboard is open', a
     setzeSchauspiel(bestand());
     await page.goto('/');
     await setzeQuelle(page, '#Topic01/');
-    const liste = page.locator('#vorschlaege');
-    await expect(liste).toBeVisible();
+    const menuBox = page.locator('#vorschlaege');
+    const liste = menuBox.locator('.rolle');
+    await expect(menuBox).toBeVisible();
     await kannScrollen(liste);
     await touchScroll(page, liste);
     await expect.poll(() => liesQuelle(page)).toBe('#Topic01/');
@@ -200,7 +201,7 @@ test('suggestion lists scroll by touch, including while the keyboard is open', a
 
     await setzeSicht(page, TASTATUR);
     await expect.poll(async () => {
-      const menu = await liste.boundingBox();
+      const menu = await menuBox.boundingBox();
       const bar = await page.getByRole('toolbar', { name: 'Format' }).boundingBox();
       if (!menu || !bar) return false;
       return menu.y + menu.height <= bar.y + 2 && menu.height >= 48;
@@ -259,7 +260,7 @@ test('long lists scroll with the mouse wheel on a wide screen', async ({ page },
 
     await page.goto('/');
     await setzeQuelle(page, '#Topic01/');
-    const vorschlaege = page.locator('#vorschlaege');
+    const vorschlaege = page.locator('#vorschlaege .rolle');
     await expect(vorschlaege).toBeVisible();
     await kannScrollen(vorschlaege);
     const letzter = page.getByRole('option', { name: LETZTER_VORSCHLAG });

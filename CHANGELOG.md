@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.8.5
+
+The row that creates a topic, page, or section stays at the bottom of suggestion lists and of the topic picker. The matches above it scroll, and the last match stays reachable.
+
+A topic written without a page, such as #topic, still files a new page in that topic.
+
 ## 1.8.4
 
 Lists of pages, topics, and suggestions scroll on a phone with a finger, and with the mouse wheel on a computer. The last entry stays reachable, including while the keyboard is open.

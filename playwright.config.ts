@@ -7,6 +7,10 @@ const datenbank = path.resolve('tmp-test', `e2e-${process.pid}.db`);
 const url = `http://127.0.0.1:${E2E_PORT}`;
 
 fs.mkdirSync(path.resolve('tmp-test'), { recursive: true });
+// Process ids get reused, so a leftover database from an earlier run must not leak into this one.
+if (!process.env.TEST_WORKER_INDEX) {
+  for (const endung of ['', '-wal', '-shm']) fs.rmSync(datenbank + endung, { force: true });
+}
 fs.writeFileSync(path.resolve('tmp-test', 'e2e-lauf.json'), JSON.stringify({ datenbank, url }));
 
 export default defineConfig({
