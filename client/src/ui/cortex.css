@@ -968,32 +968,61 @@ input.feld::placeholder { color: var(--leise); }
 .schreib .cm-editor.cm-focused { outline: none; }
 .schreib .cm-cursor { border-left-color: var(--fokus); }
 .schreib .cm-selectionBackground { background: rgba(96, 165, 250, 0.35) !important; }
+.schreib .cm-fett,
+.schreib .cm-kursiv,
+.schreib .cm-strich,
+.schreib .cm-code,
+.schreib .cm-codeblock,
+.schreib .cm-ueberschrift,
+.schreib .cm-link,
+.schreib .cm-wichtig {
+  font-size: inherit;
+  line-height: inherit;
+}
 .schreib .cm-fett { font-weight: 600; }
 .schreib .cm-kursiv { font-style: italic; }
+.schreib .cm-fett.cm-kursiv { font-weight: 600; font-style: italic; }
 .schreib .cm-strich { text-decoration: line-through; }
 .schreib .cm-code,
 .schreib .cm-codeblock {
   font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
-  font-size: 0.92em;
 }
 .schreib .cm-code {
   background: var(--flaeche-2);
   border-radius: 4px;
 }
-.schreib .cm-ueberschrift { font-weight: 650; font-size: 20px; }
+.schreib .cm-ueberschrift { font-weight: 650; }
 .schreib .cm-link { color: var(--fokus); }
 .schreib .cm-wichtig {
   background: #f3e2a8;
   color: #1a1a1a;
   border-radius: 2px;
-  border-bottom: 2px solid #5c4314;
+  box-shadow: inset 0 -2px 0 #5c4314;
 }
 .schreib .cm-link.cm-wichtig { color: #1a1a1a; text-decoration: underline; }
 .schreib .cm-code.cm-wichtig,
 .schreib .cm-codeblock.cm-wichtig {
   color: var(--haupt);
   background: var(--flaeche-2);
-  border-bottom: 2px solid #b8892e;
+  box-shadow: inset 0 -2px 0 #b8892e;
+}
+.schreib .cm-marker-weg {
+  font-size: 0;
+  line-height: 0;
+  letter-spacing: 0;
+  color: transparent;
+  padding: 0;
+  margin: 0;
+}
+.schreib .cm-widgetBuffer {
+  display: inline-block;
+  width: 0;
+  height: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  vertical-align: baseline;
 }
 .schreib .cm-editor .cm-line.cm-wichtig-zeile {
   padding-left: 10px;
@@ -1020,6 +1049,8 @@ input.feld::placeholder { color: var(--leise); }
   color: var(--grund);
 }
 .lesetext em { font-style: italic; }
+.lesetext strong em,
+.lesetext em strong { font-weight: 600; font-style: italic; }
 .lesetext s { text-decoration: line-through; }
 .lesetext code {
   font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;

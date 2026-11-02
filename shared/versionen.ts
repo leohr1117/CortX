@@ -6,6 +6,15 @@ export interface Versionseintrag {
 
 export const VERSIONEN: readonly Versionseintrag[] = [
   {
+    version: '1.7.2',
+    datum: '2026-11-02',
+    zeilen: [
+      'Bold, italic, strike, and Wichtig can be used together.',
+      'A space at the end of a note stays when you save.',
+      'On a phone, the selection sits on the text, and the format icons are clearer.',
+    ],
+  },
+  {
     version: '1.7.1',
     datum: '2026-11-02',
     zeilen: [

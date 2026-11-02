@@ -9,8 +9,10 @@ function iso(monat: number, tag: number, stunde: number, minute: number, jahr = 
 }
 
 describe('note text', () => {
-  it('trims a note and rejects an empty or oversized one', () => {
-    expect(planeNotizText('  Hello  ')).toEqual({ ok: true, text: 'Hello' });
+  it('trims the start, keeps a trailing space, and rejects an empty or oversized note', () => {
+    expect(planeNotizText('  Hello  ')).toEqual({ ok: true, text: 'Hello  ' });
+    expect(planeNotizText('**Hello** ')).toEqual({ ok: true, text: '**Hello** ' });
+    expect(planeNotizText('**Hello** \n')).toEqual({ ok: true, text: '**Hello** \n' });
     expect(planeNotizText('a'.repeat(NOTE_TEXT_MAX))).toEqual({ ok: true, text: 'a'.repeat(NOTE_TEXT_MAX) });
     expect(planeNotizText('   ')).toEqual({ ok: false, grund: 'empty' });
     expect(planeNotizText('a'.repeat(NOTE_TEXT_MAX + 1))).toEqual({ ok: false, grund: 'long' });

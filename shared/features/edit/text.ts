@@ -7,8 +7,8 @@ export type TextGrund = 'empty' | 'long';
 export type TextPlan = { ok: true; text: string } | { ok: false; grund: TextGrund };
 
 export function planeNotizText(roh: string): TextPlan {
-  const text = roh.trim();
-  if (text.length === 0) return { ok: false, grund: 'empty' };
+  const text = roh.trimStart();
+  if (text.trim().length === 0) return { ok: false, grund: 'empty' };
   if (text.length > NOTE_TEXT_MAX) return { ok: false, grund: 'long' };
   return { ok: true, text };
 }

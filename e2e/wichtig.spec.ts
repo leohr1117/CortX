@@ -51,7 +51,7 @@ test('the Wichtig button marks words and a line on a phone', async ({ page }, te
 
     await page.getByRole('button', { name: 'Edit' }).click();
     const leiste = page.getByRole('toolbar', { name: 'Format' });
-    const knopf = leiste.getByRole('button', { name: 'Wichtig' });
+    const knopf = leiste.getByRole('button', { name: 'Important' });
     await expect(knopf).toBeVisible();
     await expect(knopf).toHaveText('');
     await expect(knopf.locator('svg')).toBeVisible();

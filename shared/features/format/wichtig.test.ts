@@ -57,9 +57,6 @@ describe('wichtig', () => {
     for (const text of ['Super!! Und dann toll!!', 'Wow!!', 'Hallo!! Wie gehts!!', 'a!!b!!', '"!!Text!!"', ',!!Text!!']) {
       expect(leseBaum(text)).toEqual([{ art: 'absatz', zeilen: [[{ art: 'text', text }]] }]);
     }
-    expect(leseBaum('**!!Anna!!**')).toEqual([
-      { art: 'absatz', zeilen: [[{ art: 'fett', text: '!!Anna!!' }]] },
-    ]);
   });
 
   it('rejects a space directly inside and a line break', () => {

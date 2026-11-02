@@ -31,6 +31,7 @@ const BITS: Partial<Record<Beleg['art'], number>> = {
 
 const ZEILEN_BALKEN = Decoration.line({ class: 'cm-wichtig-zeile' });
 const MARKER_DIMM = Decoration.mark({ class: 'cm-wichtig-marker' });
+const MARKER_WEG = Decoration.mark({ class: 'cm-marker-weg', attributes: { 'aria-hidden': 'true' } });
 
 class PunktWidget extends WidgetType {
   eq(other: WidgetType): boolean {
@@ -118,16 +119,8 @@ function markerAktiv(view: EditorView, von: number, bis: number): boolean {
   });
 }
 
-function zeileAktiv(view: EditorView, von: number): boolean {
-  const doc = view.state.doc;
-  if (doc.length === 0) return true;
-  const stelle = Math.max(0, Math.min(von, doc.length));
-  const zeile = doc.lineAt(stelle === doc.length ? stelle - 1 : stelle);
-  return view.state.selection.ranges.some((range) => {
-    const anfang = doc.lineAt(range.from);
-    const ende = doc.lineAt(Math.min(range.to, doc.length));
-    return zeile.from < ende.to && zeile.to > anfang.from;
-  });
+function caretImMarker(view: EditorView, von: number, bis: number): boolean {
+  return view.state.selection.ranges.some((range) => range.from === range.to && range.from >= von && range.from <= bis);
 }
 
 function widgetFuer(beleg: Beleg): WidgetType | null {
@@ -160,7 +153,7 @@ function baue(view: EditorView): DecorationSet {
         }
         continue;
       }
-      if (zeileAktiv(view, von)) continue;
+      if (caretImMarker(view, von, ende)) continue;
       for (let i = Math.max(0, von); i < ende; i += 1) {
         if (text[i] === '\n') break;
         verdeckt[i] = 1;
@@ -188,7 +181,7 @@ function baue(view: EditorView): DecorationSet {
       }
       let j = i + 1;
       while (j < text.length && verdeckt[j] && !kacheln.has(j) && !zeilen.has(j)) j += 1;
-      if (j > i) bau.add(i, j, Decoration.replace({}));
+      if (j > i) bau.add(i, j, MARKER_WEG);
       i = j;
       continue;
     }

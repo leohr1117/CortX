@@ -1,7 +1,21 @@
+import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
 import type { EditorView } from '@codemirror/view';
-import { MarkerIcon } from '../../ui/icons.tsx';
 import { leseDruck, type Druck } from './druck.ts';
+
+function LeistenIcon({ pfade }: { pfade: readonly string[] }) {
+  return (
+    <svg className="i" viewBox="0 0 24 24" aria-hidden="true">
+      {pfade.map((pfad) => (
+        <path key={pfad} d={pfad} />
+      ))}
+    </svg>
+  );
+}
+
+const WICHTIG_PFAD = ['M12 5v9', 'M12 19h.01'] as const;
+const LISTE_PFAD = ['M3 6h.01', 'M3 12h.01', 'M3 18h.01', 'M8 6h13', 'M8 12h13', 'M8 18h13'] as const;
+const HAKEN_PFAD = ['m3 7 2 2 4-4', 'm3 17 2 2 4-4', 'M13 6h8', 'M13 12h8', 'M13 18h8'] as const;
 
 export type FormatBefehl =
   | 'fett'
@@ -26,15 +40,22 @@ const LEER: Druck = {
   wichtig: false,
 };
 
+function zeichenVon(befehl: FormatBefehl): ReactNode {
+  if (befehl === 'wichtig') return <LeistenIcon pfade={WICHTIG_PFAD} />;
+  if (befehl === 'liste') return <LeistenIcon pfade={LISTE_PFAD} />;
+  if (befehl === 'haken') return <LeistenIcon pfade={HAKEN_PFAD} />;
+  return null;
+}
+
 const KNOEPFE: ReadonlyArray<{ befehl: FormatBefehl; name: string; zeichen: string; klasse?: string }> = [
   { befehl: 'fett', name: 'Bold', zeichen: 'B', klasse: 'fett' },
   { befehl: 'kursiv', name: 'Italic', zeichen: 'I', klasse: 'kursiv' },
   { befehl: 'strich', name: 'Strikethrough', zeichen: 'S', klasse: 'strich' },
-  { befehl: 'wichtig', name: 'Wichtig', zeichen: '' },
+  { befehl: 'wichtig', name: 'Important', zeichen: '' },
   { befehl: 'code', name: 'Code', zeichen: '</>' },
   { befehl: 'ueberschrift', name: 'Heading', zeichen: 'H' },
-  { befehl: 'liste', name: 'List', zeichen: '•' },
-  { befehl: 'haken', name: 'Checklist', zeichen: '☐' },
+  { befehl: 'liste', name: 'Bulleted list', zeichen: '' },
+  { befehl: 'haken', name: 'Checklist', zeichen: '' },
   { befehl: 'link', name: 'Link', zeichen: 'Link', klasse: 'breit' },
 ];
 
@@ -116,11 +137,12 @@ export function Leiste({
             type="button"
             className={['schalt', knopf.klasse, an ? 'an' : ''].filter(Boolean).join(' ')}
             aria-label={knopf.name}
+            title={knopf.name}
             aria-pressed={knopf.befehl === 'link' ? undefined : an}
             onPointerDown={(event) => event.preventDefault()}
             onClick={() => onBefehl(knopf.befehl)}
           >
-            {knopf.befehl === 'wichtig' ? <MarkerIcon /> : knopf.zeichen}
+            {zeichenVon(knopf.befehl) ?? knopf.zeichen}
           </button>
         );
       })}

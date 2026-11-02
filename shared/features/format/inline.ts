@@ -79,7 +79,16 @@ function sucheLink(zeile: string, i: number): Fund | null {
   };
 }
 
-function sucheNaeher(zeile: string, ab: number, marker: string): number | null {
+function laufUm(zeile: string, index: number, zeichen: string): { start: number; laenge: number } {
+  let start = index;
+  while (start > 0 && zeile[start - 1] === zeichen) start -= 1;
+  let laenge = 0;
+  while (zeile[start + laenge] === zeichen) laenge += 1;
+  return { start, laenge };
+}
+
+function sucheNaeher(zeile: string, ab: number, marker: string, offenBei: number): number | null {
+  const zeichen = marker[0] ?? '';
   let j = ab;
   while (j < zeile.length) {
     const bei = zeile.indexOf(marker, j);
@@ -93,9 +102,26 @@ function sucheNaeher(zeile: string, ab: number, marker: string): number | null {
       continue;
     }
     const nach = bei + marker.length;
-    if (marker[0] === '_' && nach < zeile.length && wortZeichen(zeile[nach] ?? '')) {
+    if (zeichen === '_' && nach < zeile.length && wortZeichen(zeile[nach] ?? '')) {
       j = bei + 1;
       continue;
+    }
+    if (marker.length === 2 && (zeichen === '*' || zeichen === '_')) {
+      const offen = laufUm(zeile, offenBei, zeichen);
+      const zu = laufUm(zeile, bei, zeichen);
+      if (zu.start === offen.start) {
+        j = zu.start + zu.laenge;
+        continue;
+      }
+      if (offen.laenge >= 3 && zu.laenge >= 3) {
+        const ende = zu.start + zu.laenge - 2;
+        const nachEnde = ende + marker.length;
+        if (zeichen === '_' && nachEnde < zeile.length && wortZeichen(zeile[nachEnde] ?? '')) {
+          j = zu.start + zu.laenge;
+          continue;
+        }
+        if (ende >= ab) return ende;
+      }
     }
     return bei;
   }
@@ -105,7 +131,7 @@ function sucheNaeher(zeile: string, ab: number, marker: string): number | null {
 function suchePaar(zeile: string, i: number, marker: string, art: Fund['art']): Fund | 'sprung' | null {
   if (!zeile.startsWith(marker, i)) return null;
   if (marker[0] === '_' && i > 0 && wortZeichen(zeile[i - 1] ?? '')) return null;
-  const zu = sucheNaeher(zeile, i + marker.length, marker);
+  const zu = sucheNaeher(zeile, i + marker.length, marker, i);
   if (zu === null) return marker.length > 1 ? 'sprung' : null;
   return {
     art,
@@ -272,7 +298,7 @@ export function leseInline(
         ],
       };
       const innen = zeile.slice(innenVon, zu);
-      const schrift = leseInline(innen, basis + innenVon, inLink, zeile[innenVon - 1] ?? '\n');
+      const schrift = leseInline(innen, basis + innenVon, inLink, '\n');
       teile.push(alsSchrift('wichtig', schrift.teile));
       belege.push(belegAbsolut(basis, fund), ...schrift.belege);
       i = fund.bis;
@@ -299,7 +325,7 @@ export function leseInline(
       teile.push({ art: 'link', teile: inhalt, ziel: fund.ziel ?? '' });
       belege.push(belegAbsolut(basis, fund), ...label.belege);
     } else {
-      const schrift = leseInline(innen, basis + fund.innenVon, inLink, zeile[fund.innenVon - 1] ?? '\n');
+      const schrift = leseInline(innen, basis + fund.innenVon, inLink, '\n');
       teile.push(alsSchrift(fund.art, schrift.teile));
       belege.push(belegAbsolut(basis, fund), ...schrift.belege);
     }

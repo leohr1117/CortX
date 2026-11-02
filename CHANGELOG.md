@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.7.2
+
+Bold, italic, strike, and Wichtig can be used together. A space at the end of a note stays when you save. On a phone, the selection sits on the text, and the format bar icons are clearer.
+
 ## 1.7.1
 
 Updates arrive more reliably. The installed app picks up the new version.

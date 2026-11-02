@@ -51,6 +51,7 @@ describe('update hinweis', () => {
     expect(alt.schreiben).toEqual({ benachrichtigt: AKTUELLE_VERSION });
     const neu = neuereVersionen(VERSIONEN, '1.5.0');
     expect(neu.map((eintrag) => eintrag.version)).toEqual([
+      '1.7.2',
       '1.7.1',
       '1.7.0',
       '1.6.0',

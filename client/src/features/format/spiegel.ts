@@ -80,6 +80,11 @@ function formatTasten(haken: SpiegelHaken): readonly KeyBinding[] {
   ];
 }
 
+function zeichneAuswahl(): Extension {
+  if (typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches) return [];
+  return drawSelection();
+}
+
 const thema = EditorView.theme(
   {
     '&': { color: '#f2f2f2', backgroundColor: 'transparent', height: '100%' },
@@ -107,7 +112,7 @@ export function baueSpiegel(start: string, haken: SpiegelHaken): { erweiterungen
   let zuletzt = start;
   const erweiterungen: Extension[] = [
     history(),
-    drawSelection(),
+    zeichneAuswahl(),
     EditorView.lineWrapping,
     thema,
     schmuck,

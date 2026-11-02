@@ -161,6 +161,31 @@ describe('format commands', () => {
   });
 });
 
+describe('combined formatting', () => {
+  it('stacks bold and italic around the same word', () => {
+    const gemeinsam = { art: 'fett' as const, teile: [{ art: 'kursiv' as const, text: 'Test' }] };
+    expect(leseBaum('***Test***')).toEqual([{ art: 'absatz', zeilen: [[gemeinsam]] }]);
+    expect(leseBaum('**_x_**')).toEqual([{ art: 'absatz', zeilen: [[{ art: 'fett', teile: [{ art: 'kursiv', text: 'x' }] }]] }]);
+    expect(leseBaum('_**x**_')).toEqual([{ art: 'absatz', zeilen: [[{ art: 'kursiv', teile: [{ art: 'fett', text: 'x' }] }]] }]);
+    expect(suchtext('***Test***')).toBe('Test');
+  });
+
+  it('stacks strike, wichtig, and a whole line with bold', () => {
+    expect(leseBaum('~~**x**~~')).toEqual([
+      { art: 'absatz', zeilen: [[{ art: 'streich', teile: [{ art: 'fett', text: 'x' }] }]] },
+    ]);
+    expect(leseBaum('**!!x!!**')).toEqual([
+      { art: 'absatz', zeilen: [[{ art: 'fett', teile: [{ art: 'wichtig', text: 'x' }] }]] },
+    ]);
+    expect(leseBaum('!!**x**!!')).toEqual([
+      { art: 'absatz', zeilen: [[{ art: 'wichtig', teile: [{ art: 'fett', text: 'x' }] }]] },
+    ]);
+    expect(leseBaum('!!!! **x**')).toEqual([{ art: 'wichtig', teile: [{ art: 'fett', text: 'x' }] }]);
+    const innen = belege('***Test***').filter((eintrag) => eintrag.von < eintrag.bis);
+    expect(innen.map((eintrag) => eintrag.art).sort()).toEqual(['fett', 'kursiv']);
+  });
+});
+
 describe('typing shortcuts', () => {
   it('wraps a word and a checkbox, and undo text is the shortcut', () => {
     expect(wandleKuerzel('hello**', 7)).toEqual({ text: '**hello**', start: 9, ende: 9 });
@@ -168,6 +193,8 @@ describe('typing shortcuts', () => {
     expect(wandleKuerzel('say hello** there', 11)).toEqual({ text: 'say **hello** there', start: 13, ende: 13 });
     expect(wandleKuerzel('[ ]', 3)).toEqual({ text: '[] ', start: 3, ende: 3 });
     expect(wandleKuerzel('see [ ]', 7)).toBeNull();
+    expect(wandleKuerzel('hello** ', 7)).toEqual({ text: '**hello** ', start: 9, ende: 9 });
+    expect(wandleKuerzel('**hello** ', 10)).toBeNull();
   });
 
   it('does not rewrite inside code', () => {

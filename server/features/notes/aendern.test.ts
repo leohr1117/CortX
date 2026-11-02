@@ -93,9 +93,9 @@ describe('note edit and delete', () => {
       payload: { text: '  Call tomorrow, bring the notes  ' },
     });
     expect(gespeichert.statusCode).toBe(200);
-    expect(gespeichert.json()).toMatchObject({ id, text: 'Call tomorrow, bring the notes', topic: 'Inbox' });
+    expect(gespeichert.json()).toMatchObject({ id, text: 'Call tomorrow, bring the notes  ', topic: 'Inbox' });
     const nachher = fest(db, id);
-    expect(nachher).toEqual({ ...vorher, text: 'Call tomorrow, bring the notes' });
+    expect(nachher).toEqual({ ...vorher, text: 'Call tomorrow, bring the notes  ' });
     expect(korrekturen(db)).toEqual(korrekturVorher);
   });
 
