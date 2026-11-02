@@ -1,5 +1,6 @@
 import { STRIDE_PORT } from '../../../shared/kern/grenzen.ts';
 import { STRIDE_TIMEOUT_MS } from '../../../shared/features/zugang/index.ts';
+import { istTestlauf } from '../../kern/testpfad.ts';
 
 export interface StrideRuf {
   art: 'anmelden' | 'nachpruefen';
@@ -17,14 +18,10 @@ export interface StrideRoh {
 
 export type StridePruefer = (ruf: StrideRuf) => Promise<StrideRoh>;
 
-function testlauf(): boolean {
-  return process.env.CORTEX_TEST === '1' || process.env.VITEST === 'true';
-}
-
 export function strideHttp(url: string, hole: typeof fetch = globalThis.fetch): StridePruefer {
   const ziel = new URL(url);
   return async (ruf) => {
-    if (testlauf() && ziel.port === String(STRIDE_PORT)) {
+    if (istTestlauf() && ziel.port === String(STRIDE_PORT)) {
       throw new Error('Tests must not call Stride.');
     }
     const kopf: Record<string, string> = {

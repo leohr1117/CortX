@@ -4,8 +4,15 @@ import { SPEICHER } from '../../shared/kern/grenzen.ts';
 export const WURZEL = path.resolve(import.meta.dirname, '..', '..');
 export const DATA = path.join(WURZEL, 'data');
 
-export function istTestlauf(): boolean {
-  return process.env.VITEST === 'true' || process.env.CORTEX_TEST === '1';
+export function umgebung(env: NodeJS.ProcessEnv, neu: string, alt: string): string | undefined {
+  if (env[neu] !== undefined) return env[neu];
+  return env[alt];
+}
+
+export function istTestlauf(env: NodeJS.ProcessEnv = process.env): boolean {
+  if (env.VITEST === 'true') return true;
+  const marke = umgebung(env, 'CORTX_TEST', 'CORTEX_TEST');
+  return marke === '1';
 }
 
 export function verweigereEchteDatenbank(pfad: string): string {

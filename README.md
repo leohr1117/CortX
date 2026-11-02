@@ -51,10 +51,12 @@ npm start              # Server mit fertigem Build
 | Variable | Zweck |
 |---|---|
 | `PORT` | Port des Servers, Standard 3100 |
-| `CORTEX_DB` | Pfad der Datenbank, Standard `data/cortex.db` |
-| `CORTEX_STRIDE_URL` | Anmeldeadresse von Stride, Standard `http://127.0.0.1:3000/api/zugang` |
+| `CORTX_DB` | Pfad der Datenbank, Standard `data/cortex.db` |
+| `CORTX_STRIDE_URL` | Anmeldeadresse von Stride, Standard `http://127.0.0.1:3000/api/zugang` |
 | `CORTX_STRIDE_PUBLIC_URL` | Öffentliche Stride-Adresse für „Passwort ändern“, Standard `https://stride.leohr.de` |
 | `LOG_LEVEL` | Log-Stufe, Standard `warn` |
+
+Fehlt ein neuer Name, liest der Server weiter `CORTEX_DB`, `CORTEX_STRIDE_URL` und `CORTEX_TEST`. Platzhalter stehen in [.env.example](.env.example).
 
 ## Lizenz
 

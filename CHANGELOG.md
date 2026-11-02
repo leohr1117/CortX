@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.5.5
+
+Housekeeping only. CortX looks and works the same.
+
 ## 1.5.4
 
 Change password in a password manager opens the Stride page.

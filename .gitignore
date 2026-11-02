@@ -6,4 +6,3 @@ client/dist
 tmp-*/
 test-results/
 playwright-report/
-tmp-test/

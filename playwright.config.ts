@@ -29,8 +29,8 @@ export default defineConfig({
     url,
     reuseExistingServer: false,
     env: {
-      CORTEX_TEST: '1',
-      CORTEX_DB: datenbank,
+      CORTX_TEST: '1',
+      CORTX_DB: datenbank,
       PORT: String(E2E_PORT),
       LOG_LEVEL: 'warn',
     },

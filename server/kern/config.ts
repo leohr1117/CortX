@@ -1,12 +1,12 @@
 import path from 'node:path';
 import { SERVER_HOST, SERVER_PORT, STRIDE_PORT, STRIDE_PUBLIC_URL } from '../../shared/kern/grenzen.ts';
-import { istTestlauf, verweigereEchteDatenbank, WURZEL } from './testpfad.ts';
+import { istTestlauf, umgebung, verweigereEchteDatenbank, WURZEL } from './testpfad.ts';
 
 export function datenbankPfad(): string {
-  const gesetzt = process.env.CORTEX_DB;
+  const gesetzt = umgebung(process.env, 'CORTX_DB', 'CORTEX_DB');
   if (istTestlauf()) {
     if (!gesetzt) {
-      throw new Error('Tests need CORTEX_DB pointing outside data/.');
+      throw new Error('Tests need CORTX_DB pointing outside data/.');
     }
     return verweigereEchteDatenbank(gesetzt);
   }
@@ -34,7 +34,7 @@ export function clientDist(): string {
 }
 
 export function strideUrl(): string {
-  const gesetzt = process.env.CORTEX_STRIDE_URL;
+  const gesetzt = umgebung(process.env, 'CORTX_STRIDE_URL', 'CORTEX_STRIDE_URL');
   if (!gesetzt) return `http://${SERVER_HOST}:${STRIDE_PORT}/api/zugang`;
   return new URL(gesetzt).toString();
 }
