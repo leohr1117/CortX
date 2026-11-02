@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { useEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useState } from 'react';
 import type { EditorView } from '@codemirror/view';
 import { leseDruck, type Druck } from './druck.ts';
 
@@ -70,10 +70,11 @@ export function Leiste({
 }) {
   const [mobil, setMobil] = useState(false);
   const [unten, setUnten] = useState(0);
+  const [sockel, setSockel] = useState(0);
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
   const [druck, setDruck] = useState<Druck>(LEER);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const media = window.matchMedia('(max-width: 899px)');
     const setze = () => setMobil(media.matches);
     setze();
@@ -94,6 +95,49 @@ export function Leiste({
       sicht.removeEventListener('scroll', setze);
     };
   }, [mobil]);
+
+  useLayoutEffect(() => {
+    if (!mobil || !view) {
+      setSockel(0);
+      return;
+    }
+    const fuss = view.dom.closest('.app')?.querySelector('footer.fuss');
+    if (!(fuss instanceof HTMLElement)) {
+      setSockel(0);
+      return;
+    }
+    const messe = () => {
+      const sicht = window.visualViewport;
+      const sichtUnten = sicht ? sicht.offsetTop + sicht.height : window.innerHeight;
+      const naechster = Math.max(0, Math.round(sichtUnten - fuss.getBoundingClientRect().top));
+      setSockel((alt) => (alt === naechster ? alt : naechster));
+    };
+    messe();
+    const beobachter = new ResizeObserver(messe);
+    beobachter.observe(fuss);
+    const sicht = window.visualViewport;
+    sicht?.addEventListener('resize', messe);
+    sicht?.addEventListener('scroll', messe);
+    window.addEventListener('resize', messe);
+    return () => {
+      beobachter.disconnect();
+      sicht?.removeEventListener('resize', messe);
+      sicht?.removeEventListener('scroll', messe);
+      window.removeEventListener('resize', messe);
+    };
+  }, [mobil, view]);
+
+  useLayoutEffect(() => {
+    const wurzel = document.documentElement;
+    if (sockel <= 0) {
+      wurzel.style.removeProperty('--capture-leiste');
+      return;
+    }
+    wurzel.style.setProperty('--capture-leiste', `${sockel}px`);
+    return () => {
+      wurzel.style.removeProperty('--capture-leiste');
+    };
+  }, [sockel]);
 
   useEffect(() => {
     if (!view) return;
@@ -120,7 +164,10 @@ export function Leiste({
 
   if (!view || !pos) return null;
   const stil = mobil
-    ? { bottom: `calc(${unten}px + env(safe-area-inset-bottom))` }
+    ? {
+        bottom:
+          sockel > 0 ? `${unten + sockel}px` : `calc(${unten}px + env(safe-area-inset-bottom))`,
+      }
     : { top: pos.top, left: pos.left };
   return (
     <div

@@ -18,6 +18,7 @@ export function Vorschlag({
   fragment,
   top,
   left,
+  fest = false,
   onWahl,
 }: {
   liste: VorschlagListe;
@@ -25,10 +26,16 @@ export function Vorschlag({
   fragment: string;
   top: number;
   left: number;
+  fest?: boolean;
   onWahl: (index: number) => void;
 }) {
   return (
-    <div id="vorschlaege" className="vorschlag" role="listbox" style={{ top, left }}>
+    <div
+      id="vorschlaege"
+      className="vorschlag"
+      role="listbox"
+      style={fest ? { position: 'fixed', top, left } : { top, left }}
+    >
       {liste.treffer.map((thema, index) => (
         <div
           id={`vorschlag-${index}`}

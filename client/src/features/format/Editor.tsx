@@ -1,6 +1,6 @@
-import { useLayoutEffect, useRef, useState } from 'react';
-import { EditorState, type Compartment } from '@codemirror/state';
-import { EditorView } from '@codemirror/view';
+import { type Ref, useLayoutEffect, useRef, useState } from 'react';
+import { EditorState, type Compartment, type Extension } from '@codemirror/state';
+import { EditorView, placeholder as platzhalter } from '@codemirror/view';
 import {
   schalteCode,
   schalteFett,
@@ -35,26 +35,50 @@ function wende(befehl: FormatBefehl, text: string, start: number, ende: number, 
   return schalteUeberschrift(text, start, ende);
 }
 
+function schreibeRef(ziel: Ref<EditorView | null> | undefined, wert: EditorView | null) {
+  if (!ziel) return;
+  if (typeof ziel === 'function') ziel(wert);
+  else ziel.current = wert;
+}
+
 export function Editor({
   text,
   onText,
   ungueltig = false,
+  onCaret,
+  placeholder,
+  extensions,
+  leiste = true,
+  ref,
 }: {
   text: string;
   onText: (text: string) => void;
   ungueltig?: boolean;
+  onCaret?: (caret: number) => void;
+  placeholder?: string;
+  extensions?: Extension;
+  leiste?: boolean;
+  ref?: Ref<EditorView | null>;
 }) {
   const host = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const fachRef = useRef<Compartment | null>(null);
   const onTextRef = useRef(onText);
+  const onCaretRef = useRef(onCaret);
   const textRef = useRef(text);
+  const extraRef = useRef(extensions);
+  const platzRef = useRef(placeholder);
+  const refWeiter = useRef(ref);
   const gemeldet = useRef(text);
   const [view, setView] = useState<EditorView | null>(null);
   const [stand, setStand] = useState(0);
   const [link, setLink] = useState<Bereich | null>(null);
   onTextRef.current = onText;
+  onCaretRef.current = onCaret;
   textRef.current = text;
+  extraRef.current = extensions;
+  platzRef.current = placeholder;
+  refWeiter.current = ref;
 
   useLayoutEffect(() => {
     const el = host.current;
@@ -68,6 +92,8 @@ export function Editor({
       },
       onAuswahl: () => {
         if (lebend) setStand((wert) => wert + 1);
+        const editor = viewRef.current;
+        if (editor) onCaretRef.current?.(editor.state.selection.main.head);
       },
       onLink: () => {
         const editor = viewRef.current;
@@ -76,13 +102,19 @@ export function Editor({
         setLink({ start: sel.from, ende: sel.to });
       },
     });
+    const extra = extraRef.current;
+    const platz = platzRef.current;
+    const alle = [...erweiterungen];
+    if (platz) alle.push(platzhalter(platz));
+    if (extra) alle.push(extra);
     const editor = new EditorView({
       parent: el,
-      state: EditorState.create({ doc: anfang, extensions: erweiterungen }),
+      state: EditorState.create({ doc: anfang, extensions: alle }),
     });
     (editor.dom as HTMLElement & { cm?: EditorView }).cm = editor;
     viewRef.current = editor;
     fachRef.current = fach;
+    schreibeRef(refWeiter.current, editor);
     setView(editor);
     editor.focus();
     const ende = editor.state.doc.length;
@@ -92,6 +124,7 @@ export function Editor({
       editor.destroy();
       viewRef.current = null;
       fachRef.current = null;
+      schreibeRef(refWeiter.current, null);
       setView(null);
     };
   }, []);
@@ -140,7 +173,7 @@ export function Editor({
   return (
     <div className="schreib klar">
       <div ref={host} className="cm-host" />
-      <Leiste view={view} stand={stand} onBefehl={befehl} />
+      {leiste ? <Leiste view={view} stand={stand} onBefehl={befehl} /> : null}
       {link ? <LinkFeld onClose={() => setLink(null)} onFertig={fertig} /> : null}
     </div>
   );

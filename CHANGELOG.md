@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.7.3
+
+The start page uses the same editor as a note. The format bar and typing shortcuts work while you capture. Topic tags stay colored, and Enter on a phone does not file the note.
+
 ## 1.7.2
 
 Bold, italic, strike, and Wichtig can be used together. A space at the end of a note stays when you save. On a phone, the selection sits on the text, and the format bar icons are clearer.

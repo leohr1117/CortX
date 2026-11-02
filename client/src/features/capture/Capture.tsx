@@ -1,13 +1,15 @@
-import { type KeyboardEvent, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Link } from 'react-router';
+import type { EditorView } from '@codemirror/view';
 import { legeInWarteschlange, liesEntwurf, schreibEntwurf, spuele } from '../offline/index.ts';
 import { ersetzeTag, gleicherName, planeAblage, tagAnCaret, vorschlaege } from '../../../../shared/features/tags/index.ts';
-import { NOTE_TEXT_MAX, VORSCHLAG_BREITE } from '../../../../shared/kern/grenzen.ts';
+import { NOTE_TEXT_MAX } from '../../../../shared/kern/grenzen.ts';
 import type { Thema } from '../../../../shared/kern/modell.ts';
 import { BibliothekIcon, WolkeAusIcon } from '../../ui/icons.tsx';
-import { tastaturIstHandy } from '../../ui/system.ts';
+import { Editor } from '../format/index.ts';
 import { ladeThemen, legeNotizAb, verschiebeNotiz } from './api.ts';
-import { Spiegel } from './Spiegel.tsx';
+import { fangStrgEnter, setzeHinweis, tagFeld, tastenWennOffen, type TagAktionen } from './erkennung.ts';
+import { useMenuePlatz } from './menuePlatz.ts';
 import { Vorschlag } from './Vorschlag.tsx';
 import { Wechsel } from './Wechsel.tsx';
 
@@ -15,6 +17,15 @@ type Meldung =
   | { art: 'abgelegt'; id: number; thema: string }
   | { art: 'offline'; clientId: string }
   | { art: 'fehler'; text: string };
+
+const LEER_AKTION: TagAktionen = {
+  ablegen: () => undefined,
+  hoch: () => undefined,
+  runter: () => undefined,
+  zu: () => undefined,
+  waehlen: () => undefined,
+  gesperrt: () => false,
+};
 
 export function CaptureAnsicht() {
   const [text, setText] = useState('');
@@ -29,13 +40,16 @@ export function CaptureAnsicht() {
   const [zu, setZu] = useState<string | null>(null);
   const [wahlFuer, setWahlFuer] = useState('');
   const [wahl, setWahl] = useState(0);
-  const [pos, setPos] = useState({ top: 0, left: 0 });
-  const feld = useRef<HTMLTextAreaElement>(null);
-  const spiegel = useRef<HTMLDivElement>(null);
-  const kasten = useRef<HTMLDivElement>(null);
+  const sichtRef = useRef<EditorView | null>(null);
+  const aktionen = useRef<TagAktionen>(LEER_AKTION);
+  const gebaut = useRef<ReturnType<typeof tagFeld> | null>(null);
+  if (gebaut.current === null) gebaut.current = tagFeld(aktionen);
+  const feld = gebaut.current;
   const sperre = useRef(false);
   const beruehrt = useRef(false);
   const geschoben = useRef(false);
+  const echo = useRef<string | null>(null);
+  const zielCaret = useRef<number | null>(null);
 
   const schliesse = useCallback(() => {
     setWechsel(false);
@@ -44,8 +58,33 @@ export function CaptureAnsicht() {
       geschoben.current = false;
       window.history.back();
     }
-    feld.current?.focus();
+    sichtRef.current?.focus();
   }, []);
+
+  function setzeAussen(wert: string, stelle: number) {
+    echo.current = wert;
+    zielCaret.current = stelle;
+    setText(wert);
+    setCaret(stelle);
+    const editor = sichtRef.current;
+    if (!editor || editor.state.doc.toString() !== wert) return;
+    zielCaret.current = null;
+    const ziel = Math.max(0, Math.min(stelle, wert.length));
+    editor.focus();
+    if (editor.state.selection.main.head !== ziel) editor.dispatch({ selection: { anchor: ziel } });
+  }
+
+  function beiText(wert: string) {
+    if (echo.current === wert) {
+      echo.current = null;
+      setText(wert);
+      return;
+    }
+    echo.current = null;
+    beruehrt.current = true;
+    setText(wert);
+    setMeldung((alt) => (alt?.art === 'fehler' ? null : alt));
+  }
 
   useEffect(() => {
     const beiPop = () => {
@@ -53,14 +92,15 @@ export function CaptureAnsicht() {
       geschoben.current = false;
       setWechsel(false);
       setWechselFehler(null);
-      feld.current?.focus();
+      sichtRef.current?.focus();
     };
     window.addEventListener('popstate', beiPop);
     return () => window.removeEventListener('popstate', beiPop);
   }, []);
 
   useEffect(() => {
-    feld.current?.focus();
+    sichtRef.current?.focus();
+    const los = fangStrgEnter(sichtRef, aktionen);
     let aktiv = true;
     void (async () => {
       const [entwurf, liste] = await Promise.all([
@@ -69,21 +109,12 @@ export function CaptureAnsicht() {
       ]);
       if (!aktiv) return;
       setThemen(liste);
-      if (!beruehrt.current && entwurf.length > 0) {
-        setText(entwurf);
-        setCaret(entwurf.length);
-        requestAnimationFrame(() => {
-          const el = feld.current;
-          if (!el) return;
-          el.focus();
-          const ende = el.value.length;
-          el.setSelectionRange(ende, ende);
-        });
-      }
+      if (!beruehrt.current && entwurf.length > 0) setzeAussen(entwurf, entwurf.length);
       setBereit(true);
     })();
     return () => {
       aktiv = false;
+      los();
     };
   }, []);
 
@@ -134,41 +165,54 @@ export function CaptureAnsicht() {
   const aktiv = wahlFuer === schluessel ? wahl : (liste?.gewaehlt ?? 0);
   const plan = text.trim().length === 0 ? null : planeAblage(text, themen);
   const leer = text.trim().length === 0;
+  const pos = useMenuePlatz(offen, tag?.start ?? -1, text, sichtRef);
 
   useLayoutEffect(() => {
-    if (!offen) return;
-    const marke = spiegel.current?.querySelector('.hier');
-    const rahmen = kasten.current;
-    if (!marke || !rahmen) return;
-    const a = marke.getBoundingClientRect();
-    const r = rahmen.getBoundingClientRect();
-    const left = Math.min(Math.max(0, a.left - r.left), Math.max(0, rahmen.clientWidth - VORSCHLAG_BREITE));
-    const top = a.bottom - r.top + 6;
-    setPos((alt) => (alt.top === top && alt.left === left ? alt : { top, left }));
-  }, [offen, text, caret, themen, schluessel]);
+    const editor = sichtRef.current;
+    if (!editor) return;
+    editor.dispatch({
+      effects: [feld.tasten.reconfigure(tastenWennOffen(offen, aktionen)), setzeHinweis.of({ offen, aktiv })],
+    });
+    if (!offen && !editor.hasFocus && !aktionen.current.gesperrt()) editor.focus();
+  }, [offen, aktiv, feld]);
 
-  function merke(el: HTMLTextAreaElement) {
-    setCaret(el.selectionStart ?? 0);
-  }
+  useLayoutEffect(() => {
+    const ziel = zielCaret.current;
+    if (ziel === null) return;
+    const editor = sichtRef.current;
+    if (!editor || editor.state.doc.toString() !== text) return;
+    zielCaret.current = null;
+    const stelle = Math.max(0, Math.min(ziel, editor.state.doc.length));
+    editor.focus();
+    if (editor.state.selection.main.head !== stelle || editor.state.selection.main.anchor !== stelle) {
+      editor.dispatch({ selection: { anchor: stelle } });
+    }
+  }, [text]);
 
   function waehle(index: number) {
     if (!tag || !liste) return;
     beruehrt.current = true;
+    const editor = sichtRef.current;
     if (index < liste.treffer.length) {
       const name = liste.treffer[index]?.name;
       if (!name) return;
       const neu = ersetzeTag(text, tag, name);
-      setText(neu.text);
-      setCaret(neu.caret);
       setZu(`${tag.start}:${name}`);
-      requestAnimationFrame(() => {
-        feld.current?.focus();
-        feld.current?.setSelectionRange(neu.caret, neu.caret);
+      if (!editor) {
+        setzeAussen(neu.text, neu.caret);
+        return;
+      }
+      echo.current = neu.text;
+      editor.focus();
+      editor.dispatch({
+        changes: { from: 0, to: editor.state.doc.length, insert: neu.text },
+        selection: { anchor: neu.caret },
+        userEvent: 'input',
       });
       return;
     }
     setZu(schluessel);
-    feld.current?.focus();
+    editor?.focus();
   }
 
   function oeffneWechsel() {
@@ -206,12 +250,12 @@ export function CaptureAnsicht() {
   }
 
   async function ablegen() {
-    if (sperre.current || wechsel || text.trim().length === 0) return;
-    if (text.length > NOTE_TEXT_MAX) {
+    const roh = sichtRef.current?.state.doc.toString() ?? text;
+    if (sperre.current || wechsel || roh.trim().length === 0) return;
+    if (roh.length > NOTE_TEXT_MAX) {
       setMeldung({ art: 'fehler', text: 'Could not file the note.' });
       return;
     }
-    const roh = text;
     sperre.current = true;
     setSpeichert(true);
     setMeldung(null);
@@ -221,15 +265,13 @@ export function CaptureAnsicht() {
       );
       beruehrt.current = true;
       if (ergebnis.art === 'abgelehnt') {
-        setText(roh);
-        setCaret(roh.length);
+        setzeAussen(roh, roh.length);
         setMeldung({ art: 'fehler', text: 'Could not file the note.' });
-        feld.current?.focus();
+        sichtRef.current?.focus();
         return;
       }
-      setText('');
-      setCaret(0);
       setZu(null);
+      setzeAussen('', 0);
       if (ergebnis.art === 'abgelegt') {
         setMeldung({ art: 'abgelegt', id: ergebnis.notiz.id, thema: ergebnis.notiz.topic });
         const neu = await ladeThemen().catch(() => null);
@@ -237,7 +279,7 @@ export function CaptureAnsicht() {
       } else {
         setMeldung({ art: 'offline', clientId: ergebnis.clientId });
       }
-      feld.current?.focus();
+      sichtRef.current?.focus();
     } catch {
       setMeldung({ art: 'fehler', text: 'Could not file the note.' });
     } finally {
@@ -246,37 +288,27 @@ export function CaptureAnsicht() {
     }
   }
 
-  function taste(event: KeyboardEvent<HTMLTextAreaElement>) {
-    if (event.nativeEvent.isComposing || wechsel) return;
-    if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
-      event.preventDefault();
+  aktionen.current = {
+    ablegen: () => {
       void ablegen();
-      return;
-    }
-    if (!offen || !liste) return;
-    const letzte = liste.treffer.length + (liste.neu ? 1 : 0) - 1;
-    if (event.key === 'ArrowDown') {
-      event.preventDefault();
-      setWahlFuer(schluessel);
-      setWahl(Math.min(letzte, aktiv + 1));
-      return;
-    }
-    if (event.key === 'ArrowUp') {
-      event.preventDefault();
+    },
+    hoch: () => {
+      if (!liste) return;
       setWahlFuer(schluessel);
       setWahl(Math.max(0, aktiv - 1));
-      return;
-    }
-    if (event.key === 'Escape') {
-      event.preventDefault();
-      setZu(schluessel);
-      return;
-    }
-    if (event.key === 'Enter' && !tastaturIstHandy()) {
-      event.preventDefault();
-      waehle(aktiv);
-    }
-  }
+    },
+    runter: () => {
+      if (!liste) return;
+      const letzte = liste.treffer.length + (liste.neu ? 1 : 0) - 1;
+      setWahlFuer(schluessel);
+      setWahl(Math.min(letzte, aktiv + 1));
+    },
+    zu: () => {
+      if (tag) setZu(schluessel);
+    },
+    waehlen: () => waehle(aktiv),
+    gesperrt: () => wechsel,
+  };
 
   return (
     <div className="app">
@@ -287,46 +319,26 @@ export function CaptureAnsicht() {
         </Link>
       </header>
       <main className="cap">
-        <div className="schreib" ref={kasten}>
-          <Spiegel text={text} tag={offen ? tag : null} spiegel={spiegel} />
-          <textarea
-            ref={feld}
-            value={text}
-            placeholder="Start typing…"
-            aria-label="Note"
-            spellCheck={false}
-            autoCapitalize="off"
-            autoCorrect="off"
-            autoComplete="off"
-            aria-autocomplete="list"
-            aria-expanded={offen}
-            aria-controls={offen ? 'vorschlaege' : undefined}
-            aria-activedescendant={offen ? `vorschlag-${aktiv}` : undefined}
-            onChange={(event) => {
-              beruehrt.current = true;
-              setText(event.target.value);
-              merke(event.target);
-              setMeldung((alt) => (alt?.art === 'fehler' ? null : alt));
-            }}
-            onSelect={(event) => merke(event.currentTarget)}
-            onKeyUp={(event) => merke(event.currentTarget)}
-            onClick={(event) => merke(event.currentTarget)}
-            onKeyDown={taste}
-            onScroll={(event) => {
-              if (spiegel.current) spiegel.current.scrollTop = event.currentTarget.scrollTop;
-            }}
+        <Editor
+          ref={sichtRef}
+          text={text}
+          leiste
+          placeholder="Start typing…"
+          extensions={feld.erweiterung}
+          onText={beiText}
+          onCaret={setCaret}
+        />
+        {offen && liste ? (
+          <Vorschlag
+            liste={liste}
+            aktiv={aktiv}
+            fragment={tag?.name ?? ''}
+            top={pos.top}
+            left={pos.left}
+            fest
+            onWahl={waehle}
           />
-          {offen && liste ? (
-            <Vorschlag
-              liste={liste}
-              aktiv={aktiv}
-              fragment={tag?.name ?? ''}
-              top={pos.top}
-              left={pos.left}
-              onWahl={waehle}
-            />
-          ) : null}
-        </div>
+        ) : null}
       </main>
       <footer className="fuss">
         <div className="ziel">{plan ? <>Goes to <b>{plan.topicName}</b></> : null}</div>

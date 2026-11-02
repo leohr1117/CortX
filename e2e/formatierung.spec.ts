@@ -64,6 +64,9 @@ test('the format bar and typing shortcuts follow the screen size', async ({ page
       await expect(leiste).toBeVisible();
       await expect(leiste.getByRole('button', { name: 'Bold' })).toBeVisible();
       await expect(leiste.getByRole('button', { name: 'Checklist' })).toBeVisible();
+      const kasten = await leiste.boundingBox();
+      expect(kasten).not.toBeNull();
+      expect(kasten!.y + kasten!.height).toBeGreaterThan(828);
       await page.screenshot({ path: `${BILDER}/handy-format-edit.png`, fullPage: true });
     } else {
       await expect(leiste).toHaveCount(0);

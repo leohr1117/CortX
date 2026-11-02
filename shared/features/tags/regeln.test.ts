@@ -28,6 +28,17 @@ describe('tag rules', () => {
     expect(findeTags('C# and see#work')).toEqual([]);
   });
 
+  it('stops a tag at a slash and files only that name', () => {
+    expect(findeTags('#school/math')).toEqual([{ name: 'school', start: 0, end: 7 }]);
+    expect(tagAnCaret('#school/math', 3)).toEqual({ name: 'school', start: 0, end: 7 });
+    expect(planeAblage('See #school/math', themen)).toMatchObject({
+      text: 'See /math',
+      topicName: 'school',
+      source: 'tag',
+      neu: true,
+    });
+  });
+
   it('keeps only the first tag for filing and removes it', () => {
     const plan = planeAblage('see #Home and #work later', themen);
     expect(plan).toMatchObject({ text: 'see and #work later', topicName: 'Home', source: 'tag', neu: false });

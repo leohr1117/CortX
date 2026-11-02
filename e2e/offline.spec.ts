@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { meldeAn } from './anmelden.ts';
+import { erwarteQuelle, setzeQuelle } from './feld.ts';
 import { leereLokal, liesEntwurf, warteBereit, warteschlangeLaenge } from './lokal.ts';
 
 test.beforeEach(async ({ page }) => {
@@ -19,25 +20,24 @@ test('draft survives reload and is cleared after filing', async ({ page }) => {
   await expect.poll(() => liesEntwurf(page)).toBe('Unsent thought');
   await page.reload();
   await warteBereit(page);
-  await expect(feld).toHaveValue('Unsent thought');
+  await erwarteQuelle(page, 'Unsent thought');
   await expect(feld).toBeFocused();
   await page.getByRole('button', { name: 'File' }).click();
-  await expect(feld).toHaveValue('');
+  await erwarteQuelle(page, '');
   await expect.poll(() => liesEntwurf(page)).toBe('');
   await page.reload();
   await warteBereit(page);
-  await expect(feld).toHaveValue('');
+  await erwarteQuelle(page, '');
 });
 
 test('files offline and syncs the note once', async ({ page }, testInfo) => {
-  const feld = page.getByRole('textbox', { name: 'Note' });
   const thema = `Zed${testInfo.project.name}`;
   const vorher = await themaZahl(page, thema);
 
-  await feld.fill(`Offline marker ${testInfo.project.name} #${thema}`);
+  await setzeQuelle(page, `Offline marker ${testInfo.project.name} #${thema}`);
   await page.context().setOffline(true);
   await page.getByRole('button', { name: 'File' }).click();
-  await expect(feld).toHaveValue('');
+  await erwarteQuelle(page, '');
   await expect(page.getByRole('button', { name: 'File' })).toBeDisabled();
   await expect(page.getByRole('status')).toHaveText('Filed offline · syncs later');
   await expect(page.getByRole('button', { name: 'Change' })).toHaveCount(0);
@@ -54,7 +54,7 @@ test('files offline and syncs the note once', async ({ page }, testInfo) => {
   await page.context().setOffline(false);
   await page.reload();
   await warteBereit(page);
-  await expect(feld).toHaveValue('');
+  await erwarteQuelle(page, '');
   await expect.poll(() => warteschlangeLaenge(page)).toBe(1);
   expect(await themaZahl(page, thema)).toBe(vorher);
 
@@ -67,7 +67,7 @@ test('files offline and syncs the note once', async ({ page }, testInfo) => {
   await expect.poll(() => themaZahl(page, thema)).toBe(vorher + 1);
   await expect.poll(() => warteschlangeLaenge(page)).toBe(0);
 
-  await feld.fill(`Second ${testInfo.project.name} #${thema}`);
+  await setzeQuelle(page, `Second ${testInfo.project.name} #${thema}`);
   await page.context().setOffline(true);
   await page.getByRole('button', { name: 'File' }).click();
   await expect(page.getByRole('status')).toHaveText('Filed offline · syncs later');

@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
 import { meldeAn } from './anmelden.ts';
-import { cursorKopf, erwarteQuelle, setzeAuswahl, setzeCursor } from './feld.ts';
+import { cursorKopf, erwarteQuelle, setzeAuswahl, setzeCursor, setzeQuelle } from './feld.ts';
 import { leereLokal } from './lokal.ts';
 import { setzeSchauspiel, sichereBestand, stelleBestand } from './schau.ts';
 
@@ -126,11 +126,9 @@ test('edit marks a heading and reading shows it while a tag stays text', async (
     await expect(page.getByRole('heading', { name: 'Studio', level: 1 })).toBeVisible();
 
     await page.goto('/');
-    await expect(page.getByRole('button', { name: 'Heading' })).toHaveCount(0);
-    const capture = page.getByRole('textbox', { name: 'Note' });
-    await capture.fill('= plain #work');
-    await expect(capture).toHaveValue('= plain #work');
-    await expect(page.locator('.spiegel h3, .spiegel .ueberschrift')).toHaveCount(0);
+    await setzeQuelle(page, '= plain #work');
+    await erwarteQuelle(page, '= plain #work');
+    await expect(page.locator('.schreib h3')).toHaveCount(0);
 
     await page.goto('/library/topic?name=Work');
     await oeffneEdit(page);

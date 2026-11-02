@@ -202,4 +202,12 @@ describe('typing shortcuts', () => {
     expect(wandleKuerzel('`hello**`', 8)).toBeNull();
     expect(wandleKuerzel('```\nhello**\n```', 11)).toBeNull();
   });
+
+  it('does not rewrite a hash tag', () => {
+    expect(wandleKuerzel('#tag**', 6)).toBeNull();
+    expect(wandleKuerzel('note #tag**', 11)).toBeNull();
+    expect(wandleKuerzel('#school/math**', 14)).toBeNull();
+    expect(wandleKuerzel('**#tag**', 8)).toBeNull();
+    expect(wandleKuerzel('hello**', 7)).toEqual({ text: '**hello**', start: 9, ende: 9 });
+  });
 });

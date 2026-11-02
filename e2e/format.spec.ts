@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import { expect, test } from '@playwright/test';
 import { meldeAn } from './anmelden.ts';
-import { erwarteQuelle } from './feld.ts';
+import { erwarteQuelle, setzeQuelle } from './feld.ts';
 import { leereLokal } from './lokal.ts';
 import { setzeSchauspiel, sichereBestand, stelleBestand } from './schau.ts';
 
@@ -144,12 +144,10 @@ test('reading shows a list, checkboxes, and bold while the stored text stays pla
     await expect(page.locator('.notiz li', { hasText: 'send the folio numbers' })).toBeVisible();
 
     await page.goto('/');
-    const capture = page.getByRole('textbox', { name: 'Note' });
     const rohtext = '- **bold** [] <b>x</b>';
-    await capture.fill(rohtext);
-    await expect(capture).toHaveValue(rohtext);
-    await expect(page.locator('.spiegel strong, .spiegel .haken, .spiegel li, .spiegel b')).toHaveCount(0);
-    await expect(page.locator('.spiegel')).toContainText(rohtext);
+    await setzeQuelle(page, rohtext);
+    await expect(page.locator('.spiegel')).toHaveCount(0);
+    await expect(page.locator('.schreib b, .schreib strong')).toHaveCount(0);
   } finally {
     stelleBestand(bestand);
   }
