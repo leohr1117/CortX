@@ -1,55 +1,7 @@
-import { belege } from './lesen.ts';
 import type { TextWahl } from './ueberschrift.ts';
 import { schalteUeberschrift } from './ueberschrift.ts';
-import { WICHTIG_INLINE, WICHTIG_ZEILE, hakenVon, listenLaenge, nummerLaenge, ohneWagen } from './zeile.ts';
-
-function klemme(text: string, start: number, ende: number): { start: number; ende: number } {
-  const links = Number.isFinite(start) ? Math.floor(start) : 0;
-  const rechts = Number.isFinite(ende) ? Math.floor(ende) : links;
-  const von = Math.max(0, Math.min(links, text.length));
-  const bis = Math.max(0, Math.min(rechts, text.length));
-  return von <= bis ? { start: von, ende: bis } : { start: bis, ende: von };
-}
-
-function istAussen(text: string, start: number, ende: number, marker: string): boolean {
-  if (start < marker.length || ende + marker.length > text.length) return false;
-  if (text.slice(start - marker.length, start) !== marker) return false;
-  if (text.slice(ende, ende + marker.length) !== marker) return false;
-  if (marker.length === 1 && (marker === '*' || marker === '_' || marker === '`')) {
-    if (text[start - marker.length - 1] === marker) return false;
-    if (text[ende + marker.length] === marker) return false;
-  }
-  return true;
-}
-
-export function umwickle(text: string, start: number, ende: number, marker: string): TextWahl {
-  const wahl = klemme(text, start, ende);
-  if (istAussen(text, wahl.start, wahl.ende, marker)) {
-    const neu =
-      text.slice(0, wahl.start - marker.length) +
-      text.slice(wahl.start, wahl.ende) +
-      text.slice(wahl.ende + marker.length);
-    return {
-      text: neu,
-      start: wahl.start - marker.length,
-      ende: wahl.ende - marker.length,
-    };
-  }
-  const innen = text.slice(wahl.start, wahl.ende);
-  if (innen.length >= marker.length * 2 + 1 && innen.startsWith(marker) && innen.endsWith(marker)) {
-    const kern = innen.slice(marker.length, innen.length - marker.length);
-    return {
-      text: text.slice(0, wahl.start) + kern + text.slice(wahl.ende),
-      start: wahl.start,
-      ende: wahl.start + kern.length,
-    };
-  }
-  return {
-    text: text.slice(0, wahl.start) + marker + innen + marker + text.slice(wahl.ende),
-    start: wahl.start + marker.length,
-    ende: wahl.start + marker.length + innen.length,
-  };
-}
+import { cursorInSchale, hatInlineWichtig, inlineAn, klemme, schalteInline } from './register.ts';
+import { WICHTIG_ZEILE, hakenVon, listenLaenge, nummerLaenge, ohneWagen } from './zeile.ts';
 
 function zeileUm(text: string, index: number): { von: number; bis: number } {
   const von = text.lastIndexOf('\n', index - 1) + 1;
@@ -92,15 +44,15 @@ function listenWeg(zeile: string): number {
 }
 
 export function schalteFett(text: string, start: number, ende: number): TextWahl {
-  return umwickle(text, start, ende, '**');
+  return schalteInline(text, start, ende, 'fett');
 }
 
 export function schalteKursiv(text: string, start: number, ende: number): TextWahl {
-  return umwickle(text, start, ende, '*');
+  return schalteInline(text, start, ende, 'kursiv');
 }
 
 export function schalteStrich(text: string, start: number, ende: number): TextWahl {
-  return umwickle(text, start, ende, '~~');
+  return schalteInline(text, start, ende, 'streich');
 }
 
 export function schalteListe(text: string, start: number, ende: number): TextWahl {
@@ -120,7 +72,7 @@ export function schalteHaken(text: string, start: number, ende: number): TextWah
 
 export function schalteCode(text: string, start: number, ende: number): TextWahl {
   const wahl = klemme(text, start, ende);
-  if (!text.slice(wahl.start, wahl.ende).includes('\n')) return umwickle(text, wahl.start, wahl.ende, '`');
+  if (!text.slice(wahl.start, wahl.ende).includes('\n')) return schalteInline(text, wahl.start, wahl.ende, 'code');
   const von = text.lastIndexOf('\n', wahl.start - 1) + 1;
   let cursor = wahl.ende;
   if (wahl.ende > wahl.start && text[wahl.ende - 1] === '\n') cursor = wahl.ende - 1;
@@ -156,39 +108,34 @@ function zeileKern(text: string, index: number): string {
   return ohneWagen(text.slice(von, bis));
 }
 
-function enthaelt(von: number, bis: number, start: number, ende: number): boolean {
-  if (start === ende) return start >= von && start <= bis;
-  return start >= von && ende <= bis;
+function zeilenWichtig(text: string, start: number, ende: number): TextWahl {
+  return schaltePraefix(
+    text,
+    start,
+    ende,
+    WICHTIG_ZEILE,
+    (zeile) => zeile.startsWith(WICHTIG_ZEILE),
+    (zeile) => (zeile.startsWith(WICHTIG_ZEILE) ? WICHTIG_ZEILE.length : 0),
+  );
 }
 
 export function schalteWichtig(text: string, start: number, ende: number): TextWahl {
   const wahl = klemme(text, start, ende);
   const inhalt = text.slice(wahl.start, wahl.ende);
   const einzeilig = !inhalt.includes('\n');
-  if (einzeilig) {
-    const treffer = belege(text)
-      .filter(
-        (beleg) =>
-          beleg.art === 'wichtig' &&
-          beleg.marker.length === 2 &&
-          enthaelt(beleg.von, beleg.bis, wahl.start, wahl.ende),
-      )
-      .sort((a, b) => a.bis - a.von - (b.bis - b.von));
-    const fund = treffer[0];
-    if (fund) return umwickle(text, fund.von, fund.bis, WICHTIG_INLINE);
-  }
   const kern = zeileKern(text, wahl.start);
-  if (einzeilig && inhalt.length > 0 && !kern.startsWith(WICHTIG_ZEILE)) {
-    return umwickle(text, wahl.start, wahl.ende, WICHTIG_INLINE);
+  const zeilenForm = kern.startsWith(WICHTIG_ZEILE);
+  if (einzeilig && hatInlineWichtig(text, wahl.start, wahl.ende)) {
+    return schalteInline(text, wahl.start, wahl.ende, 'wichtig');
   }
-  return schaltePraefix(
-    text,
-    wahl.start,
-    wahl.ende,
-    WICHTIG_ZEILE,
-    (zeile) => zeile.startsWith(WICHTIG_ZEILE),
-    (zeile) => (zeile.startsWith(WICHTIG_ZEILE) ? WICHTIG_ZEILE.length : 0),
-  );
+  if (zeilenForm) return zeilenWichtig(text, wahl.start, wahl.ende);
+  if (einzeilig && inlineAn(text, wahl.start, wahl.ende).wichtig) {
+    return schalteInline(text, wahl.start, wahl.ende, 'wichtig');
+  }
+  if (einzeilig && (inhalt.length > 0 || cursorInSchale(text, wahl.start))) {
+    return schalteInline(text, wahl.start, wahl.ende, 'wichtig');
+  }
+  return zeilenWichtig(text, wahl.start, wahl.ende);
 }
 
 export function schalteKopf(text: string, start: number, ende: number): TextWahl {

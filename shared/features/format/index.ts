@@ -36,6 +36,14 @@ export {
   schalteWichtig,
 } from './befehl.ts';
 export { liegtInCode, wandleKuerzel } from './kuerzel.ts';
+export {
+  INLINE_REGISTER,
+  inlineAn,
+  nurMarker,
+  schalteInline,
+  type InlineArt,
+  type InlineStand,
+} from './register.ts';
 export { sicherZiel } from './sicher.ts';
 export { suchtext } from './suchtext.ts';
 export { schalteUeberschrift, zeileIstUeberschrift, type TextWahl } from './ueberschrift.ts';

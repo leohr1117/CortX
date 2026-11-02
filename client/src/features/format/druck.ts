@@ -1,4 +1,4 @@
-import { WICHTIG_ZEILE, kopfMarke, leseDokument, type Beleg } from '../../../../shared/features/format/index.ts';
+import { WICHTIG_ZEILE, inlineAn, kopfMarke, leseDokument, type Beleg } from '../../../../shared/features/format/index.ts';
 
 export interface Druck {
   fett: boolean;
@@ -38,18 +38,19 @@ export function leseDruck(text: string, start: number, ende: number): Druck {
   const fund = leseDokument(text).belege;
   const hat = (art: Beleg['art']) => fund.some((beleg) => beleg.art === art && innen(beleg, kopf, schwanz));
   const zeile = zeileAm(text, kopf);
+  const inline = inlineAn(text, kopf, schwanz);
   const codeblock = fund.some(
     (beleg) => beleg.art === 'codeblock' && kopf >= beleg.ganzVon && schwanz <= beleg.ganzBis,
   );
   return {
-    fett: hat('fett'),
-    kursiv: hat('kursiv'),
-    strich: hat('streich'),
-    code: hat('code') || codeblock,
+    fett: inline.fett,
+    kursiv: inline.kursiv,
+    strich: inline.streich,
+    code: inline.code || codeblock,
     link: hat('link'),
     ueberschrift: kopfMarke(zeile) !== null,
     liste: istListe(zeile),
     haken: istHaken(zeile),
-    wichtig: hat('wichtig') || zeile.startsWith(WICHTIG_ZEILE),
+    wichtig: inline.wichtig || zeile.startsWith(WICHTIG_ZEILE),
   };
 }

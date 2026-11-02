@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.8.7
+
+Bold, italic, strike, important, and code can be turned on and off with the format buttons in any order, including when they are nested. Turning one off removes only that format. The button shows whether it is on.
+
 ## 1.8.6
 
 Undo after filing puts the text back into the capture field. The note you just filed is removed. A note that was split across pages comes back as one text.

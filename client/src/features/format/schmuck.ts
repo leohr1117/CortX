@@ -7,7 +7,7 @@ import {
   type DecorationSet,
   type ViewUpdate,
 } from '@codemirror/view';
-import { leseDokument, type Beleg } from '../../../../shared/features/format/index.ts';
+import { leseDokument, nurMarker, type Beleg } from '../../../../shared/features/format/index.ts';
 
 const FETT = 1;
 const KURSIV = 2;
@@ -123,6 +123,12 @@ function caretImMarker(view: EditorView, von: number, bis: number): boolean {
   return view.state.selection.ranges.some((range) => range.from === range.to && range.from >= von && range.from <= bis);
 }
 
+function caretInBeleg(view: EditorView, beleg: Beleg): boolean {
+  return view.state.selection.ranges.some(
+    (range) => range.from === range.to && range.from >= beleg.ganzVon && range.from <= beleg.ganzBis,
+  );
+}
+
 function widgetFuer(beleg: Beleg): WidgetType | null {
   if (beleg.art === 'liste') return new PunktWidget();
   if (beleg.art === 'nummer') return new NummerWidget(beleg.zahl ?? '');
@@ -141,6 +147,7 @@ function baue(view: EditorView): DecorationSet {
   for (const beleg of leseDokument(text).belege) {
     const zeilenForm = beleg.art === 'wichtig' && beleg.marker.length === 1;
     if (zeilenForm) zeilen.add(beleg.ganzVon);
+    const zeigeSchale = nurMarker(text.slice(beleg.von, beleg.bis)) && caretInBeleg(view, beleg);
     for (const [von, bis] of beleg.marker) {
       if (bis <= von) continue;
       const ende = Math.min(bis, text.length);
@@ -153,7 +160,7 @@ function baue(view: EditorView): DecorationSet {
         }
         continue;
       }
-      if (caretImMarker(view, von, ende)) continue;
+      if (zeigeSchale || caretImMarker(view, von, ende)) continue;
       for (let i = Math.max(0, von); i < ende; i += 1) {
         if (text[i] === '\n') break;
         verdeckt[i] = 1;
