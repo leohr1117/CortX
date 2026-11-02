@@ -142,9 +142,9 @@ describe('note search', () => {
     }
     const liste = await treffer(server, 'needle');
     expect(liste.hits).toHaveLength(SUCH_LIMIT);
-    expect(liste.hits[0]?.text).toBe(`# needle ${SUCH_LIMIT}`);
-    expect(liste.hits.at(-1)?.text).toBe('# needle 1');
-    expect(liste.hits.some((hit) => hit.text === '# needle 0')).toBe(false);
+    expect(liste.hits[0]?.text).toBe(`needle ${SUCH_LIMIT}`);
+    expect(liste.hits.at(-1)?.text).toBe('needle 1');
+    expect(liste.hits.some((hit) => hit.text === 'needle 0')).toBe(false);
   });
 
   it('follows filing, editing, moving, topic changes, delete, and undo', async () => {
@@ -153,7 +153,7 @@ describe('note search', () => {
     await lege(server, '#Shelf\nA quiet shelf');
 
     const zuerst = await treffer(server, 'lantern');
-    expect(zuerst.hits).toEqual([expect.objectContaining({ id, topic: 'Shop', text: '# Lantern in the shop' })]);
+    expect(zuerst.hits).toEqual([expect.objectContaining({ id, topic: 'Shop', text: 'Lantern in the shop' })]);
 
     const edit = await server.inject({
       method: 'POST',

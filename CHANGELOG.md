@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.8.3
+
+The page title is the first line of the note. It can be a heading or a normal paragraph. A new page is not turned into a heading. A heading that is already there stays a heading. Sections stay level-two headings.
+
 ## 1.8.2
 
 On a phone, the format bar sits on the keyboard while it is open. When the keyboard closes, the bar drops back above the File button. On a note, it sits on the bottom edge.

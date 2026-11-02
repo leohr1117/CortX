@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { DatabaseSync } from 'node:sqlite';
-import { haengeBlock, mitH1, neueSeite, planeAblage, schluessel, seitentitel } from '../../../shared/features/seiten/index.ts';
+import { haengeBlock, neueSeite, pfadText, planeAblage, schluessel, seitentitel } from '../../../shared/features/seiten/index.ts';
 import { NOTE_TEXT_MAX } from '../../../shared/kern/grenzen.ts';
 import type { Notiz } from '../../../shared/kern/modell.ts';
 import { AppFehler } from '../../kern/fehler.ts';
@@ -45,9 +45,9 @@ function pruefeLaenge(text: string): void {
 }
 
 function zielText(topic: string, titel: string, abschnitt: string | null, angehaengt: boolean): string {
-  if (angehaengt && abschnitt) return `${titel} > ${abschnitt}`;
+  if (angehaengt && abschnitt) return pfadText(titel, abschnitt);
   if (angehaengt) return titel;
-  return `${topic} > ${titel}`;
+  return pfadText(topic, titel);
 }
 
 class SchonDa extends Error {
@@ -111,7 +111,7 @@ function schonDa(zeile: NotizZeile): AblageErgebnis {
   return {
     notiz: alsNotiz(zeile),
     neu: false,
-    ziel: `${zeile.topic} > ${seitentitel(zeile.text)}`,
+    ziel: pfadText(zeile.topic, seitentitel(zeile.text)),
     undo: '',
   };
 }
@@ -151,7 +151,7 @@ export function legeAb(db: DatabaseSync, roh: string, clientId: string | null, k
             continue;
           }
         }
-        const text = ziel.seite ? neueSeite(ziel.seite, ziel.abschnitt, ziel.text) : mitH1(ziel.text, ziel.topicName);
+        const text = neueSeite(ziel.seite, ziel.abschnitt, ziel.text, ziel.topicName);
         const zeile = legeNeu(db, text, topicId, ziel.source, clientOffen, kontoId);
         clientOffen = null;
         neuIds.add(zeile.id);

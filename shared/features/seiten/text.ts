@@ -1,6 +1,6 @@
-import type { LeseTeil } from '../format/baum.ts';
+import type { LeseBlock, LeseTeil } from '../format/baum.ts';
 import { leseDokument } from '../format/lesen.ts';
-import { kopfMarke } from '../format/zeile.ts';
+import { zeilenStuecke } from '../format/zeile.ts';
 
 export function ersteZeile(text: string): string {
   const ende = text.indexOf('\n');
@@ -26,17 +26,22 @@ function plain(teile: readonly LeseTeil[]): string {
   return aus;
 }
 
+function zeilenText(block: LeseBlock): string {
+  if (block.art === 'codeblock') return block.text;
+  if (block.art === 'ueberschrift' || block.art === 'wichtig') return plain(block.teile);
+  if (block.art === 'liste') return plain(block.punkte[0] ?? []);
+  if (block.art === 'haken') return plain(block.punkte[0]?.teile ?? []);
+  return plain(block.zeilen[0] ?? []);
+}
+
 export function seitentitel(text: string): string {
-  const dok = leseDokument(text);
-  const erste = dok.bloecke[0];
-  if (erste?.art === 'ueberschrift' && (erste.stufe === 1 || erste.stufe === undefined)) {
-    const marke = kopfMarke(ersteZeile(text));
-    if (marke && (marke.stufe === 1 || marke.stufe === 0)) return plain(erste.teile).trim();
+  for (const stueck of zeilenStuecke(text)) {
+    if (stueck.zeile.trim().length === 0) continue;
+    const block = leseDokument(stueck.zeile).bloecke[0];
+    if (!block) continue;
+    return zeilenText(block).trim();
   }
-  const zeile = ersteZeile(text);
-  const marke = kopfMarke(zeile);
-  if (marke && marke.stufe === 1) return zeile.slice(marke.laenge).trim();
-  return zeile.trim();
+  return '';
 }
 
 export interface AbschnittStelle {
@@ -77,22 +82,15 @@ function verbinde(links: string, rechts: string): string {
   return `${a}\n\n${b}`;
 }
 
-export function mitH1(body: string, ersatz: string): string {
-  const text = body.trim();
-  if (text.length === 0) return `# ${ersatz}`;
-  if (ersteZeile(text).startsWith('# ')) return text;
-  return `# ${text}`;
-}
-
-export function neueSeite(titel: string, abschnitt: string | null, body: string): string {
-  const kopf = `# ${titel}`;
+export function neueSeite(titel: string | null, abschnitt: string | null, body: string, ersatz = ''): string {
   const rest = body.trim();
+  if (!titel) return rest.length === 0 ? ersatz.trim() : rest;
   if (abschnitt) {
     const block = rest.length === 0 ? `## ${abschnitt}` : `## ${abschnitt}\n\n${rest}`;
-    return verbinde(kopf, block);
+    return verbinde(titel, block);
   }
-  if (rest.length === 0) return kopf;
-  return verbinde(kopf, rest);
+  if (rest.length === 0) return titel;
+  return verbinde(titel, rest);
 }
 
 export function haengeBlock(seite: string, block: string, abschnitt: string | null): string {

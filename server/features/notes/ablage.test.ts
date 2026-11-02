@@ -38,7 +38,7 @@ describe('filing api', () => {
     const antwort = await post(server, '  Buy milk  ');
     expect(antwort.statusCode).toBe(201);
     expect(antwort.json()).toMatchObject({
-      text: '# Buy milk',
+      text: 'Buy milk',
       topic: 'Inbox',
       source: 'manual',
       aiConfidence: null,
@@ -51,9 +51,9 @@ describe('filing api', () => {
     const server = await app();
     const erste = await post(server, '#Garten\nCall tomorrow');
     expect(erste.statusCode).toBe(201);
-    expect(erste.json()).toMatchObject({ text: '# Call tomorrow', topic: 'Garten', source: 'tag' });
+    expect(erste.json()).toMatchObject({ text: 'Call tomorrow', topic: 'Garten', source: 'tag' });
     const zweite = await post(server, '#garten\nAgain');
-    expect(zweite.json()).toMatchObject({ text: '# Again', topic: 'Garten', source: 'tag' });
+    expect(zweite.json()).toMatchObject({ text: 'Again', topic: 'Garten', source: 'tag' });
     const themen = await server.inject({ method: 'GET', url: '/api/topics' });
     expect(themen.json()).toEqual({
       topics: [
@@ -71,7 +71,7 @@ describe('filing api', () => {
     }
     await post(server, '#Workout\none');
     const abgelegt = await post(server, '#wo\nFix and #home');
-    expect(abgelegt.json()).toMatchObject({ text: '# Fix and #home', topic: 'Work', source: 'tag' });
+    expect(abgelegt.json()).toMatchObject({ text: 'Fix and #home', topic: 'Work', source: 'tag' });
   });
 
   it('rejects empty, mistyped, and oversized notes', async () => {
@@ -109,7 +109,7 @@ describe('filing api', () => {
     expect(zweite.statusCode).toBe(200);
     expect(zweite.json()).toMatchObject({
       id: erste.json().id,
-      text: '# Buy milk',
+      text: 'Buy milk',
       topic: 'Inbox',
       source: 'manual',
     });
@@ -130,7 +130,7 @@ describe('filing api', () => {
       payload: { topic: 'home' },
     });
     expect(gleich.statusCode).toBe(200);
-    expect(gleich.json()).toMatchObject({ topic: 'Home', source: 'tag', text: '# Call tomorrow' });
+    expect(gleich.json()).toMatchObject({ topic: 'Home', source: 'tag', text: 'Call tomorrow' });
     expect((db.prepare('SELECT COUNT(*) AS anzahl FROM correction').get() as { anzahl: number }).anzahl).toBe(0);
 
     const verschoben = await server.inject({
@@ -208,7 +208,7 @@ describe('filing api', () => {
     const { server, db } = await paar();
     const seite = await post(server, '#school/Mathe Limits');
     expect(seite.statusCode).toBe(201);
-    expect(seite.json()).toMatchObject({ text: '# Mathe\n\nLimits', topic: 'school', ziel: 'school > Mathe' });
+    expect(seite.json()).toMatchObject({ text: 'Mathe\n\nLimits', topic: 'school', ziel: 'school > Mathe' });
     const id = seite.json().id as number;
     const vorher = db.prepare('SELECT source, created FROM note WHERE id = ?').get(id) as {
       source: string;
@@ -223,23 +223,23 @@ describe('filing api', () => {
 
     const ende = await post(server, '#school/mathe First block');
     expect(ende.statusCode).toBe(200);
-    expect(ende.json()).toMatchObject({ id, ziel: 'Mathe', text: '# Mathe\n\nLimits\n\nFirst block' });
+    expect(ende.json()).toMatchObject({ id, ziel: 'Mathe', text: 'Mathe\n\nLimits\n\nFirst block' });
     expect(db.prepare('SELECT text, version FROM note_revision WHERE note_id = ?').all(id)).toEqual([
-      { text: '# Mathe\n\nLimits', version: 1 },
+      { text: 'Mathe\n\nLimits', version: 1 },
     ]);
 
     const abschnitt = await post(server, '#school/Mathe/Analysis Inside');
     expect(abschnitt.json()).toMatchObject({
       ziel: 'Mathe > Analysis',
-      text: '# Mathe\n\nLimits\n\nFirst block\n\n## Analysis\n\nInside',
+      text: 'Mathe\n\nLimits\n\nFirst block\n\n## Analysis\n\nInside',
     });
     const beweise = await post(server, '#school/Mathe/Proofs Next');
     expect(beweise.json().text).toBe(
-      '# Mathe\n\nLimits\n\nFirst block\n\n## Analysis\n\nInside\n\n## Proofs\n\nNext',
+      'Mathe\n\nLimits\n\nFirst block\n\n## Analysis\n\nInside\n\n## Proofs\n\nNext',
     );
     const mitten = await post(server, '#school/Mathe/Analysis Still');
     const mittenText =
-      '# Mathe\n\nLimits\n\nFirst block\n\n## Analysis\n\nInside\n\nStill\n\n## Proofs\n\nNext';
+      'Mathe\n\nLimits\n\nFirst block\n\n## Analysis\n\nInside\n\nStill\n\n## Proofs\n\nNext';
     expect(mitten.json()).toMatchObject({ ziel: 'Mathe > Analysis', text: mittenText });
     expect(db.prepare('SELECT source, created FROM note WHERE id = ?').get(id)).toEqual(vorher);
     expect((db.prepare('SELECT COUNT(*) AS anzahl FROM note').get() as { anzahl: number }).anzahl).toBe(1);
@@ -268,11 +268,11 @@ describe('filing api', () => {
     const antwort = await post(server, roh);
     expect(antwort.statusCode).toBe(201);
     const koerper = antwort.json() as { text: string; ziel: string; undo: string };
-    expect(koerper.text).toBe('# Thema2\n\ntext2\ntext2 text2');
+    expect(koerper.text).toBe('Thema2\n\ntext2\ntext2 text2');
     expect(koerper.ziel).toBe('school > Thema1 · school > Thema2');
     const seiten = await server.inject({ method: 'GET', url: '/api/library/notes?topic=school' });
     const notizen = (seiten.json() as { notes: Array<{ text: string }> }).notes.map((notiz) => notiz.text).sort();
-    expect(notizen).toEqual(['# Thema1\n\ntext1\ntext1 text1', '# Thema2\n\ntext2\ntext2 text2']);
+    expect(notizen).toEqual(['Thema1\n\ntext1\ntext1 text1', 'Thema2\n\ntext2\ntext2 text2']);
     expect(notizen.join('\n').includes('#school')).toBe(false);
 
     const zurueck = await server.inject({
@@ -294,10 +294,10 @@ describe('filing api', () => {
     const antwort = await post(server, 'before\n#school/Thema1 stays #tag');
     expect(antwort.statusCode).toBe(201);
     const inbox = await server.inject({ method: 'GET', url: '/api/library/notes?topic=Inbox' });
-    expect((inbox.json() as { notes: Array<{ text: string }> }).notes.map((notiz) => notiz.text)).toEqual(['# before']);
+    expect((inbox.json() as { notes: Array<{ text: string }> }).notes.map((notiz) => notiz.text)).toEqual(['before']);
     const schule = await server.inject({ method: 'GET', url: '/api/library/notes?topic=school' });
     expect((schule.json() as { notes: Array<{ text: string }> }).notes.map((notiz) => notiz.text)).toEqual([
-      '# Thema1\n\nstays #tag',
+      'Thema1\n\nstays #tag',
     ]);
   });
 });

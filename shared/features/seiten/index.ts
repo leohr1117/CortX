@@ -2,7 +2,6 @@ export {
   abschnittNamen,
   ersteZeile,
   haengeBlock,
-  mitH1,
   neueSeite,
   pfadText,
   schluessel,

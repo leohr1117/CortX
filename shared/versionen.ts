@@ -6,6 +6,14 @@ export interface Versionseintrag {
 
 export const VERSIONEN: readonly Versionseintrag[] = [
   {
+    version: '1.8.3',
+    datum: '2026-11-02',
+    zeilen: [
+      'The page title is the first line, whether it is a heading or a normal paragraph.',
+      'A new page is not turned into a heading. A heading that is already there stays one.',
+    ],
+  },
+  {
     version: '1.8.2',
     datum: '2026-11-02',
     zeilen: [

@@ -121,7 +121,7 @@ describe('note edit and delete', () => {
     expect(fest(db, id)).toEqual(vorher);
     const gelesen = await server.inject({ method: 'GET', url: `/api/notes/${id}` });
     expect(gelesen.statusCode).toBe(200);
-    expect(gelesen.json()).toMatchObject({ id, text: '# Keep me' });
+    expect(gelesen.json()).toMatchObject({ id, text: 'Keep me' });
     expect((await server.inject({ method: 'GET', url: '/api/notes/nope' })).statusCode).toBe(404);
   });
 
@@ -162,7 +162,7 @@ describe('note edit and delete', () => {
 
     const zurueck = await server.inject({ method: 'POST', url: '/api/notes/undo', payload: { token } });
     expect(zurueck.statusCode).toBe(200);
-    expect(zurueck.json()).toMatchObject({ id, text: '# Pinned thought', topic: 'Work', source: 'ai', aiConfidence: 0.4 });
+    expect(zurueck.json()).toMatchObject({ id, text: 'Pinned thought', topic: 'Work', source: 'ai', aiConfidence: 0.4 });
     expect(fest(db, id)).toEqual(vorher);
     expect(korrekturen(db)).toEqual(korrekturVorher);
     expect(db.prepare('SELECT token FROM "topic_undo"').all()).toEqual([{ token: themaToken }]);

@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Link } from 'react-router';
 import type { EditorView } from '@codemirror/view';
-import { EBENEN, PFAD_TRENNER, seitentitel, type SeiteKurz } from '../../../../shared/features/seiten/index.ts';
+import { EBENEN, PFAD_TRENNER, pfadText, seitentitel, type SeiteKurz } from '../../../../shared/features/seiten/index.ts';
 import { caretEbene, ersetzeSegment, ersetzeTag, planeAblage, tagAnCaret, vorschlaege } from '../../../../shared/features/tags/index.ts';
 import { NOTE_TEXT_MAX } from '../../../../shared/kern/grenzen.ts';
 import type { Thema } from '../../../../shared/kern/modell.ts';
@@ -261,7 +261,7 @@ export function CaptureAnsicht() {
         setMeldung({
           art: 'abgelegt',
           id: abgelegt.id,
-          ziel: abgelegt.ziel ?? `${abgelegt.topic} > ${seitentitel(abgelegt.text)}`,
+          ziel: abgelegt.ziel ?? pfadText(abgelegt.topic, seitentitel(abgelegt.text)),
           undo: abgelegt.undo ?? '',
         });
         await katalogNeu();

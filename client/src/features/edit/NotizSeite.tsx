@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { ablageZeile, planeNotizText, textMeldung } from '../../../../shared/features/edit/index.ts';
-import { abschnittNamen, seitentitel } from '../../../../shared/features/seiten/index.ts';
+import { abschnittNamen, pfadText, seitentitel } from '../../../../shared/features/seiten/index.ts';
 import type { Notiz } from '../../../../shared/kern/modell.ts';
 import { AugeIcon, StiftIcon } from '../../ui/icons.tsx';
 import { Editor, LeseText } from '../format/index.ts';
@@ -223,7 +223,7 @@ export function NotizSeite() {
   }
 
   const zeile = notiz ? ablageZeile(notiz, new Date()) : '';
-  const pfad = notiz ? `${notiz.topic} > ${seitentitel(feld) || 'Untitled'}` : undefined;
+  const pfad = notiz ? pfadText(notiz.topic, seitentitel(feld) || 'Untitled') : undefined;
   const namen = notiz && modus === 'lesen' ? abschnittNamen(feld) : [];
   const aktion = notiz ? (
     <div className="kopf-aktion">

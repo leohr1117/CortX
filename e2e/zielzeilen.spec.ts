@@ -49,15 +49,19 @@ test('target lines split one note across pages', async ({ page }, testInfo) => {
     await expect(page.getByRole('status')).toContainText('Thema2');
     if (handy) await page.screenshot({ path: `${BILDER}/handy-zielzeilen-abgelegt.png` });
     const abgelegt = (await texte(page, 'school')).sort();
-    expect(abgelegt).toContain('# Thema1\n\ntext1\ntext1 text1');
-    expect(abgelegt).toContain('# Thema2\n\ntext2\ntext2 text2');
+    expect(abgelegt).toContain('Thema1\n\ntext1\ntext1 text1');
+    expect(abgelegt).toContain('Thema2\n\ntext2\ntext2 text2');
     expect(abgelegt.join('\n')).not.toContain('#school');
+    expect(abgelegt.filter((text) => text.startsWith('Thema'))).toEqual([
+      'Thema1\n\ntext1\ntext1 text1',
+      'Thema2\n\ntext2\ntext2 text2',
+    ]);
     await page.getByRole('button', { name: 'Undo' }).click();
     await expect(page.getByRole('status')).toHaveCount(0);
     token = '';
     const danach = await texte(page, 'school');
-    expect(danach).not.toContain('# Thema1\n\ntext1\ntext1 text1');
-    expect(danach).not.toContain('# Thema2\n\ntext2\ntext2 text2');
+    expect(danach).not.toContain('Thema1\n\ntext1\ntext1 text1');
+    expect(danach).not.toContain('Thema2\n\ntext2\ntext2 text2');
     const themen = await page.request.get('/api/topics');
     expect(themen.ok()).toBeTruthy();
     const namen = ((await themen.json()) as { topics: Array<{ name: string }> }).topics.map((thema) => thema.name);
@@ -86,13 +90,14 @@ test('text before the first target line goes to the inbox', async ({ page }, tes
     token = ((await antwort.json()) as { undo?: string }).undo ?? '';
     const eingang = await texte(page, 'Inbox');
     const seiten = await texte(page, thema);
-    expect(eingang).toContain('# starts in the inbox');
-    expect(seiten).toEqual(['# Page\n\nkeep #tag']);
+    expect(eingang).toContain('starts in the inbox');
+    expect(seiten).toEqual(['Page\n\nkeep #tag']);
     expect(seiten.join('\n')).not.toContain(`#${thema}`);
+    expect(seiten[0]?.startsWith('# ')).toBe(false);
     await page.getByRole('button', { name: 'Undo' }).click();
     await expect(page.getByRole('status')).toHaveCount(0);
     token = '';
-    expect(await texte(page, 'Inbox')).not.toContain('# starts in the inbox');
+    expect(await texte(page, 'Inbox')).not.toContain('starts in the inbox');
     expect(await texte(page, thema)).toEqual([]);
   } finally {
     if (token) await page.request.post('/api/notes/undo', { data: { token } });
