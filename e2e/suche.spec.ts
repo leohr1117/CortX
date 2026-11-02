@@ -60,18 +60,21 @@ test('search lists notes from every topic and opens the one you pick', async ({ 
     await expect(page.getByRole('link', { name: /50%/ })).toBeVisible();
     const hausTreffer = page.getByRole('link', { name: /porch lantern/ });
     await expect(hausTreffer).toBeVisible();
-    await expect(hausTreffer).not.toContainText('tailmarker');
+    await expect(hausTreffer).toContainText('tailmarker');
+    await expect(hausTreffer.locator('.lesetext')).toContainText('tailmarker');
     await expect(page.getByText('quicksilver')).toHaveCount(0);
     await expect(page.getByText('hidden')).toHaveCount(0);
     await page.screenshot({ path: `${BILDER}/${testInfo.project.name}-search-results.png` });
 
     await hausTreffer.click();
+    await expect(page).toHaveURL(/\/library\/note\?id=\d+/);
+    await expect(page.locator('.lesetext')).toContainText('tailmarker');
+    await expect(page.getByText('Hallway hook 0')).toHaveCount(0);
+    await page.getByRole('button', { name: 'Back' }).click();
     await expect(page.getByRole('heading', { name: 'Home', level: 1 })).toBeVisible();
-    await expect(page).toHaveURL(/note=\d+/);
     const notiz = page.locator('.notiz', { hasText: 'porch lantern' });
     await expect(notiz).toBeVisible();
     await expect(notiz).toContainText('tailmarker');
-    await expect(notiz).toBeInViewport();
     await expect(page.getByText('Hallway hook 0')).toBeVisible();
 
     await page.getByRole('link', { name: 'Back to Library' }).click();

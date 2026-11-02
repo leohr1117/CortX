@@ -35,6 +35,10 @@ export function themaPfad(name: string): string {
   return `/library/topic?name=${encodeURIComponent(name)}`;
 }
 
+export function notizPfad(id: number): string {
+  return `/library/note?id=${id}`;
+}
+
 export function ladeBibliothek(): Promise<Bibliothek> {
   return hole<Bibliothek>('/api/library');
 }

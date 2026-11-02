@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { PapierkorbIcon, PunkteIcon, StiftIcon } from '../../ui/icons.tsx';
+import { HashIcon, PapierkorbIcon, PunkteIcon } from '../../ui/icons.tsx';
 
 export function NotizKnopf({
   id,
@@ -7,7 +7,7 @@ export function NotizKnopf({
   gesperrt,
   onOeffnen,
   onSchliessen,
-  onEdit,
+  onChange,
   onDelete,
 }: {
   id: number;
@@ -15,7 +15,7 @@ export function NotizKnopf({
   gesperrt: boolean;
   onOeffnen: () => void;
   onSchliessen: () => void;
-  onEdit: () => void;
+  onChange: () => void;
   onDelete: () => void;
 }) {
   const kasten = useRef<HTMLDivElement>(null);
@@ -54,9 +54,9 @@ export function NotizKnopf({
       </button>
       {offen ? (
         <div className="menue" id={menueId} role="menu" aria-label="Note actions">
-          <button type="button" className="m" role="menuitem" onClick={onEdit} disabled={gesperrt}>
-            <StiftIcon />
-            <span>Edit</span>
+          <button type="button" className="m" role="menuitem" onClick={onChange} disabled={gesperrt}>
+            <HashIcon />
+            <span>Change</span>
           </button>
           <div className="tr" role="separator" />
           <button type="button" className="m gef" role="menuitem" onClick={onDelete} disabled={gesperrt}>

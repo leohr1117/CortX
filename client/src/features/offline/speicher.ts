@@ -5,6 +5,10 @@ export const ENTWURF_STORE = 'draft';
 export const ENTWURF_ID = 'capture';
 export const WARTESCHLANGE_STORE = 'queue';
 
+export function notizEntwurfId(id: number): string {
+  return `note:${id}`;
+}
+
 let kette: Promise<void> = Promise.resolve();
 
 export function exklusiv<T>(arbeit: () => Promise<T>): Promise<T> {
@@ -32,12 +36,12 @@ function oeffne(): Promise<IDBDatabase> {
   });
 }
 
-export async function liesEntwurfOffen(): Promise<string> {
+async function liesWert(schluessel: string): Promise<string> {
   const db = await oeffne();
   try {
     return await new Promise((resolve, reject) => {
       const tx = db.transaction(ENTWURF_STORE, 'readonly');
-      const lesen = tx.objectStore(ENTWURF_STORE).get(ENTWURF_ID);
+      const lesen = tx.objectStore(ENTWURF_STORE).get(schluessel);
       lesen.onsuccess = () => {
         const wert = lesen.result as { text?: string } | undefined;
         resolve(wert?.text ?? '');
@@ -49,14 +53,14 @@ export async function liesEntwurfOffen(): Promise<string> {
   }
 }
 
-export async function putEntwurfOffen(text: string): Promise<void> {
+async function schreibWert(schluessel: string, text: string): Promise<void> {
   const db = await oeffne();
   try {
     await new Promise<void>((resolve, reject) => {
       const tx = db.transaction(ENTWURF_STORE, 'readwrite');
       const store = tx.objectStore(ENTWURF_STORE);
-      if (text.length === 0) store.delete(ENTWURF_ID);
-      else store.put({ text }, ENTWURF_ID);
+      if (text.length === 0) store.delete(schluessel);
+      else store.put({ text }, schluessel);
       tx.oncomplete = () => resolve();
       tx.onerror = () => reject(tx.error ?? new Error('Could not save the draft.'));
       tx.onabort = () => reject(tx.error ?? new Error('Could not save the draft.'));
@@ -64,6 +68,14 @@ export async function putEntwurfOffen(text: string): Promise<void> {
   } finally {
     db.close();
   }
+}
+
+export function liesEntwurfOffen(): Promise<string> {
+  return liesWert(ENTWURF_ID);
+}
+
+export function putEntwurfOffen(text: string): Promise<void> {
+  return schreibWert(ENTWURF_ID, text);
 }
 
 export async function liesQueueOffen(): Promise<WarteschlangeEintrag[]> {
@@ -116,4 +128,12 @@ export function liesEntwurf(): Promise<string> {
 
 export function schreibEntwurf(text: string): Promise<void> {
   return exklusiv(() => putEntwurfOffen(text));
+}
+
+export function liesNotizEntwurf(id: number): Promise<string> {
+  return exklusiv(() => liesWert(notizEntwurfId(id)));
+}
+
+export function schreibNotizEntwurf(id: number, text: string): Promise<void> {
+  return exklusiv(() => schreibWert(notizEntwurfId(id), text));
 }

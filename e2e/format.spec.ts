@@ -1,5 +1,5 @@
 import fs from 'node:fs';
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import { meldeAn } from './anmelden.ts';
 import { leereLokal } from './lokal.ts';
 import { setzeSchauspiel, sichereBestand, stelleBestand } from './schau.ts';
@@ -33,12 +33,6 @@ const ROH = 'See <b>Mara</b> and keep #work on the folio';
 function versatz(tage: number, stunde: number, minute: number): string {
   const jetzt = new Date();
   return new Date(jetzt.getFullYear(), jetzt.getMonth(), jetzt.getDate() + tage, stunde, minute, 0, 0).toISOString();
-}
-
-async function oeffneEdit(page: Page): Promise<void> {
-  await page.getByRole('button', { name: 'Note actions' }).first().click();
-  await page.getByRole('menuitem', { name: 'Edit', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Edit note', level: 1 })).toBeVisible();
 }
 
 test.beforeAll(() => {
@@ -88,15 +82,21 @@ test('reading shows a list, checkboxes, and bold while the stored text stays pla
     await expect(notiz).toContainText('A lone ** stays.');
     await expect(notiz).not.toContainText('- send');
     await notiz.locator('.haken').first().click();
-    await expect(notiz.locator('.haken.zu')).toHaveCount(1);
+    await expect(page).toHaveURL(/\/library\/note\?id=\d+/);
+    await expect(page.locator('.haken.zu')).toHaveCount(1);
+    await expect(page.locator('.haken')).toHaveCount(2);
+    await expect(page.locator('input, button.haken')).toHaveCount(0);
+    await page.getByRole('button', { name: 'Back' }).click();
+    await expect(page.getByRole('heading', { name: 'Work', level: 1 })).toBeVisible();
     const schlicht = page.locator('.notiz', { hasText: 'Lunch with Jonas' });
     await expect(schlicht.locator('li, .haken, strong')).toHaveCount(0);
     await page.screenshot({ path: `${BILDER}/${testInfo.project.name}-read-topic.png` });
 
-    await oeffneEdit(page);
+    await page.locator('.notiz').first().locator('a.tx').click();
+    await page.getByRole('button', { name: 'Edit' }).click();
     const feld = page.getByRole('textbox', { name: 'Note' });
     await expect(feld).toHaveValue(THEMA);
-    await expect(page.locator('.lesetext, .notiz strong, .notiz li')).toHaveCount(0);
+    await expect(page.locator('.lesetext')).toHaveCount(0);
     await page.screenshot({ path: `${BILDER}/${testInfo.project.name}-read-edit.png` });
 
     await page.goto('/library/topic?name=Inbox');
@@ -112,7 +112,7 @@ test('reading shows a list, checkboxes, and bold while the stored text stays pla
 
     await page.goto('/library');
     await page.getByRole('textbox', { name: 'Search notes' }).fill('folio');
-    await expect(page.locator('.zeile .ti')).toHaveText([
+    await expect(page.locator('.zeile .lesetext')).toHaveText([
       'send the folio numbers',
       'confirm the folio hold',
       'share the folio agenda',
@@ -120,7 +120,7 @@ test('reading shows a list, checkboxes, and bold while the stored text stays pla
     ]);
     const treffer = page.locator('.zeile', { hasText: 'send the folio numbers' });
     await expect(treffer.locator('strong')).toHaveText('folio');
-    await expect(treffer.locator('.punkt')).toHaveCount(1);
+    await expect(treffer.locator('li')).toHaveCount(1);
     await expect(treffer).not.toContainText('- send');
     const offen = page.locator('.zeile', { hasText: 'confirm the folio hold' });
     await expect(offen.locator('.haken:not(.zu)')).toHaveCount(1);
@@ -135,6 +135,9 @@ test('reading shows a list, checkboxes, and bold while the stored text stays pla
     await page.screenshot({ path: `${BILDER}/${testInfo.project.name}-read-search.png` });
 
     await treffer.click();
+    await expect(page).toHaveURL(/\/library\/note\?id=\d+/);
+    await expect(page.locator('.lesetext li')).toHaveText('send the folio numbers');
+    await page.getByRole('button', { name: 'Back' }).click();
     await expect(page.getByRole('heading', { name: 'Folio', level: 1 })).toBeVisible();
     await expect(page.locator('.notiz li', { hasText: 'send the folio numbers' })).toBeVisible();
 

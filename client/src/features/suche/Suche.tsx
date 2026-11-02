@@ -3,9 +3,9 @@ import { SUCH_MAX, type SuchTreffer } from '../../../../shared/features/suche/in
 import { gleicherName } from '../../../../shared/features/tags/index.ts';
 import { INBOX_NAME } from '../../../../shared/kern/grenzen.ts';
 import { LeseText } from '../format/index.ts';
+import { notizPfad } from '../library/api.ts';
 import { TerminZeile } from '../termine/index.ts';
 import { HashIcon, LupeIcon, PosteingangIcon, WeiterIcon } from '../../ui/icons.tsx';
-import { notizPfad } from './api.ts';
 
 export function Suchleiste({ wert, onChange }: { wert: string; onChange: (wert: string) => void }) {
   return (
@@ -33,12 +33,10 @@ export function Trefferliste({ treffer }: { treffer: SuchTreffer[] }) {
       {treffer.map((zeile) => {
         const inbox = gleicherName(zeile.topic, INBOX_NAME);
         return (
-          <Link className="zeile" key={zeile.id} to={notizPfad(zeile.topic, zeile.id)}>
+          <Link className="zeile voll" key={zeile.id} to={notizPfad(zeile.id)}>
             <span className="sym">{inbox ? <PosteingangIcon /> : <HashIcon />}</span>
             <span className="tx">
-              <div className="ti">
-                <LeseText text={zeile.text} dicht />
-              </div>
+              <LeseText text={zeile.text} />
               <div className="ne">{zeile.topic}</div>
               <TerminZeile text={zeile.text} created={zeile.created} />
             </span>

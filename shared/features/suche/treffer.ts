@@ -1,5 +1,3 @@
-export const TREFFER_ZEICHEN = 140;
-
 export interface SuchRoh {
   id: number;
   text: string;
@@ -12,15 +10,6 @@ export interface SuchTreffer {
   text: string;
   topic: string;
   created: string;
-}
-
-export function kuerzeText(text: string, laenge = TREFFER_ZEICHEN): string {
-  const flach = text.replace(/\s+/g, ' ').trim();
-  if (flach.length <= laenge) return flach;
-  const schnitt = flach.slice(0, laenge);
-  const bruch = schnitt.lastIndexOf(' ');
-  const basis = bruch >= Math.floor(laenge * 0.6) ? schnitt.slice(0, bruch) : schnitt;
-  return `${basis.trimEnd()}...`;
 }
 
 export function formeTreffer(roh: readonly SuchRoh[], limit: number): SuchTreffer[] {
@@ -39,7 +28,7 @@ export function formeTreffer(roh: readonly SuchRoh[], limit: number): SuchTreffe
   }
   return einzig.map((zeile) => ({
     id: zeile.id,
-    text: kuerzeText(zeile.text),
+    text: zeile.text,
     topic: zeile.topic,
     created: zeile.created,
   }));

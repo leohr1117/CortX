@@ -1,5 +1,11 @@
 import type { Page } from '@playwright/test';
-import { ENTWURF_ID, ENTWURF_STORE, LOKAL_DB, WARTESCHLANGE_STORE } from '../client/src/features/offline/index.ts';
+import {
+  ENTWURF_ID,
+  ENTWURF_STORE,
+  LOKAL_DB,
+  WARTESCHLANGE_STORE,
+  notizEntwurfId,
+} from '../client/src/features/offline/index.ts';
 
 const STORES = { db: LOKAL_DB, entwurfStore: ENTWURF_STORE, entwurfId: ENTWURF_ID, queue: WARTESCHLANGE_STORE };
 
@@ -33,7 +39,7 @@ export async function leereLokal(page: Page): Promise<void> {
   await warteBereit(page);
 }
 
-export async function liesEntwurf(page: Page): Promise<string> {
+async function liesSchluessel(page: Page, schluessel: string): Promise<string> {
   return page.evaluate(async (namen) => {
     const db = await new Promise<IDBDatabase>((resolve, reject) => {
       const anfrage = indexedDB.open(namen.db);
@@ -43,7 +49,7 @@ export async function liesEntwurf(page: Page): Promise<string> {
     try {
       return await new Promise<string>((resolve, reject) => {
         const tx = db.transaction(namen.entwurfStore, 'readonly');
-        const lesen = tx.objectStore(namen.entwurfStore).get(namen.entwurfId);
+        const lesen = tx.objectStore(namen.entwurfStore).get(namen.schluessel);
         lesen.onsuccess = () => {
           const wert = lesen.result as { text?: string } | undefined;
           resolve(wert?.text ?? '');
@@ -53,7 +59,15 @@ export async function liesEntwurf(page: Page): Promise<string> {
     } finally {
       db.close();
     }
-  }, STORES);
+  }, { ...STORES, schluessel });
+}
+
+export function liesEntwurf(page: Page): Promise<string> {
+  return liesSchluessel(page, ENTWURF_ID);
+}
+
+export function liesNotizEntwurf(page: Page, id: number): Promise<string> {
+  return liesSchluessel(page, notizEntwurfId(id));
 }
 
 export async function warteschlangeLaenge(page: Page): Promise<number> {

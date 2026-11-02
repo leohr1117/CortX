@@ -138,6 +138,7 @@ a { color: inherit; text-decoration: none; }
 .schreib textarea::-webkit-scrollbar { display: none; }
 .schreib textarea::placeholder { color: var(--leise); }
 .schreib textarea::selection { background: rgba(96, 165, 250, 0.35); }
+.schreib.klar textarea { color: var(--haupt); caret-color: var(--fokus); }
 .tag { color: var(--fokus); }
 .anker { display: inline-block; width: 0; height: 0; }
 
@@ -437,6 +438,9 @@ svg.i.ok {
   text-overflow: ellipsis;
   padding-left: 4px;
 }
+.kopf-rest { flex: 1; min-width: 0; }
+.kopf-aktion { display: flex; align-items: center; flex: none; }
+.kopf-aktion .schalt { margin-right: 4px; }
 .spalte {
   display: flex;
   align-items: center;
@@ -508,6 +512,15 @@ svg.i.ok {
 }
 .zeile .wert { font-size: 15px; color: var(--leise); }
 .zeile .pf { color: var(--leise); width: 16px; height: 16px; }
+.zeile.voll { align-items: flex-start; }
+.zeile.voll .sym { margin-top: 2px; }
+.zeile.voll .pf { margin-top: 4px; }
+.zeile.voll .lesetext {
+  font-size: 16px;
+  line-height: 24px;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+}
 .leer1 {
   color: var(--leise);
   margin: 32px var(--rand);
@@ -537,9 +550,14 @@ svg.i.ok {
   white-space: pre-wrap;
   overflow-wrap: break-word;
 }
-.notiz .lesetext .lauf {
+.lesetext .lauf {
   display: block;
   min-height: 24px;
+}
+a.tx { display: block; }
+a.tx:focus-visible {
+  outline: 2px solid var(--fokus);
+  outline-offset: 2px;
 }
 .lesetext ul {
   margin: 0;
@@ -594,37 +612,13 @@ svg.i.ok {
   stroke-width: 2.4;
 }
 .lesetext strong { font-weight: 600; }
-.notiz .lesetext h3 {
+.lesetext h3 {
   font-size: 18px;
   line-height: 24px;
   font-weight: 600;
   min-height: 24px;
 }
-.lesetext h3 strong,
-.lesetext .ueberschrift strong { font-weight: 700; }
-.lesetext.dicht .ueberschrift { font-weight: 600; }
-.lesetext.dicht .punkt {
-  display: inline-block;
-  width: 5px;
-  height: 5px;
-  margin: 0 8px 1px 0;
-  border-radius: 50%;
-  background: currentColor;
-  vertical-align: middle;
-}
-.lesetext.dicht .hakenzeile,
-.lesetext.dicht .hakenlabel,
-.lesetext.dicht .lauf {
-  display: inline;
-  min-height: 0;
-  white-space: inherit;
-}
-.lesetext.dicht .haken {
-  display: inline-grid;
-  place-items: center;
-  vertical-align: -3px;
-  margin: 0 6px 0 0;
-}
+.lesetext h3 strong { font-weight: 700; }
 .notiz .zeit {
   font-size: 13px;
   line-height: 18px;
@@ -632,12 +626,14 @@ svg.i.ok {
   margin-top: 4px;
 }
 .notiz .termin,
-.zeile .termin {
+.zeile .termin,
+.notizblatt .termin {
   font-size: 13px;
   line-height: 18px;
   color: var(--leise);
 }
-.notiz .termin { margin-top: 2px; }
+.notiz .termin,
+.notizblatt .termin { margin-top: 2px; }
 .zeile .termin {
   white-space: nowrap;
   overflow: hidden;
@@ -758,30 +754,6 @@ input.feld::placeholder { color: var(--leise); }
   .toast.ruhe { bottom: 40px; }
 }
 
-.form {
-  flex: 1;
-  min-height: 0;
-  overflow: auto;
-  padding: 8px var(--rand) 24px;
-}
-.form .inhalt,
-.stickfuss .inhalt {
-  padding: 0;
-  flex: none;
-  overflow: visible;
-  width: auto;
-  margin: 0;
-}
-.form .lab { margin: 16px 0 8px; }
-.form .lab:first-child { margin-top: 8px; }
-.form .notizkopf {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin: 8px 0;
-}
-.form .notizkopf .lab { margin: 0; }
 .schalt {
   height: 32px;
   padding: 0 12px;
@@ -797,105 +769,39 @@ input.feld::placeholder { color: var(--leise); }
   background: var(--flaeche-2);
   border-color: var(--haupt);
 }
-.form .lab.abstand { margin-top: 24px; }
-textarea.feld {
-  display: block;
-  width: 100%;
-  min-height: 212px;
-  resize: none;
-  overflow: auto;
-  border: 1px solid var(--feldrand);
-  border-radius: 8px;
-  background: var(--flaeche);
-  padding: 12px 14px;
-  font: inherit;
-  font-size: 16px;
-  line-height: 24px;
-  color: var(--haupt);
-  white-space: pre-wrap;
+.notizblatt { padding: 16px var(--rand) 40px; }
+.notizblatt .lesetext {
+  font-size: 18px;
+  line-height: 28px;
 }
-textarea.feld:focus {
-  outline: 2px solid var(--fokus);
-  outline-offset: 2px;
-}
-.feld.wahl {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-height: 48px;
-  border: 1px solid var(--feldrand);
-  border-radius: 8px;
-  background: var(--flaeche);
-  padding: 12px 14px;
-  font-size: 16px;
-  line-height: 24px;
-}
-.feld.wahl .sym {
-  color: var(--leise);
-  display: grid;
-  place-items: center;
-  flex: none;
-}
-.feld.wahl .f { flex: 1; min-width: 0; }
-.feld.wahl .ab-pf { width: 18px; height: 18px; color: var(--leise); flex: none; }
-.hilfe {
+.notizblatt .lesetext .lauf,
+.notizblatt .lesetext h3,
+.notizblatt .lesetext li,
+.notizblatt .lesetext .hakenzeile { min-height: 28px; }
+.notizblatt .lesetext h3 { font-size: 20px; line-height: 28px; }
+.ablage {
   font-size: 13px;
   line-height: 18px;
   color: var(--leise);
-  margin-top: 8px;
+  margin-top: 16px;
 }
-.stickfuss {
-  padding: 12px var(--rand) max(34px, env(safe-area-inset-bottom));
-  border-top: 1px solid var(--trenner);
-  background: var(--grund);
-  flex: none;
+.notizblatt.schreiben {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
-.stickfuss .inhalt { display: flex; justify-content: flex-end; }
-.stickfuss .btn.voll { width: 100%; }
-.btn.zweit {
-  background: transparent;
-  color: var(--haupt);
-  border: 1px solid var(--feldrand);
-}
-.btn.gefahr { background: var(--gefahr); color: #141414; }
-.dlg {
-  position: absolute;
-  left: 24px;
-  right: 24px;
-  top: 50%;
-  transform: translateY(-50%);
-  z-index: 41;
-  background: var(--flaeche);
-  border: 1px solid var(--rand-ruhig);
-  border-radius: 12px;
-  padding: 24px;
-}
-.dlg:focus { outline: none; }
-.dlg h2 {
-  font-size: 17px;
-  line-height: 24px;
-  font-weight: 600;
-  margin-bottom: 8px;
-}
-.dlg p { font-size: 15px; line-height: 22px; color: var(--leise); }
-.dlg .knoepfe { display: flex; gap: 12px; margin-top: 24px; }
-.dlg .knoepfe .btn { flex: 1; min-width: 0; padding: 0 12px; }
+.notizblatt.schreiben .schreib { flex: 1; min-height: 120px; }
+.notizblatt.schreiben .ablage,
+.notizblatt.schreiben .feldfehler { flex: none; }
 .notiz .menue-anker { margin-top: -8px; }
 .notiz .menue-anker .ib { margin-top: 0; }
 @media (min-width: 900px) {
-  .form { padding: 8px 0 24px; }
-  .form .inhalt,
-  .stickfuss .inhalt { width: 720px; max-width: 100%; margin: 0 auto; }
-  .stickfuss { padding: 12px 0 24px; }
-  .stickfuss .btn.voll { width: auto; min-width: 160px; }
-  .dlg {
-    left: 50%;
-    right: auto;
-    width: 420px;
-    transform: translate(-50%, -50%);
-  }
-  .dlg .knoepfe { justify-content: flex-end; }
-  .dlg .knoepfe .btn { flex: none; min-width: 120px; }
+  .notizblatt .lesetext { font-size: 20px; line-height: 32px; }
+  .notizblatt .lesetext .lauf,
+  .notizblatt .lesetext h3,
+  .notizblatt .lesetext li,
+  .notizblatt .lesetext .hakenzeile { min-height: 32px; }
+  .notizblatt .lesetext h3 { font-size: 22px; line-height: 32px; }
 }
 
 .login {

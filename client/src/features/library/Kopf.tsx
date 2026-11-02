@@ -9,7 +9,7 @@ export function Kopf({
   aktion,
   onZurueck,
 }: {
-  titel: string;
+  titel?: string;
   zurueck: string;
   zurueckLabel: string;
   aktion?: ReactNode;
@@ -27,7 +27,7 @@ export function Kopf({
             <ZurueckIcon />
           </Link>
         )}
-        <h1>{titel}</h1>
+        {titel ? <h1>{titel}</h1> : <span className="kopf-rest" />}
         {aktion}
       </div>
     </header>

@@ -78,7 +78,7 @@ describe('note search', () => {
     expect(extra.statusCode).toBe(400);
   });
 
-  it('finds one account’s notes across topics, newest first, and shortens them', async () => {
+  it('finds one account’s notes across topics, newest first, and keeps the full text', async () => {
     const { server, db } = await app();
     const aelter = await lege(server, 'Loose lantern bulb');
     const mittel = await lege(server, `Hang the porch lantern ${'alpha '.repeat(40)}tailmarker #Home`);
@@ -104,8 +104,8 @@ describe('note search', () => {
     expect(liste.status).toBe(200);
     expect(liste.hits.map((hit) => hit.topic)).toEqual(['Work', 'Home', 'Inbox']);
     expect(liste.hits[0]?.text).toContain('50%');
-    expect(liste.hits[1]?.text.endsWith('...')).toBe(true);
-    expect(liste.hits[1]?.text.includes('tailmarker')).toBe(false);
+    expect(liste.hits[1]?.text.includes('tailmarker')).toBe(true);
+    expect(liste.hits[1]?.text.endsWith('...')).toBe(false);
     expect(liste.hits.some((hit) => hit.text.includes('quicksilver'))).toBe(false);
 
     const sonder = await treffer(server, '(draft)');

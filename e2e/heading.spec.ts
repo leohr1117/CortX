@@ -29,9 +29,9 @@ function versatz(tage: number, stunde: number, minute: number): string {
 }
 
 async function oeffneEdit(page: Page): Promise<void> {
-  await page.getByRole('button', { name: 'Note actions' }).first().click();
-  await page.getByRole('menuitem', { name: 'Edit', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Edit note', level: 1 })).toBeVisible();
+  await page.locator('.notiz').first().locator('a.tx').click();
+  await page.getByRole('button', { name: 'Edit' }).click();
+  await expect(page.getByRole('textbox', { name: 'Note' })).toBeVisible();
 }
 
 async function setzeCursor(page: Page, index: number): Promise<void> {
@@ -86,7 +86,8 @@ test('edit marks a heading and reading shows it while a tag stays text', async (
     await expect(kopf).toHaveAttribute('aria-pressed', 'false');
     await kopf.click();
     await expect(feld).toHaveValue(mitKopf);
-    await page.getByRole('button', { name: 'Save' }).click();
+    await page.getByRole('button', { name: 'Read' }).click();
+    await page.getByRole('button', { name: 'Back' }).click();
 
     await expect(page.getByRole('heading', { name: 'Work', level: 1 })).toBeVisible();
     const notiz = page.locator('.notiz', { hasText: 'Ask Mara about the review' });
@@ -116,7 +117,7 @@ test('edit marks a heading and reading shows it while a tag stays text', async (
     await page.goto('/library');
     await page.getByRole('textbox', { name: 'Search notes' }).fill('lantern');
     const treffer = page.locator('.zeile', { hasText: 'Lantern' });
-    await expect(treffer.locator('.ueberschrift')).toHaveText('Lantern heading keeps #studio');
+    await expect(treffer.getByRole('heading', { level: 3 })).toHaveText('Lantern heading keeps #studio');
     await expect(treffer.locator('strong')).toHaveText('heading');
     await expect(treffer).toContainText('#studio');
     await expect(treffer).not.toContainText('= Lantern');
@@ -124,8 +125,10 @@ test('edit marks a heading and reading shows it while a tag stays text', async (
     await page.screenshot({ path: `${BILDER}/${testInfo.project.name}-heading-search.png` });
 
     await treffer.click();
-    await expect(page.getByRole('heading', { name: 'Studio', level: 1 })).toBeVisible();
+    await expect(page).toHaveURL(/\/library\/note\?id=\d+/);
     await expect(page.getByRole('heading', { level: 3, name: 'Lantern heading keeps #studio' })).toBeVisible();
+    await page.getByRole('button', { name: 'Back' }).click();
+    await expect(page.getByRole('heading', { name: 'Studio', level: 1 })).toBeVisible();
 
     await page.goto('/');
     await expect(page.getByRole('button', { name: 'Heading' })).toHaveCount(0);
@@ -143,7 +146,8 @@ test('edit marks a heading and reading shows it while a tag stays text', async (
     await expect(page.getByRole('button', { name: 'Heading' })).toHaveAttribute('aria-pressed', 'true');
     await page.getByRole('button', { name: 'Heading' }).click();
     await expect(page.getByRole('textbox', { name: 'Note' })).toHaveValue(THEMA);
-    await page.getByRole('button', { name: 'Save' }).click();
+    await page.getByRole('button', { name: 'Read' }).click();
+    await page.getByRole('button', { name: 'Back' }).click();
     await expect(page.getByRole('heading', { name: 'Work', level: 1 })).toBeVisible();
     const klar = page.locator('.notiz', { hasText: 'Ask Mara about the review' });
     await expect(klar.getByRole('heading', { level: 3 })).toHaveCount(0);

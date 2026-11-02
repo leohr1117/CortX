@@ -11,10 +11,6 @@ export class SuchFehler extends Error {
   }
 }
 
-export function notizPfad(topic: string, id: number): string {
-  return `/library/topic?name=${encodeURIComponent(topic)}&note=${id}`;
-}
-
 export async function sucheNotizen(text: string): Promise<SuchTreffer[]> {
   let antwort: Response;
   try {

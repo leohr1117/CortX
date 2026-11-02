@@ -24,9 +24,9 @@ function zeile(text: string, created: string): string {
 }
 
 async function oeffneEdit(page: Page): Promise<void> {
-  await page.getByRole('button', { name: 'Note actions' }).first().click();
-  await page.getByRole('menuitem', { name: 'Edit', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Edit note', level: 1 })).toBeVisible();
+  await page.locator('.notiz').first().locator('a.tx').click();
+  await page.getByRole('button', { name: 'Edit' }).click();
+  await expect(page.getByRole('textbox', { name: 'Note' })).toBeVisible();
 }
 
 test.beforeAll(() => {
@@ -102,7 +102,7 @@ test('reading shows a date on a topic, in Inbox, and in search', async ({ page }
     const treffer = page.locator('.zeile', { hasText: 'Lantern check' });
     await expect(treffer.locator('.termin')).toHaveText(fund);
     await expect(treffer.locator('.termin')).toHaveText(/^2 Nov(?: 2026)? · 15:30$/);
-    await expect(treffer.locator('.ueberschrift')).toHaveText('Lantern check next Monday at 15:30');
+    await expect(treffer.getByRole('heading', { level: 3 })).toHaveText('Lantern check next Monday at 15:30');
     await expect(treffer.locator('.ne')).toHaveText('Studio');
     const leer = page.locator('.zeile', { hasText: 'Lantern bulbs' });
     await expect(leer.locator('.termin')).toHaveCount(0);

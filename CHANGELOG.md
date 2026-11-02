@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.5.0
+
+A note opens on its own page. Inbox, a topic, and search show the whole note, with its lines and formatting. Tap a note to read it. The pencil turns that same page into a writing surface. The read icon saves and shows the note again. Edits also save on their own and when you go back. A draft stays on the device, including while you are offline. Change the topic or delete the note from the menu, and undo a delete. The old edit form is gone.
+
 ## 1.4.1
 
 Sign in with your Stride username and password. The sign-in field is a username. A wrong password, too many attempts, or a sign-in Stride cannot accept is reported as that. If Stride cannot be reached, try again later.

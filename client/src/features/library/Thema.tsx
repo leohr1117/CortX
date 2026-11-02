@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router';
+import { Link, useNavigate, useSearchParams } from 'react-router';
 import { gruppiereNotizen, uhrzeit } from '../../../../shared/features/library/index.ts';
 import { INBOX_NAME } from '../../../../shared/kern/grenzen.ts';
 import { gleicherName } from '../../../../shared/features/tags/index.ts';
@@ -13,6 +13,7 @@ import {
   NotizKnopf,
   NotizToast,
   stelleNotizHer,
+  ThemenWahl,
   vergissNotiz,
   type NotizMeldung,
 } from '../edit/index.ts';
@@ -26,7 +27,7 @@ import {
   Umbenennen,
   Zusammen,
 } from '../topics/index.ts';
-import { ladeThema, LeseFehler, themaPfad } from './api.ts';
+import { ladeThema, LeseFehler, notizPfad, themaPfad } from './api.ts';
 import { LeseText } from '../format/index.ts';
 import { TerminZeile } from '../termine/index.ts';
 import { Kopf } from './Kopf.tsx';
@@ -42,7 +43,7 @@ function NotizZeile({
   gesperrt,
   onOeffnen,
   onSchliessen,
-  onEdit,
+  onChange,
   onDelete,
 }: {
   notiz: Notiz;
@@ -50,23 +51,23 @@ function NotizZeile({
   gesperrt: boolean;
   onOeffnen: () => void;
   onSchliessen: () => void;
-  onEdit: () => void;
+  onChange: () => void;
   onDelete: () => void;
 }) {
   return (
     <article className="notiz" id={`note-${notiz.id}`}>
-      <div className="tx">
+      <Link className="tx" to={notizPfad(notiz.id)}>
         <LeseText text={notiz.text} />
         <div className="zeit">{uhrzeit(notiz.created)}</div>
         <TerminZeile text={notiz.text} created={notiz.created} />
-      </div>
+      </Link>
       <NotizKnopf
         id={notiz.id}
         offen={offen}
         gesperrt={gesperrt}
         onOeffnen={onOeffnen}
         onSchliessen={onSchliessen}
-        onEdit={onEdit}
+        onChange={onChange}
         onDelete={onDelete}
       />
     </article>
@@ -85,6 +86,7 @@ export function ThemaAnsicht() {
   const [aktionFehler, setAktionFehler] = useState<string | null>(null);
   const [beschaeftigt, setBeschaeftigt] = useState(false);
   const [menueId, setMenueId] = useState<number | null>(null);
+  const [wechselId, setWechselId] = useState<number | null>(null);
   const [notizMeldung, setNotizMeldung] = useState<NotizMeldung | null>(liesGemerkteNotiz);
   const [undoFehler, setUndoFehler] = useState<string | null>(null);
   const sperre = useRef(false);
@@ -137,9 +139,15 @@ export function ThemaAnsicht() {
     setAktionFehler(null);
   }
 
-  function notizBearbeiten(id: number) {
-    setMenueId(null);
-    navigate(`/library/note?id=${id}`);
+  function nachWechsel(neu: Notiz) {
+    setWechselId(null);
+    setNotizen((liste) => {
+      if (!liste) return liste;
+      return liste.flatMap((eintrag) => {
+        if (eintrag.id !== neu.id) return [eintrag];
+        return gleicherName(neu.topic, titel) ? [neu] : [];
+      });
+    });
   }
 
   async function notizLoeschen(notiz: Notiz) {
@@ -283,7 +291,12 @@ export function ThemaAnsicht() {
                     setMenueId(notiz.id);
                   }}
                   onSchliessen={() => setMenueId((aktuell) => (aktuell === notiz.id ? null : aktuell))}
-                  onEdit={() => notizBearbeiten(notiz.id)}
+                  onChange={() => {
+                    setDialog(null);
+                    setMenueId(null);
+                    setAktionFehler(null);
+                    setWechselId(notiz.id);
+                  }}
                   onDelete={() => void notizLoeschen(notiz)}
                 />
               ))}
@@ -313,6 +326,14 @@ export function ThemaAnsicht() {
       ) : null}
       {notizMeldung ? (
         <NotizToast fehler={undoFehler} gesperrt={beschaeftigt} onUndo={() => void notizZurueck()} />
+      ) : null}
+      {wechselId !== null ? (
+        <ThemenWahl
+          notizId={wechselId}
+          aktuell={titel}
+          onSchliessen={() => setWechselId(null)}
+          onZu={nachWechsel}
+        />
       ) : null}
     </div>
   );
