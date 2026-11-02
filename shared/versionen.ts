@@ -6,6 +6,14 @@ export interface Versionseintrag {
 
 export const VERSIONEN: readonly Versionseintrag[] = [
   {
+    version: '1.8.2',
+    datum: '2026-11-02',
+    zeilen: [
+      'On a phone, the format bar sits on the keyboard while you type.',
+      'When the keyboard closes, it drops back above the File button. On a note it sits on the bottom edge.',
+    ],
+  },
+  {
     version: '1.8.1',
     datum: '2026-11-02',
     zeilen: [

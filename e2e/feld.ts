@@ -52,3 +52,67 @@ export async function setzeAuswahl(page: Page, anchor: number, head: number): Pr
 export async function setzeCursor(page: Page, index: number): Promise<void> {
   await setzeAuswahl(page, index, index);
 }
+
+export async function richteSicht(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    const echt = window.visualViewport;
+    if (!echt) return;
+    let hoehe: number | null = null;
+    let versatz: number | null = null;
+    const ziel = new Proxy(echt, {
+      get(target, prop, receiver) {
+        if (prop === 'height') return hoehe ?? target.height;
+        if (prop === 'offsetTop') return versatz ?? target.offsetTop;
+        if (prop === 'pageTop') return (versatz ?? target.pageTop);
+        const wert = Reflect.get(target, prop, receiver);
+        return typeof wert === 'function' ? wert.bind(target) : wert;
+      },
+      set(target, prop, value, receiver) {
+        return Reflect.set(target, prop, value, receiver);
+      },
+    });
+    Object.defineProperty(window, 'visualViewport', { configurable: true, get: () => ziel });
+    (window as unknown as { __setzeSicht?: (wert: { hoehe: number | null; versatz: number }) => void }).__setzeSicht = (wert) => {
+      hoehe = wert.hoehe;
+      versatz = wert.versatz;
+      echt.dispatchEvent(new Event('resize'));
+      echt.dispatchEvent(new Event('scroll'));
+      window.dispatchEvent(new Event('resize'));
+    };
+  });
+}
+
+export async function setzeSicht(page: Page, hoehe: number | null, versatz = 0): Promise<void> {
+  await page.evaluate(
+    ({ naechsteHoehe, naechsterVersatz }) => {
+      const fenster = window as unknown as { __setzeSicht?: (wert: { hoehe: number | null; versatz: number }) => void };
+      if (!fenster.__setzeSicht) throw new Error('Viewport hook is missing.');
+      fenster.__setzeSicht({ hoehe: naechsteHoehe, versatz: naechsterVersatz });
+    },
+    { naechsteHoehe: hoehe, naechsterVersatz: versatz },
+  );
+}
+
+export interface LeistenKante {
+  unten: number;
+  oben: number;
+  sichtHoehe: number;
+  fussOben: number | null;
+  fileOben: number | null;
+}
+
+export async function leistenKante(page: Page): Promise<LeistenKante> {
+  return page.getByRole('toolbar', { name: 'Format' }).evaluate((el) => {
+    const rect = el.getBoundingClientRect();
+    const sicht = window.visualViewport;
+    const fuss = document.querySelector('footer.fuss');
+    const file = document.querySelector('footer.fuss button');
+    return {
+      unten: rect.bottom,
+      oben: rect.top,
+      sichtHoehe: sicht?.height ?? window.innerHeight,
+      fussOben: fuss ? fuss.getBoundingClientRect().top : null,
+      fileOben: file ? file.getBoundingClientRect().top : null,
+    };
+  });
+}

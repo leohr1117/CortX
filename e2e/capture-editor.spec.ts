@@ -22,10 +22,14 @@ async function tippe(page: Page, text: string): Promise<void> {
 async function leisteUeberFile(page: Page): Promise<boolean> {
   const leiste = page.getByRole('toolbar', { name: 'Format' });
   const knopf = page.getByRole('button', { name: 'File' });
+  const fuss = page.locator('footer.fuss');
   const bar = await leiste.boundingBox();
   const ziel = await knopf.boundingBox();
-  if (!bar || !ziel) return false;
-  return bar.y + bar.height <= ziel.y + 1;
+  const kante = await fuss.boundingBox();
+  if (!bar || !ziel || !kante) return false;
+  const zumKnopf = ziel.y - (bar.y + bar.height);
+  const zumFuss = kante.y - (bar.y + bar.height);
+  return zumKnopf >= -1 && zumKnopf <= 2 && zumFuss >= -1 && zumFuss <= 2;
 }
 
 test('the capture format bar follows the screen and stays off the File button', async ({ page }, testInfo) => {

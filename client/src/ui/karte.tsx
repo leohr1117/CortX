@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState, useSyncExternalStore, type PointerEvent } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type PointerEvent } from 'react';
 import { SchliessenIcon } from './icons.tsx';
+import { LAGE, LAGE_VAR, beobachteSicht, fixedFolgtSicht, hindernisOben, kartenHubPx, liesSicht } from './lage.ts';
 
 export const KARTE_DAUER_OHNE_MS = 5000;
 export const KARTE_DAUER_MIT_MS = 8000;
-export const KARTE_ABSTAND_PX = 16;
+export const KARTE_ABSTAND_PX = LAGE.karteAbstandPx;
 export const KARTE_BREITE_PX = 480;
 export const KARTE_TREFFER_PX = 48;
 export const KARTE_WISCHEN_PX = 80;
@@ -58,21 +59,6 @@ export function schliesseKarte(): void {
   melde();
 }
 
-function hindernisHoehe(): number {
-  const sicht = window.visualViewport;
-  const tastatur = sicht ? Math.max(0, window.innerHeight - (sicht.offsetTop + sicht.height)) : 0;
-  let oben = 0;
-  for (const sel of ['.format-leiste.mobil', 'footer.fuss']) {
-    const el = document.querySelector(sel);
-    if (!(el instanceof HTMLElement)) continue;
-    const rect = el.getBoundingClientRect();
-    if (rect.height <= 0) continue;
-    oben = Math.max(oben, window.innerHeight - rect.top);
-  }
-  const bedarf = Math.max(tastatur, oben);
-  return bedarf > 0 ? bedarf + KARTE_ABSTAND_PX : 0;
-}
-
 function KarteAnsicht({ eintrag }: { eintrag: Karte }) {
   const rest = useRef(karteDauer(eintrag.aktion !== null));
   const start = useRef(0);
@@ -121,21 +107,12 @@ function KarteAnsicht({ eintrag }: { eintrag: Karte }) {
     };
   }, [eintrag.id, eintrag.aktion]);
 
-  useEffect(() => {
-    function messe(): void {
-      const naechster = hindernisHoehe();
+  useLayoutEffect(() => {
+    return beobachteSicht(() => {
+      const sicht = liesSicht();
+      const naechster = kartenHubPx(sicht, hindernisOben(), LAGE.karteAbstandPx, fixedFolgtSicht(sicht));
       setHub((alt) => (alt === naechster ? alt : naechster));
-    }
-    messe();
-    const sicht = window.visualViewport;
-    sicht?.addEventListener('resize', messe);
-    sicht?.addEventListener('scroll', messe);
-    window.addEventListener('resize', messe);
-    return () => {
-      sicht?.removeEventListener('resize', messe);
-      sicht?.removeEventListener('scroll', messe);
-      window.removeEventListener('resize', messe);
-    };
+    });
   }, []);
 
   function beiStart(event: PointerEvent<HTMLDivElement>): void {
@@ -162,7 +139,7 @@ function KarteAnsicht({ eintrag }: { eintrag: Karte }) {
   return (
     <div
       className="karte-ort"
-      style={{ ['--karte-hub' as string]: hub > 0 ? `${hub}px` : undefined, transform: schieben }}
+      style={{ [LAGE_VAR.karteHub as string]: hub > 0 ? `${hub}px` : undefined, transform: schieben }}
       onPointerDown={beiStart}
       onPointerMove={beiBeweg}
       onPointerUp={beiEnde}

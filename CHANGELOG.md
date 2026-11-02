@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.8.2
+
+On a phone, the format bar sits on the keyboard while it is open. When the keyboard closes, the bar drops back above the File button. On a note, it sits on the bottom edge.
+
 ## 1.8.1
 
 A line that starts with #topic/page files that part of the note. One note can go to several pages. Text before the first such line goes to the Inbox. A #tag in the middle of a line stays in the text.

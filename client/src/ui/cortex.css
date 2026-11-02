@@ -15,6 +15,12 @@
   --fokus: #60a5fa;
   --kopf: 56px;
   --rand: 16px;
+  --leiste-pad: 6px;
+  --leiste-knopf: 36px;
+  --leiste-rand: 1px;
+  --leiste-hoehe: calc(var(--leiste-pad) * 2 + var(--leiste-knopf) + var(--leiste-rand));
+  --leiste-luecke: 12px;
+  --karte-abstand: 16px;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -267,7 +273,7 @@ html[data-os="mac"] .kbd .mac { display: inline-flex; }
 .karte-ort {
   position: fixed;
   left: 50%;
-  bottom: max(calc(16px + env(safe-area-inset-bottom)), var(--karte-hub, 0px));
+  bottom: max(calc(var(--karte-abstand) + env(safe-area-inset-bottom, 0px)), var(--karte-hub, 0px));
   z-index: 36;
   width: max-content;
   max-width: min(480px, calc(100% - 32px));
@@ -1220,8 +1226,8 @@ input.feld::placeholder { color: var(--leise); }
   z-index: 32;
 }
 .format-leiste .schalt {
-  width: 36px;
-  height: 36px;
+  width: var(--leiste-knopf);
+  height: var(--leiste-knopf);
   padding: 0;
   display: grid;
   place-items: center;
@@ -1234,9 +1240,10 @@ input.feld::placeholder { color: var(--leise); }
   position: fixed;
   left: 0;
   right: 0;
+  bottom: var(--leiste-boden, env(safe-area-inset-bottom, 0px));
   background: var(--flaeche);
   border-top: 1px solid var(--trenner);
-  padding: 6px 8px;
+  padding: var(--leiste-pad) 8px;
   overflow-x: auto;
 }
 .format-leiste.schwebend {
@@ -1248,9 +1255,16 @@ input.feld::placeholder { color: var(--leise); }
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
 }
 @media (max-width: 899px) {
-  .notizblatt.schreiben { padding-bottom: calc(72px + env(safe-area-inset-bottom)); }
-  .cap .schreib .cm-content { padding-bottom: 56px; }
-  .app:has(.cap) .toast { bottom: calc(var(--capture-leiste, 90px) + 60px); }
+  .fuss { padding-top: 0; }
+  .notizblatt.schreiben {
+    padding-bottom: var(--leiste-ueberlapp, calc(var(--leiste-hoehe) + var(--leiste-luecke) + env(safe-area-inset-bottom, 0px)));
+  }
+  .cap .schreib .cm-content {
+    padding-bottom: var(--leiste-ueberlapp, calc(var(--leiste-hoehe) + var(--leiste-luecke)));
+  }
+  .app:has(.cap) .toast {
+    bottom: var(--toast-boden, calc(var(--leiste-hoehe) + var(--leiste-luecke)));
+  }
 }
 .menue .schalter {
   height: auto;

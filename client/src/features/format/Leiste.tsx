@@ -1,6 +1,17 @@
 import type { ReactNode } from 'react';
-import { useEffect, useLayoutEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { EditorView } from '@codemirror/view';
+import {
+  HINDERNIS,
+  LAGE,
+  LAGE_VAR,
+  beobachteSicht,
+  fixedFolgtSicht,
+  leisteBodenPx,
+  liesSicht,
+  sicherUntenPx,
+  ueberlappPx,
+} from '../../ui/lage.ts';
 import { leseDruck, type Druck } from './druck.ts';
 
 function LeistenIcon({ pfade }: { pfade: readonly string[] }) {
@@ -68,9 +79,8 @@ export function Leiste({
   stand: number;
   onBefehl: (befehl: FormatBefehl) => void;
 }) {
+  const leisteRef = useRef<HTMLDivElement>(null);
   const [mobil, setMobil] = useState(false);
-  const [unten, setUnten] = useState(0);
-  const [sockel, setSockel] = useState(0);
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
   const [druck, setDruck] = useState<Druck>(LEER);
 
@@ -82,71 +92,54 @@ export function Leiste({
     return () => media.removeEventListener('change', setze);
   }, []);
 
-  useEffect(() => {
-    if (!mobil) return;
-    const sicht = window.visualViewport;
-    if (!sicht) return;
-    const setze = () => setUnten(Math.max(0, Math.round(window.innerHeight - sicht.height - sicht.offsetTop)));
-    setze();
-    sicht.addEventListener('resize', setze);
-    sicht.addEventListener('scroll', setze);
-    return () => {
-      sicht.removeEventListener('resize', setze);
-      sicht.removeEventListener('scroll', setze);
-    };
-  }, [mobil]);
-
-  useLayoutEffect(() => {
-    if (!mobil || !view) {
-      setSockel(0);
-      return;
-    }
-    const fuss = view.dom.closest('.app')?.querySelector('footer.fuss');
-    if (!(fuss instanceof HTMLElement)) {
-      setSockel(0);
-      return;
-    }
-    const messe = () => {
-      const sicht = window.visualViewport;
-      const sichtUnten = sicht ? sicht.offsetTop + sicht.height : window.innerHeight;
-      const naechster = Math.max(0, Math.round(sichtUnten - fuss.getBoundingClientRect().top));
-      setSockel((alt) => (alt === naechster ? alt : naechster));
-    };
-    messe();
-    const beobachter = new ResizeObserver(messe);
-    beobachter.observe(fuss);
-    const sicht = window.visualViewport;
-    sicht?.addEventListener('resize', messe);
-    sicht?.addEventListener('scroll', messe);
-    window.addEventListener('resize', messe);
-    return () => {
-      beobachter.disconnect();
-      sicht?.removeEventListener('resize', messe);
-      sicht?.removeEventListener('scroll', messe);
-      window.removeEventListener('resize', messe);
-    };
-  }, [mobil, view]);
-
   useLayoutEffect(() => {
     const wurzel = document.documentElement;
-    if (sockel <= 0) {
-      wurzel.style.removeProperty('--capture-leiste');
+    const weg = () => {
+      wurzel.style.removeProperty(LAGE_VAR.boden);
+      wurzel.style.removeProperty(LAGE_VAR.toast);
+      wurzel.style.removeProperty(LAGE_VAR.ueberlapp);
+    };
+    if (!mobil || !view) {
+      weg();
       return;
     }
-    wurzel.style.setProperty('--capture-leiste', `${sockel}px`);
+    const app = view.dom.closest('.app');
+    const stoppe = beobachteSicht(() => {
+      const el = leisteRef.current;
+      if (!el || !(app instanceof HTMLElement)) return;
+      const sicht = liesSicht();
+      const fuss = app.querySelector(HINDERNIS.fuss);
+      const fussOben =
+        fuss instanceof HTMLElement && fuss.getBoundingClientRect().height > 0
+          ? fuss.getBoundingClientRect().top
+          : null;
+      const boden = leisteBodenPx(sicht, fussOben, sicherUntenPx(), fixedFolgtSicht(sicht));
+      wurzel.style.setProperty(LAGE_VAR.boden, `${boden}px`);
+      const leiste = el.getBoundingClientRect();
+      const inhalt = view.dom.closest('.inhalt');
+      const schreib = view.dom.closest('.schreib');
+      const behaelter = inhalt instanceof HTMLElement ? inhalt : schreib;
+      if (behaelter instanceof HTMLElement) {
+        const ueber = ueberlappPx(behaelter.getBoundingClientRect().bottom, leiste.top, LAGE.leisteLueckePx);
+        wurzel.style.setProperty(LAGE_VAR.ueberlapp, `${ueber}px`);
+      }
+      if (fussOben === null) wurzel.style.removeProperty(LAGE_VAR.toast);
+      else {
+        const toast = ueberlappPx(app.getBoundingClientRect().bottom, leiste.top, LAGE.leisteLueckePx);
+        wurzel.style.setProperty(LAGE_VAR.toast, `${toast}px`);
+      }
+    });
     return () => {
-      wurzel.style.removeProperty('--capture-leiste');
+      stoppe();
+      weg();
     };
-  }, [sockel]);
+  }, [mobil, view]);
 
   useEffect(() => {
     if (!view) return;
     const sel = view.state.selection.main;
     setDruck(leseDruck(view.state.doc.toString(), sel.from, sel.to));
-    if (mobil) {
-      setPos({ top: 0, left: 0 });
-      return;
-    }
+    if (mobil) return;
     if (sel.empty) {
       setPos(null);
       return;
@@ -162,15 +155,11 @@ export function Leiste({
     setPos({ top, left });
   }, [view, stand, mobil]);
 
-  if (!view || !pos) return null;
-  const stil = mobil
-    ? {
-        bottom:
-          sockel > 0 ? `${unten + sockel}px` : `calc(${unten}px + env(safe-area-inset-bottom))`,
-      }
-    : { top: pos.top, left: pos.left };
+  if (!view || (!mobil && !pos)) return null;
+  const stil = mobil || !pos ? undefined : { top: pos.top, left: pos.left };
   return (
     <div
+      ref={leisteRef}
       className={mobil ? 'format-leiste mobil' : 'format-leiste schwebend'}
       role="toolbar"
       aria-label="Format"
