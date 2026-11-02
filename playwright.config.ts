@@ -21,7 +21,7 @@ export default defineConfig({
     serviceWorkers: 'block',
   },
   projects: [
-    { name: 'handy', use: { viewport: { width: 390, height: 844 }, hasTouch: true } },
+    { name: 'handy', use: { viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true } },
     { name: 'desktop', use: { viewport: { width: 1440, height: 900 } } },
   ],
   webServer: {

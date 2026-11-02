@@ -8,10 +8,14 @@ export const LAGE = {
   leisteLueckePx: 12,
   tastaturSchwellePx: 80,
   nachleseMs: 280,
+  listeMaxPx: 320,
+  listeMinPx: 96,
+  listeLueckePx: 6,
 } as const;
 
 export const LAGE_VAR = {
   boden: '--leiste-boden',
+  hub: '--leiste-hub',
   toast: '--toast-boden',
   ueberlapp: '--leiste-ueberlapp',
   karteHub: '--karte-hub',
@@ -37,16 +41,39 @@ export function tastaturPx(sicht: Sichtmasse): number {
   return Math.max(0, sicht.innenHoehe - sicht.sichtVersatz - sicht.sichtHoehe);
 }
 
-export function leisteBodenPx(
-  sicht: Sichtmasse,
-  fussOben: number | null,
-  sicherUnten: number,
-  fixedFolgtSicht: boolean,
-): number {
+export function leisteBodenPx(sicht: Sichtmasse, sicherUnten: number, fixedFolgtSicht: boolean): number {
   const tastatur = tastaturPx(sicht);
   if (tastatur >= LAGE.tastaturSchwellePx) return fixedFolgtSicht ? 0 : Math.round(tastatur);
-  if (fussOben !== null) return Math.max(0, Math.round(sicht.innenHoehe - (fussOben + sicht.sichtVersatz)));
   return Math.max(0, Math.round(sicherUnten));
+}
+
+export function layoutHubPx(sicht: Sichtmasse, sicherUnten: number, barHoehe: number): number {
+  const tastatur = tastaturPx(sicht);
+  const boden = tastatur >= LAGE.tastaturSchwellePx ? Math.round(tastatur) : Math.max(0, Math.round(sicherUnten));
+  return boden + Math.max(0, Math.round(barHoehe));
+}
+
+export interface ListenPlatz {
+  top: number;
+  maxHoehe: number;
+}
+
+export function listenPlatz(
+  obenKante: number,
+  untenKante: number,
+  ankerOben: number,
+  ankerUnten: number,
+  maxPx: number,
+  minPx: number,
+  luecke: number,
+): ListenPlatz {
+  const freiUnten = Math.max(0, Math.floor(untenKante - ankerUnten - luecke));
+  const freiOben = Math.max(0, Math.floor(ankerOben - obenKante - luecke));
+  if (freiUnten >= minPx || freiUnten >= freiOben) {
+    return { top: Math.round(ankerUnten + luecke), maxHoehe: Math.min(maxPx, freiUnten) };
+  }
+  const maxHoehe = Math.min(maxPx, freiOben);
+  return { top: Math.round(ankerOben - luecke - maxHoehe), maxHoehe };
 }
 
 export function kartenHubPx(

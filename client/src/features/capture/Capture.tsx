@@ -324,6 +324,7 @@ export function CaptureAnsicht() {
             fragment={lage?.fragment ?? ''}
             top={pos.top}
             left={pos.left}
+            maxHeight={pos.maxHoehe}
             fest
             onWahl={waehle}
           />

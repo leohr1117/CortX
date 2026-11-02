@@ -106,7 +106,7 @@ export function Zusammen({
           onKeyDown={taste}
         />
       </label>
-      <div className="wl" id="zusammen-liste" role="listbox" aria-label="Topics">
+      <div className="wl rolle" id="zusammen-liste" role="listbox" aria-label="Topics">
         {ziele.map((zeile, stelle) => (
           <div
             key={zeile.name}

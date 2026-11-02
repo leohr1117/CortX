@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.8.4
+
+Lists of pages, topics, and suggestions scroll on a phone with a finger, and with the mouse wheel on a computer. The last entry stays reachable, including while the keyboard is open.
+
+On a phone, the format bar sits on the bottom edge. The File button and the target line sit above it. While the keyboard is open, the bar sits on the keyboard.
+
 ## 1.8.3
 
 The page title is the first line of the note. It can be a heading or a normal paragraph. A new page is not turned into a heading. A heading that is already there stays a heading. Sections stay level-two headings.

@@ -1,4 +1,5 @@
 import { expect, type Page } from '@playwright/test';
+import { LAGE } from '../client/src/ui/lage.ts';
 
 interface Sicht {
   cm?: {
@@ -99,6 +100,61 @@ export interface LeistenKante {
   sichtHoehe: number;
   fussOben: number | null;
   fileOben: number | null;
+}
+
+export async function leistenAbstand(page: Page): Promise<number> {
+  return page.evaluate((schwelle: number) => {
+    const leiste = document.querySelector('.format-leiste.mobil');
+    if (!(leiste instanceof HTMLElement)) return 999;
+    const rect = leiste.getBoundingClientRect();
+    const sicht = window.visualViewport;
+    const versatz = sicht?.offsetTop ?? 0;
+    const hoehe = sicht?.height ?? window.innerHeight;
+    const tastatur = Math.max(0, window.innerHeight - versatz - hoehe);
+    const probe = document.createElement('div');
+    probe.setAttribute('aria-hidden', 'true');
+    probe.style.position = 'fixed';
+    probe.style.left = '0';
+    probe.style.bottom = '0';
+    probe.style.width = '0';
+    probe.style.height = 'env(safe-area-inset-bottom, 0px)';
+    probe.style.visibility = 'hidden';
+    probe.style.pointerEvents = 'none';
+    document.documentElement.appendChild(probe);
+    const safe = probe.getBoundingClientRect().height;
+    probe.remove();
+    const ziel = versatz + hoehe - (tastatur >= schwelle ? 0 : safe);
+    return Math.abs(rect.bottom - ziel);
+  }, LAGE.tastaturSchwellePx);
+}
+
+export async function wische(page: Page, x: number, vonY: number, nachY: number): Promise<void> {
+  const session = await page.context().newCDPSession(page);
+  const punkt = (y: number) => ({ x: Math.round(x), y: Math.round(y), radiusX: 1, radiusY: 1, id: 1 });
+  try {
+    await session.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [punkt(vonY)] });
+    const schritte = 12;
+    for (let i = 1; i <= schritte; i += 1) {
+      const y = vonY + ((nachY - vonY) * i) / schritte;
+      await session.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [punkt(y)] });
+    }
+    await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  } finally {
+    await session.detach();
+  }
+}
+
+export async function tippe(page: Page, x: number, y: number): Promise<void> {
+  const session = await page.context().newCDPSession(page);
+  const punkt = { x: Math.round(x), y: Math.round(y), radiusX: 1, radiusY: 1 };
+  try {
+    await session.send('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 1 });
+    await session.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [punkt] });
+    await new Promise((resolve) => setTimeout(resolve, 120));
+    await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  } finally {
+    await session.detach();
+  }
 }
 
 export async function leistenKante(page: Page): Promise<LeistenKante> {

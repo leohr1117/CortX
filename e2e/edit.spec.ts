@@ -229,7 +229,7 @@ test('change and delete stay on the note menu and on the note page', async ({ pa
     expect(nachSeite.notes.find((eintrag) => eintrag.text === SEITE)?.pinned).toBe(1);
     expect(nachSeite.corrections).toHaveLength(2);
     await page.getByRole('button', { name: 'Back' }).click();
-    await expect(page.getByRole('heading', { name: 'Home', level: 1 })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Home', level: 1, exact: true })).toBeVisible();
     await expect(page.getByText(SEITE)).toBeVisible();
 
     await page.goto('/library/topic?name=Work');

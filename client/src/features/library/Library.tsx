@@ -20,12 +20,13 @@ import { Suchleiste, Trefferliste, sucheNotizen, type SuchTreffer } from '../suc
 import { BibliothekMenue } from '../version/index.ts';
 import { AbmeldenKnopf } from '../zugang/index.ts';
 import { BIBLIOTHEK_NEU, ladeBibliothek, themaPfad } from './api.ts';
+import { klickTipp, losTipp, merkTipp } from '../../ui/tipp.ts';
 import { Kopf } from './Kopf.tsx';
 
 function Zeile({ zeile, inbox, jetzt }: { zeile: BibliothekZeile; inbox: boolean; jetzt: Date }) {
   const ne = inbox ? 'Notes without a topic' : themaUnterzeile(zeile, jetzt);
   return (
-    <Link className="zeile" to={themaPfad(zeile.name)}>
+    <Link className="zeile" to={themaPfad(zeile.name)} onPointerDown={merkTipp} onPointerUp={losTipp} onClick={klickTipp}>
       <span className="sym">{inbox ? <PosteingangIcon /> : <HashIcon />}</span>
       <span className="tx">
         <div className="ti">{zeile.name}</div>
@@ -167,7 +168,7 @@ export function LibraryAnsicht() {
           </span>
         }
       />
-      <main className="inhalt">
+      <main className="inhalt rolle">
         <Suchleiste wert={frage} onChange={beiSuche} />
         {sucht && suchFehler ? <p className="leer1">Could not search.</p> : null}
         {sucht && !suchFehler && treffer ? <Trefferliste treffer={treffer} /> : null}

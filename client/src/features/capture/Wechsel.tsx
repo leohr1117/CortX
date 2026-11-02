@@ -122,7 +122,7 @@ export function Wechsel({
         />
       </label>
       {hinweis ? <p className="hinweis">{hinweis}</p> : null}
-      <div className="wl" id="wechsel-liste" role="listbox" aria-label="Topics">
+      <div className="wl rolle" id="wechsel-liste" role="listbox" aria-label="Topics">
         {zeilen.map((zeile, stelle) => {
           const gewaehlt = !zeile.neu && gleicherName(zeile.name, aktuell);
           const tastatur = angefasst && stelle === index;

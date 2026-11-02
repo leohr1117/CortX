@@ -33,7 +33,7 @@ export function NeuSeite() {
   return (
     <div className="app">
       <Kopf titel="What's new" zurueck="/library" zurueckLabel="Back to Library" />
-      <main className="inhalt">
+      <main className="inhalt rolle">
         <div className="versionen" data-versionen="">
           {VERSIONEN.map((eintrag) => (
             <section key={eintrag.version} aria-label={`Version ${eintrag.version}`}>

@@ -19,17 +19,12 @@ async function tippe(page: Page, text: string): Promise<void> {
   await page.locator('.schreib .cm-content').pressSequentially(text, { delay: 20 });
 }
 
-async function leisteUeberFile(page: Page): Promise<boolean> {
-  const leiste = page.getByRole('toolbar', { name: 'Format' });
-  const knopf = page.getByRole('button', { name: 'File' });
-  const fuss = page.locator('footer.fuss');
-  const bar = await leiste.boundingBox();
-  const ziel = await knopf.boundingBox();
-  const kante = await fuss.boundingBox();
-  if (!bar || !ziel || !kante) return false;
-  const zumKnopf = ziel.y - (bar.y + bar.height);
-  const zumFuss = kante.y - (bar.y + bar.height);
-  return zumKnopf >= -1 && zumKnopf <= 2 && zumFuss >= -1 && zumFuss <= 2;
+async function fileUeberLeiste(page: Page): Promise<boolean> {
+  const bar = await page.getByRole('toolbar', { name: 'Format' }).boundingBox();
+  const knopf = await page.getByRole('button', { name: 'File' }).boundingBox();
+  if (!bar || !knopf) return false;
+  const luecke = bar.y - (knopf.y + knopf.height);
+  return luecke >= -1 && luecke <= 16;
 }
 
 test('the capture format bar follows the screen and stays off the File button', async ({ page }, testInfo) => {
@@ -41,7 +36,7 @@ test('the capture format bar follows the screen and stays off the File button', 
     await expect(leiste.getByRole('button', { name: 'Important' })).toBeVisible();
     await expect(leiste.getByRole('button', { name: 'Checklist' })).toBeVisible();
     await expect(leiste.getByRole('button', { name: 'Bulleted list' })).toBeVisible();
-    await expect.poll(() => leisteUeberFile(page)).toBe(true);
+    await expect.poll(() => fileUeberLeiste(page)).toBe(true);
     await page.screenshot({ path: `${BILDER}/handy-capture-editor.png` });
     return;
   }

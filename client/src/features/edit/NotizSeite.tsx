@@ -253,7 +253,7 @@ export function NotizSeite() {
   return (
     <div className="app">
       <Kopf titel={pfad} zurueck="/library" zurueckLabel="Back" onZurueck={() => void zurueck()} aktion={aktion} />
-      <main className={modus === 'schreiben' ? 'inhalt notizblatt schreiben' : 'inhalt notizblatt'}>
+      <main className={modus === 'schreiben' ? 'inhalt rolle notizblatt schreiben' : 'inhalt rolle notizblatt'}>
         {fehler && !notiz ? <p className="leer1">{fehler}</p> : null}
         {notiz && modus === 'lesen' ? (
           <>

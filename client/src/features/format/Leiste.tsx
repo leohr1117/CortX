@@ -7,6 +7,7 @@ import {
   LAGE_VAR,
   beobachteSicht,
   fixedFolgtSicht,
+  layoutHubPx,
   leisteBodenPx,
   liesSicht,
   sicherUntenPx,
@@ -96,6 +97,7 @@ export function Leiste({
     const wurzel = document.documentElement;
     const weg = () => {
       wurzel.style.removeProperty(LAGE_VAR.boden);
+      wurzel.style.removeProperty(LAGE_VAR.hub);
       wurzel.style.removeProperty(LAGE_VAR.toast);
       wurzel.style.removeProperty(LAGE_VAR.ueberlapp);
     };
@@ -108,14 +110,12 @@ export function Leiste({
       const el = leisteRef.current;
       if (!el || !(app instanceof HTMLElement)) return;
       const sicht = liesSicht();
-      const fuss = app.querySelector(HINDERNIS.fuss);
-      const fussOben =
-        fuss instanceof HTMLElement && fuss.getBoundingClientRect().height > 0
-          ? fuss.getBoundingClientRect().top
-          : null;
-      const boden = leisteBodenPx(sicht, fussOben, sicherUntenPx(), fixedFolgtSicht(sicht));
+      const sicher = sicherUntenPx();
+      const folgt = fixedFolgtSicht(sicht);
+      const boden = leisteBodenPx(sicht, sicher, folgt);
       wurzel.style.setProperty(LAGE_VAR.boden, `${boden}px`);
       const leiste = el.getBoundingClientRect();
+      wurzel.style.setProperty(LAGE_VAR.hub, `${layoutHubPx(sicht, sicher, leiste.height)}px`);
       const inhalt = view.dom.closest('.inhalt');
       const schreib = view.dom.closest('.schreib');
       const behaelter = inhalt instanceof HTMLElement ? inhalt : schreib;
@@ -123,11 +123,13 @@ export function Leiste({
         const ueber = ueberlappPx(behaelter.getBoundingClientRect().bottom, leiste.top, LAGE.leisteLueckePx);
         wurzel.style.setProperty(LAGE_VAR.ueberlapp, `${ueber}px`);
       }
-      if (fussOben === null) wurzel.style.removeProperty(LAGE_VAR.toast);
-      else {
-        const toast = ueberlappPx(app.getBoundingClientRect().bottom, leiste.top, LAGE.leisteLueckePx);
-        wurzel.style.setProperty(LAGE_VAR.toast, `${toast}px`);
+      const fuss = app.querySelector(HINDERNIS.fuss);
+      const kanten = [leiste.top];
+      if (fuss instanceof HTMLElement && fuss.getBoundingClientRect().height > 0) {
+        kanten.push(fuss.getBoundingClientRect().top);
       }
+      const toast = ueberlappPx(app.getBoundingClientRect().bottom, Math.min(...kanten), LAGE.leisteLueckePx);
+      wurzel.style.setProperty(LAGE_VAR.toast, `${toast}px`);
     });
     return () => {
       stoppe();

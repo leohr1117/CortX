@@ -6,6 +6,15 @@ export interface Versionseintrag {
 
 export const VERSIONEN: readonly Versionseintrag[] = [
   {
+    version: '1.8.4',
+    datum: '2026-11-02',
+    zeilen: [
+      'Long lists of pages, topics, and suggestions scroll by touch on a phone and with the wheel on a computer.',
+      'On a phone, the format bar stays on the bottom edge, and on the keyboard while it is open.',
+      'The File button and the target line sit above the bar.',
+    ],
+  },
+  {
     version: '1.8.3',
     datum: '2026-11-02',
     zeilen: [

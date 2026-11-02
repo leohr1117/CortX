@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
+import { klickTipp, losTipp, merkTipp } from '../../ui/tipp.ts';
 import { gruppiereNotizen, LEERE_SEITEN, uhrzeit } from '../../../../shared/features/library/index.ts';
 import { INBOX_NAME } from '../../../../shared/kern/grenzen.ts';
 import { gleicherName } from '../../../../shared/features/tags/index.ts';
@@ -57,7 +58,7 @@ function NotizZeile({
 }) {
   return (
     <article className="notiz" id={`note-${notiz.id}`}>
-      <Link className="tx" to={notizPfad(notiz.id)}>
+      <Link className="tx" to={notizPfad(notiz.id)} onPointerDown={merkTipp} onPointerUp={losTipp} onClick={klickTipp}>
         <LeseText text={notiz.text} />
         <div className="zeit">{uhrzeit(notiz.created)}</div>
         <TerminZeile text={notiz.text} created={notiz.created} />
@@ -299,7 +300,7 @@ export function ThemaAnsicht() {
   return (
     <div className="app">
       <Kopf titel={titel || 'Topic'} zurueck="/library" zurueckLabel="Back to Library" aktion={aktion} />
-      <main className="inhalt">
+      <main className="inhalt rolle">
         {fehler ? <p className="leer1">{fehler}</p> : null}
         {notizen && notizen.length === 0 && inbox ? <p className="leer1">Inbox is empty.</p> : null}
         {notizen && notizen.length === 0 && !inbox ? <p className="leer1">{LEERE_SEITEN}</p> : null}
