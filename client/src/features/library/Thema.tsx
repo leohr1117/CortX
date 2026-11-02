@@ -27,6 +27,7 @@ import {
   Zusammen,
 } from '../topics/index.ts';
 import { ladeThema, LeseFehler, themaPfad } from './api.ts';
+import { LeseText } from '../format/index.ts';
 import { Kopf } from './Kopf.tsx';
 
 function meldung(fehler: unknown): string {
@@ -54,7 +55,7 @@ function NotizZeile({
   return (
     <article className="notiz" id={`note-${notiz.id}`}>
       <div className="tx">
-        <p>{notiz.text}</p>
+        <LeseText text={notiz.text} />
         <div className="zeit">{uhrzeit(notiz.created)}</div>
       </div>
       <NotizKnopf

@@ -2,6 +2,7 @@ import { Link } from 'react-router';
 import { SUCH_MAX, type SuchTreffer } from '../../../../shared/features/suche/index.ts';
 import { gleicherName } from '../../../../shared/features/tags/index.ts';
 import { INBOX_NAME } from '../../../../shared/kern/grenzen.ts';
+import { LeseText } from '../format/index.ts';
 import { HashIcon, LupeIcon, PosteingangIcon, WeiterIcon } from '../../ui/icons.tsx';
 import { notizPfad } from './api.ts';
 
@@ -34,7 +35,9 @@ export function Trefferliste({ treffer }: { treffer: SuchTreffer[] }) {
           <Link className="zeile" key={zeile.id} to={notizPfad(zeile.topic, zeile.id)}>
             <span className="sym">{inbox ? <PosteingangIcon /> : <HashIcon />}</span>
             <span className="tx">
-              <div className="ti">{zeile.text}</div>
+              <div className="ti">
+                <LeseText text={zeile.text} dicht />
+              </div>
               <div className="ne">{zeile.topic}</div>
             </span>
             <WeiterIcon />

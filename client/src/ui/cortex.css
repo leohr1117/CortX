@@ -529,11 +529,91 @@ svg.i.ok {
   background: var(--trenner);
 }
 .notiz .tx { flex: 1; min-width: 0; padding-top: 2px; }
-.notiz .tx p {
+.notiz .tx p,
+.notiz .lesetext {
   font-size: 16px;
   line-height: 24px;
   white-space: pre-wrap;
   overflow-wrap: break-word;
+}
+.notiz .lesetext .lauf {
+  display: block;
+  min-height: 24px;
+}
+.lesetext ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.lesetext li {
+  position: relative;
+  min-height: 24px;
+  padding-left: 16px;
+}
+.lesetext li::before {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 9px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.lesetext .hakenzeile {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  min-height: 24px;
+}
+.lesetext .hakenlabel {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: break-word;
+}
+.lesetext .haken {
+  width: 16px;
+  height: 16px;
+  margin-top: 4px;
+  border: 1.5px solid var(--feldrand);
+  border-radius: 4px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  color: var(--grund);
+}
+.lesetext .haken.zu {
+  background: var(--haupt);
+  border-color: var(--haupt);
+}
+.lesetext .haken svg.i {
+  width: 11px;
+  height: 11px;
+  color: inherit;
+  stroke-width: 2.4;
+}
+.lesetext strong { font-weight: 600; }
+.lesetext.dicht .punkt {
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  margin: 0 8px 1px 0;
+  border-radius: 50%;
+  background: currentColor;
+  vertical-align: middle;
+}
+.lesetext.dicht .hakenzeile,
+.lesetext.dicht .hakenlabel,
+.lesetext.dicht .lauf {
+  display: inline;
+  min-height: 0;
+  white-space: inherit;
+}
+.lesetext.dicht .haken {
+  display: inline-grid;
+  place-items: center;
+  vertical-align: -3px;
+  margin: 0 6px 0 0;
 }
 .notiz .zeit {
   font-size: 13px;

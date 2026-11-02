@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0
+
+Notes show light formatting while you read them. A line that starts with "- " becomes a list, "[]" and "[x]" become checkboxes, and text between double asterisks is bold. This shows on a topic, in Inbox, and in search results. The saved text stays plain. Capture and edit stay text fields.
+
 ## 1.1.0
 
 Search your notes from the library. The field looks through every topic and Inbox. Each match shows the note and its topic, newest first. Open a match to read that note where it was filed.
