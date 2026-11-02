@@ -81,6 +81,7 @@ a { color: inherit; text-decoration: none; }
 .tlink svg { width: 18px; height: 18px; color: var(--leise); }
 .tlink:focus-visible,
 .btn:focus-visible,
+.schalt:focus-visible,
 .toast .a:focus-visible {
   outline: 2px solid var(--fokus);
   outline-offset: 2px;
@@ -593,6 +594,15 @@ svg.i.ok {
   stroke-width: 2.4;
 }
 .lesetext strong { font-weight: 600; }
+.notiz .lesetext h3 {
+  font-size: 18px;
+  line-height: 24px;
+  font-weight: 600;
+  min-height: 24px;
+}
+.lesetext h3 strong,
+.lesetext .ueberschrift strong { font-weight: 700; }
+.lesetext.dicht .ueberschrift { font-weight: 600; }
 .lesetext.dicht .punkt {
   display: inline-block;
   width: 5px;
@@ -752,6 +762,29 @@ input.feld::placeholder { color: var(--leise); }
 }
 .form .lab { margin: 16px 0 8px; }
 .form .lab:first-child { margin-top: 8px; }
+.form .notizkopf {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 8px 0;
+}
+.form .notizkopf .lab { margin: 0; }
+.schalt {
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 8px;
+  border: 1px solid var(--feldrand);
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 600;
+  color: var(--haupt);
+  flex: none;
+}
+.schalt.an {
+  background: var(--flaeche-2);
+  border-color: var(--haupt);
+}
 .form .lab.abstand { margin-top: 24px; }
 textarea.feld {
   display: block;

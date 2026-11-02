@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useBlocker, useNavigate, useSearchParams } from 'react-router';
 import { ablageZeile, planeNotizText, textGeaendert, textMeldung } from '../../../../shared/features/edit/index.ts';
+import { schalteUeberschrift, zeileIstUeberschrift } from '../../../../shared/features/format/index.ts';
 import { INBOX_NAME, NOTE_TEXT_MAX } from '../../../../shared/kern/grenzen.ts';
 import { gleicherName } from '../../../../shared/features/tags/index.ts';
 import type { Notiz } from '../../../../shared/kern/modell.ts';
@@ -24,6 +25,9 @@ export function BearbeitenAnsicht() {
   const [fehler, setFehler] = useState<string | null>(id === null ? 'Note not found.' : null);
   const [speichert, setSpeichert] = useState(false);
   const eingabe = useRef<HTMLTextAreaElement>(null);
+  const wahl = useRef({ start: 0, ende: 0 });
+  const rueck = useRef<{ start: number; ende: number } | null>(null);
+  const [ueberschrift, setUeberschrift] = useState(false);
   const lassen = useRef(false);
   const vergleich = useRef({ bereit: false, ursprung: '', feld: '' });
   vergleich.current = { bereit: notiz !== null, ursprung: notiz?.text ?? '', feld };
@@ -65,7 +69,54 @@ export function BearbeitenAnsicht() {
     el.focus();
     const ende = el.value.length;
     el.setSelectionRange(ende, ende);
+    wahl.current = { start: ende, ende };
+    setUeberschrift(zeileIstUeberschrift(el.value, ende));
   }, [notiz, blocker.state]);
+
+  useEffect(() => {
+    const ziel = rueck.current;
+    const el = eingabe.current;
+    if (!ziel || !el) return;
+    rueck.current = null;
+    el.focus();
+    el.setSelectionRange(ziel.start, ziel.ende);
+    wahl.current = ziel;
+    setUeberschrift(zeileIstUeberschrift(el.value, ziel.start));
+  }, [feld]);
+
+  useEffect(() => {
+    function beiAuswahl() {
+      const el = eingabe.current;
+      if (!el || document.activeElement !== el) return;
+      const start = el.selectionStart ?? 0;
+      const ende = el.selectionEnd ?? 0;
+      wahl.current = { start, ende };
+      setUeberschrift(zeileIstUeberschrift(el.value, start));
+    }
+    document.addEventListener('selectionchange', beiAuswahl);
+    return () => document.removeEventListener('selectionchange', beiAuswahl);
+  }, []);
+
+  function merkeWahl(el: HTMLTextAreaElement) {
+    const start = el.selectionStart ?? 0;
+    const ende = el.selectionEnd ?? 0;
+    wahl.current = { start, ende };
+    setUeberschrift(zeileIstUeberschrift(el.value, start));
+  }
+
+  function umschalten() {
+    if (speichert) return;
+    const el = eingabe.current;
+    const live = el !== null && document.activeElement === el;
+    const start = live ? (el.selectionStart ?? wahl.current.start) : wahl.current.start;
+    const ende = live ? (el.selectionEnd ?? wahl.current.ende) : wahl.current.ende;
+    const naechst = schalteUeberschrift(feld, start, ende);
+    wahl.current = { start: naechst.start, ende: naechst.ende };
+    rueck.current = { start: naechst.start, ende: naechst.ende };
+    setUeberschrift(zeileIstUeberschrift(naechst.text, naechst.start));
+    setFeld(naechst.text);
+    setFehler(null);
+  }
 
   const ziel = notiz ? themaPfad(notiz.topic) : '/library';
   const plan = planeNotizText(feld);
@@ -120,9 +171,20 @@ export function BearbeitenAnsicht() {
           {fehler && !notiz ? <p className="leer1">{fehler}</p> : null}
           {notiz ? (
             <>
-              <label className="lab" htmlFor="notiz-text">
-                Note
-              </label>
+              <div className="notizkopf">
+                <label className="lab" htmlFor="notiz-text">
+                  Note
+                </label>
+                <button
+                  type="button"
+                  className={ueberschrift ? 'schalt an' : 'schalt'}
+                  aria-pressed={ueberschrift}
+                  onMouseDown={(event) => event.preventDefault()}
+                  onClick={umschalten}
+                >
+                  Heading
+                </button>
+              </div>
               <textarea
                 ref={eingabe}
                 id="notiz-text"
@@ -137,7 +199,11 @@ export function BearbeitenAnsicht() {
                 onChange={(event) => {
                   setFeld(event.target.value);
                   setFehler(null);
+                  merkeWahl(event.target);
                 }}
+                onSelect={(event) => merkeWahl(event.currentTarget)}
+                onKeyUp={(event) => merkeWahl(event.currentTarget)}
+                onClick={(event) => merkeWahl(event.currentTarget)}
               />
               {fehler ? (
                 <p className="feldfehler" role="alert">

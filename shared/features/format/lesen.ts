@@ -30,12 +30,18 @@ export interface LeseHaken {
   punkte: LeseHakenPunkt[];
 }
 
-export type LeseBlock = LeseAbsatz | LeseListe | LeseHaken;
+export interface LeseUeberschrift {
+  art: 'ueberschrift';
+  teile: LeseTeil[];
+}
+
+export type LeseBlock = LeseAbsatz | LeseListe | LeseHaken | LeseUeberschrift;
 
 const LISTE = '- ';
 const OFFEN = '[]';
 const ZU = '[x]';
 const FETT = '**';
+export const UEBERSCHRIFT_MARKER = '= ';
 
 function ohneWagen(zeile: string): string {
   return zeile.endsWith('\r') ? zeile.slice(0, -1) : zeile;
@@ -111,6 +117,13 @@ export function leseBaum(text: string): LeseBlock[] {
 
   for (const roh of text.split('\n')) {
     const zeile = ohneWagen(roh);
+    if (zeile.startsWith(UEBERSCHRIFT_MARKER)) {
+      schliesseAbsatz();
+      schliesseListe();
+      schliesseHaken();
+      bloecke.push({ art: 'ueberschrift', teile: leseTeile(zeile.slice(UEBERSCHRIFT_MARKER.length)) });
+      continue;
+    }
     if (zeile.startsWith(LISTE)) {
       schliesseAbsatz();
       schliesseHaken();

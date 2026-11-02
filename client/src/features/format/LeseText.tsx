@@ -26,7 +26,23 @@ function Haken({ punkte }: { punkte: LeseHakenPunkt[] }) {
   ));
 }
 
+function Ueberschrift({ teile, dicht }: { teile: LeseTeil[]; dicht: boolean }) {
+  if (dicht) {
+    return (
+      <span className="ueberschrift">
+        <Teile teile={teile} />
+      </span>
+    );
+  }
+  return (
+    <h3>
+      <Teile teile={teile} />
+    </h3>
+  );
+}
+
 function Block({ block }: { block: LeseBlock }) {
+  if (block.art === 'ueberschrift') return <Ueberschrift teile={block.teile} dicht={false} />;
   if (block.art === 'liste') {
     return (
       <ul>
@@ -51,6 +67,7 @@ function Block({ block }: { block: LeseBlock }) {
 }
 
 function DichtBlock({ block }: { block: LeseBlock }) {
+  if (block.art === 'ueberschrift') return <Ueberschrift teile={block.teile} dicht />;
   if (block.art === 'liste') {
     return block.punkte.map((teile, index) => (
       <span key={index}>

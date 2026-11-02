@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.0
+
+A note can have a heading. In edit, Heading marks the line at the cursor, or turns that heading back into a normal line. A heading is a line that starts with "= ". Reading shows it on a topic, in Inbox, and in search results. The saved text stays plain. #topic is still a tag. Capture stays a plain text field.
+
 ## 1.2.0
 
 Notes show light formatting while you read them. A line that starts with "- " becomes a list, "[]" and "[x]" become checkboxes, and text between double asterisks is bold. This shows on a topic, in Inbox, and in search results. The saved text stays plain. Capture and edit stay text fields.

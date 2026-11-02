@@ -8,4 +8,6 @@ export {
   type LeseListe,
   type LeseTeil,
   type LeseTextTeil,
+  type LeseUeberschrift,
 } from './lesen.ts';
+export { schalteUeberschrift, zeileIstUeberschrift, type TextWahl } from './ueberschrift.ts';

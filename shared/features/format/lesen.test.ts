@@ -108,6 +108,65 @@ describe('reading format', () => {
     ]);
   });
 
+  it('turns a line that starts with "= " into a heading', () => {
+    expect(leseBaum('= Review\n= **Anna** #work')).toEqual([
+      { art: 'ueberschrift', teile: [{ art: 'text', text: 'Review' }] },
+      {
+        art: 'ueberschrift',
+        teile: [
+          { art: 'fett', text: 'Anna' },
+          { art: 'text', text: ' #work' },
+        ],
+      },
+    ]);
+    expect(leseBaum('= ')).toEqual([{ art: 'ueberschrift', teile: [] }]);
+    expect(leseBaum('=Title\n=\n== Title\n = Title\nsee = this')).toEqual([
+      {
+        art: 'absatz',
+        zeilen: [
+          [{ art: 'text', text: '=Title' }],
+          [{ art: 'text', text: '=' }],
+          [{ art: 'text', text: '== Title' }],
+          [{ art: 'text', text: ' = Title' }],
+          [{ art: 'text', text: 'see = this' }],
+        ],
+      },
+    ]);
+  });
+
+  it('keeps a heading beside a list, checkboxes, and bold', () => {
+    expect(
+      leseBaum('= **Review**\n- **buy** milk\n[] **call**\n[x] done\n= - still a heading\n= [] not a box\n= [x] not checked'),
+    ).toEqual([
+      { art: 'ueberschrift', teile: [{ art: 'fett', text: 'Review' }] },
+      {
+        art: 'liste',
+        punkte: [
+          [
+            { art: 'fett', text: 'buy' },
+            { art: 'text', text: ' milk' },
+          ],
+        ],
+      },
+      {
+        art: 'haken',
+        punkte: [
+          { abgehakt: false, teile: [{ art: 'fett', text: 'call' }] },
+          { abgehakt: true, teile: [{ art: 'text', text: 'done' }] },
+        ],
+      },
+      { art: 'ueberschrift', teile: [{ art: 'text', text: '- still a heading' }] },
+      { art: 'ueberschrift', teile: [{ art: 'text', text: '[] not a box' }] },
+      { art: 'ueberschrift', teile: [{ art: 'text', text: '[x] not checked' }] },
+    ]);
+    expect(leseBaum('- a\n= Next\n- b\r\n= **milk**')).toEqual([
+      { art: 'liste', punkte: [[{ art: 'text', text: 'a' }]] },
+      { art: 'ueberschrift', teile: [{ art: 'text', text: 'Next' }] },
+      { art: 'liste', punkte: [[{ art: 'text', text: 'b' }]] },
+      { art: 'ueberschrift', teile: [{ art: 'fett', text: 'milk' }] },
+    ]);
+  });
+
   it('keeps html-like text and #topic tags as text', () => {
     expect(leseBaum('<b>hi</b> #work\n<script>alert(1)</script>\n**#shop** **<em>x</em>**')).toEqual([
       {
