@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.5.3
+
+What's new lists each version, newest first. After an update, CortX tells you once. A dot on the library menu stays until you open What's new.
+
 ## 1.5.2
 
 Sign in with a password manager. The username stays if the password is wrong, and you can show the password while you type. Change your password in Stride.

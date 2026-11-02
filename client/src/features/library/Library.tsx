@@ -17,6 +17,7 @@ import {
   type PflegeMeldung,
 } from '../topics/index.ts';
 import { Suchleiste, Trefferliste, sucheNotizen, type SuchTreffer } from '../suche/index.ts';
+import { BibliothekMenue } from '../version/index.ts';
 import { AbmeldenKnopf } from '../zugang/index.ts';
 import { ladeBibliothek, themaPfad } from './api.ts';
 import { Kopf } from './Kopf.tsx';
@@ -136,7 +137,17 @@ export function LibraryAnsicht() {
 
   return (
     <div className="app">
-      <Kopf titel="Library" zurueck="/" zurueckLabel="Back to Capture" aktion={<AbmeldenKnopf />} />
+      <Kopf
+        titel="Library"
+        zurueck="/"
+        zurueckLabel="Back to Capture"
+        aktion={
+          <span className="kopf-aktion">
+            <AbmeldenKnopf />
+            <BibliothekMenue />
+          </span>
+        }
+      />
       <main className="inhalt">
         <Suchleiste wert={frage} onChange={beiSuche} />
         {sucht && suchFehler ? <p className="leer1">Could not search.</p> : null}

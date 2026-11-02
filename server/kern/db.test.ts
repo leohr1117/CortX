@@ -90,6 +90,58 @@ describe('database', () => {
     ).toThrow(/CHECK/);
   });
 
+  it('adds a version stand for existing accounts and keeps their notes', () => {
+    const db = new DatabaseSync(SPEICHER);
+    offen.push(db);
+    db.exec('PRAGMA foreign_keys = OFF');
+    for (let index = 0; index < 6; index += 1) db.exec(MIGRATIONEN[index] ?? '');
+    db.exec('PRAGMA user_version = 6');
+    db.exec('PRAGMA foreign_keys = ON');
+    const sql = MIGRATIONEN.find((eintrag) => eintrag.includes('version_hint'));
+    expect(sql).toBeTruthy();
+    expect(sql).not.toMatch(/DELETE/i);
+    expect(sql).not.toMatch(/DROP/i);
+    const inbox = db.prepare(`SELECT id FROM "topic" WHERE name_key = 'inbox'`).get() as { id: number };
+    db.prepare('UPDATE "topic" SET account_id = ? WHERE id = ?').run('ada', inbox.id);
+    db.prepare(
+      `INSERT INTO "note" (text, created, topic_id, source, ai_confidence, pinned, account_id)
+       VALUES (?, ?, ?, 'manual', NULL, 0, ?)`,
+    ).run('keep the note', '2026-10-01T00:00:00.000Z', inbox.id, 'ada');
+    db.prepare(
+      `INSERT INTO "note" (text, created, topic_id, source, ai_confidence, pinned, account_id)
+       VALUES (?, ?, ?, 'manual', NULL, 0, NULL)`,
+    ).run('orphan stays', '2026-10-02T00:00:00.000Z', inbox.id);
+    const home = db
+      .prepare(`INSERT INTO "topic" (name, name_key, created, account_id) VALUES ('Home', 'home', ?, ?)`)
+      .run('2026-10-03T00:00:00.000Z', 'bea');
+    db.prepare(
+      `INSERT INTO "note" (text, created, topic_id, source, ai_confidence, pinned, account_id)
+       VALUES (?, ?, ?, 'manual', NULL, 0, ?)`,
+    ).run('bea note', '2026-10-03T00:00:00.000Z', Number(home.lastInsertRowid), 'bea');
+    db.prepare(
+      `INSERT INTO "session" (token_hash, account_id, created, expires, stride_checked, stride_material)
+       VALUES ('abc', 'ada', '2026-10-01T00:00:00.000Z', '2027-10-01T00:00:00.000Z', '2026-10-01T00:00:00.000Z', NULL)`,
+    ).run();
+    const vorher = db.prepare('SELECT text, account_id FROM "note" ORDER BY id').all();
+    const themen = db.prepare('SELECT name, account_id FROM "topic" ORDER BY id').all();
+    migriere(db);
+    const version = db.prepare('PRAGMA user_version').get() as { user_version: number };
+    expect(version.user_version).toBe(MIGRATIONEN.length);
+    expect(db.prepare('SELECT text, account_id FROM "note" ORDER BY id').all()).toEqual(vorher);
+    expect(db.prepare('SELECT name, account_id FROM "topic" ORDER BY id').all()).toEqual(themen);
+    const stand = db.prepare('SELECT account_id, notified, seen FROM "version_hint" ORDER BY account_id').all();
+    expect(stand).toEqual([
+      { account_id: 'ada', notified: null, seen: null },
+      { account_id: 'bea', notified: null, seen: null },
+    ]);
+    migriere(db);
+    expect(db.prepare('SELECT text FROM "note" ORDER BY id').all()).toEqual(
+      vorher.map((zeile) => ({ text: (zeile as { text: string }).text })),
+    );
+    const nochmal = db.prepare('SELECT COUNT(*) AS n FROM "version_hint"').get() as { n: number };
+    expect(Number(nochmal.n)).toBe(2);
+  });
+
   it('refuses a database inside data/ and allows memory and tmp-test', () => {
     expect(() => verweigereEchteDatenbank(path.join('data', 'cortex.db'))).toThrow(/data/);
     expect(verweigereEchteDatenbank(SPEICHER)).toBe(SPEICHER);

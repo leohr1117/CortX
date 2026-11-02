@@ -1,4 +1,5 @@
 import { Outlet } from 'react-router';
+import { UpdateHinweis } from '../version/index.ts';
 import { naechsteAnsicht } from './ansicht.ts';
 import { Anmeldung } from './Anmeldung.tsx';
 import { useSitzung } from './Sitzung.tsx';
@@ -8,5 +9,10 @@ export function Rahmen() {
   const ansicht = naechsteAnsicht(modus, online);
   if (ansicht === 'warte') return <div className="app" />;
   if (ansicht === 'login') return <Anmeldung />;
-  return <Outlet />;
+  return (
+    <>
+      <Outlet />
+      <UpdateHinweis />
+    </>
+  );
 }

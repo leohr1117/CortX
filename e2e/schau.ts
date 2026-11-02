@@ -216,6 +216,12 @@ export function legeFremdeNotiz(text: string): void {
   });
 }
 
+export function entferneVersionsstand(): void {
+  schreib((db) => {
+    db.prepare('DELETE FROM "version_hint" WHERE account_id = ?').run(kontoId(db));
+  });
+}
+
 export function loescheNotizen(nurInbox: boolean): void {
   schreib((db) => {
     const konto = kontoId(db);

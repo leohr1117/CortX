@@ -117,5 +117,23 @@ export const MIGRATIONEN: readonly string[] = [
 
   INSERT INTO note_fts(note_fts) VALUES ('rebuild');
   `,
+  `
+  CREATE TABLE "version_hint" (
+    account_id TEXT PRIMARY KEY,
+    notified TEXT,
+    seen TEXT
+  );
+
+  INSERT INTO "version_hint" (account_id, notified, seen)
+  SELECT account_id, NULL, NULL FROM "note" WHERE account_id IS NOT NULL
+  UNION
+  SELECT account_id, NULL, NULL FROM "topic" WHERE account_id IS NOT NULL
+  UNION
+  SELECT account_id, NULL, NULL FROM "session" WHERE account_id IS NOT NULL
+  UNION
+  SELECT account_id, NULL, NULL FROM "topic_undo" WHERE account_id IS NOT NULL
+  UNION
+  SELECT account_id, NULL, NULL FROM "note_undo" WHERE account_id IS NOT NULL;
+  `,
 ];
 

@@ -8,6 +8,7 @@ import { bibliothekRouten } from '../features/library/index.ts';
 import { notizRouten } from '../features/notes/index.ts';
 import { sucheRouten } from '../features/suche/index.ts';
 import { themenRouten } from '../features/topics/index.ts';
+import { versionsRouten } from '../features/version/index.ts';
 import { zugangRouten, type Dienste } from '../features/zugang/index.ts';
 import { strideHttp } from '../features/zugang/stride.ts';
 import { stridePasswortZiel } from '../../shared/features/zugang/index.ts';
@@ -60,6 +61,7 @@ export async function erstelleApp(
   await app.register(
     async (api) => {
       zugangRouten(api, db, lauf);
+      versionsRouten(api, db);
       themenRouten(api, db);
       notizRouten(api, db);
       bibliothekRouten(api, db);
