@@ -49,10 +49,10 @@ describe('filing api', () => {
 
   it('creates an unknown topic, strips the tag, and counts notes', async () => {
     const server = await app();
-    const erste = await post(server, 'Call #Garten tomorrow');
+    const erste = await post(server, '#Garten\nCall tomorrow');
     expect(erste.statusCode).toBe(201);
     expect(erste.json()).toMatchObject({ text: '# Call tomorrow', topic: 'Garten', source: 'tag' });
-    const zweite = await post(server, 'Again #garten');
+    const zweite = await post(server, '#garten\nAgain');
     expect(zweite.json()).toMatchObject({ text: '# Again', topic: 'Garten', source: 'tag' });
     const themen = await server.inject({ method: 'GET', url: '/api/topics' });
     expect(themen.json()).toEqual({
@@ -66,11 +66,11 @@ describe('filing api', () => {
   it('uses the first tag and resolves a prefix to the busiest topic', async () => {
     const server = await app();
     for (let index = 0; index < 3; index += 1) {
-      const antwort = await post(server, `n ${index} #Work`);
+      const antwort = await post(server, `#Work\nn ${index}`);
       expect(antwort.statusCode).toBe(201);
     }
-    await post(server, 'one #Workout');
-    const abgelegt = await post(server, 'Fix #wo and #home');
+    await post(server, '#Workout\none');
+    const abgelegt = await post(server, '#wo\nFix and #home');
     expect(abgelegt.json()).toMatchObject({ text: '# Fix and #home', topic: 'Work', source: 'tag' });
   });
 
@@ -122,7 +122,7 @@ describe('filing api', () => {
 
   it('moves a note, records the correction, and pins it', async () => {
     const { server, db } = await paar();
-    const abgelegt = await post(server, 'Call tomorrow #Home');
+    const abgelegt = await post(server, '#Home\nCall tomorrow');
     const id = abgelegt.json().id as number;
     const gleich = await server.inject({
       method: 'POST',
@@ -206,7 +206,7 @@ describe('filing api', () => {
 
   it('appends to a page or section and keeps a stale edit', async () => {
     const { server, db } = await paar();
-    const seite = await post(server, 'Limits #school/Mathe');
+    const seite = await post(server, '#school/Mathe Limits');
     expect(seite.statusCode).toBe(201);
     expect(seite.json()).toMatchObject({ text: '# Mathe\n\nLimits', topic: 'school', ziel: 'school > Mathe' });
     const id = seite.json().id as number;
@@ -218,26 +218,26 @@ describe('filing api', () => {
     const leer = await post(server, '#school/Mathe');
     expect(leer.statusCode).toBe(400);
     expect(leer.json()).toEqual({ error: 'Write something to add.' });
-    expect((await post(server, 'Too #a/b/c/d')).json()).toEqual({ error: 'A path has at most three levels.' });
-    expect((await post(server, 'Gap #a//b')).json()).toEqual({ error: 'That path is missing a name.' });
+    expect((await post(server, '#a/b/c/d Too')).json()).toEqual({ error: 'A path has at most three levels.' });
+    expect((await post(server, '#a//b Gap')).json()).toEqual({ error: 'That path is missing a name.' });
 
-    const ende = await post(server, 'First block #school/mathe');
+    const ende = await post(server, '#school/mathe First block');
     expect(ende.statusCode).toBe(200);
     expect(ende.json()).toMatchObject({ id, ziel: 'Mathe', text: '# Mathe\n\nLimits\n\nFirst block' });
     expect(db.prepare('SELECT text, version FROM note_revision WHERE note_id = ?').all(id)).toEqual([
       { text: '# Mathe\n\nLimits', version: 1 },
     ]);
 
-    const abschnitt = await post(server, 'Inside #school/Mathe/Analysis');
+    const abschnitt = await post(server, '#school/Mathe/Analysis Inside');
     expect(abschnitt.json()).toMatchObject({
       ziel: 'Mathe > Analysis',
       text: '# Mathe\n\nLimits\n\nFirst block\n\n## Analysis\n\nInside',
     });
-    const beweise = await post(server, 'Next #school/Mathe/Proofs');
+    const beweise = await post(server, '#school/Mathe/Proofs Next');
     expect(beweise.json().text).toBe(
       '# Mathe\n\nLimits\n\nFirst block\n\n## Analysis\n\nInside\n\n## Proofs\n\nNext',
     );
-    const mitten = await post(server, 'Still #school/Mathe/Analysis');
+    const mitten = await post(server, '#school/Mathe/Analysis Still');
     const mittenText =
       '# Mathe\n\nLimits\n\nFirst block\n\n## Analysis\n\nInside\n\nStill\n\n## Proofs\n\nNext';
     expect(mitten.json()).toMatchObject({ ziel: 'Mathe > Analysis', text: mittenText });
@@ -260,5 +260,44 @@ describe('filing api', () => {
     });
     expect(zurueck.statusCode).toBe(200);
     expect((db.prepare('SELECT text FROM note WHERE id = ?').get(id) as { text: string }).text).toBe(beweise.json().text);
+  });
+
+  it('files one note onto several pages and undoes every part', async () => {
+    const server = await app();
+    const roh = '#school/Thema1 text1\ntext1 text1\n#school/Thema2 text2\ntext2 text2';
+    const antwort = await post(server, roh);
+    expect(antwort.statusCode).toBe(201);
+    const koerper = antwort.json() as { text: string; ziel: string; undo: string };
+    expect(koerper.text).toBe('# Thema2\n\ntext2\ntext2 text2');
+    expect(koerper.ziel).toBe('school > Thema1 · school > Thema2');
+    const seiten = await server.inject({ method: 'GET', url: '/api/library/notes?topic=school' });
+    const notizen = (seiten.json() as { notes: Array<{ text: string }> }).notes.map((notiz) => notiz.text).sort();
+    expect(notizen).toEqual(['# Thema1\n\ntext1\ntext1 text1', '# Thema2\n\ntext2\ntext2 text2']);
+    expect(notizen.join('\n').includes('#school')).toBe(false);
+
+    const zurueck = await server.inject({
+      method: 'POST',
+      url: '/api/notes/undo',
+      payload: { token: koerper.undo },
+    });
+    expect(zurueck.statusCode).toBe(200);
+    const danach = await server.inject({ method: 'GET', url: '/api/library/notes?topic=school' });
+    expect((danach.json() as { notes: unknown[] }).notes).toEqual([]);
+    const themen = await server.inject({ method: 'GET', url: '/api/topics' });
+    expect((themen.json() as { topics: Array<{ name: string; count: number }> }).topics).toEqual(
+      expect.arrayContaining([expect.objectContaining({ name: 'school', count: 0 })]),
+    );
+  });
+
+  it('keeps text before the first target line in the inbox and a hash inside the line', async () => {
+    const server = await app();
+    const antwort = await post(server, 'before\n#school/Thema1 stays #tag');
+    expect(antwort.statusCode).toBe(201);
+    const inbox = await server.inject({ method: 'GET', url: '/api/library/notes?topic=Inbox' });
+    expect((inbox.json() as { notes: Array<{ text: string }> }).notes.map((notiz) => notiz.text)).toEqual(['# before']);
+    const schule = await server.inject({ method: 'GET', url: '/api/library/notes?topic=school' });
+    expect((schule.json() as { notes: Array<{ text: string }> }).notes.map((notiz) => notiz.text)).toEqual([
+      '# Thema1\n\nstays #tag',
+    ]);
   });
 });

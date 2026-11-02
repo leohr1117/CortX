@@ -1,5 +1,5 @@
-import { TOPIC_NAME_MAX } from '../../kern/grenzen.ts';
 import type { Thema } from '../../kern/modell.ts';
+import { hashIstAnfang, istNamenszeichen, liesPfadName, PFAD_PRAEFIX } from '../seiten/register.ts';
 import { schluessel } from '../seiten/text.ts';
 
 export interface TagFund {
@@ -8,43 +8,13 @@ export interface TagFund {
   end: number;
 }
 
-const NAME = /^[\p{L}\p{N}][\p{L}\p{N}_'-]*/u;
-const NAMENSZEICHEN = /[\p{L}\p{N}_'-]/u;
-
-function hashIstAnfang(text: string, index: number): boolean {
-  if (text[index] !== '#') return false;
-  if (index === 0) return true;
-  const davor = text[index - 1] ?? '';
-  return !NAMENSZEICHEN.test(davor);
-}
-
-function liesPfad(rest: string): string | null {
-  const erstes = rest.match(NAME)?.[0];
-  if (!erstes) return null;
-  let name = erstes.slice(0, TOPIC_NAME_MAX);
-  let pos = name.length;
-  if (erstes.length > name.length) return name;
-  while (rest[pos] === '/') {
-    name += '/';
-    pos += 1;
-    if (rest[pos] === '/') continue;
-    const weiter = rest.slice(pos).match(NAME)?.[0];
-    if (!weiter) break;
-    const capped = weiter.slice(0, TOPIC_NAME_MAX);
-    name += capped;
-    pos += capped.length;
-    if (weiter.length > capped.length) break;
-  }
-  return name;
-}
-
 export function findeTags(text: string): TagFund[] {
   const funde: TagFund[] = [];
   for (let index = 0; index < text.length; index += 1) {
     if (!hashIstAnfang(text, index)) continue;
-    const name = liesPfad(text.slice(index + 1));
+    const name = liesPfadName(text.slice(index + PFAD_PRAEFIX.length));
     if (!name) continue;
-    funde.push({ name, start: index, end: index + 1 + name.length });
+    funde.push({ name, start: index, end: index + PFAD_PRAEFIX.length + name.length });
     index += name.length;
   }
   return funde;
@@ -56,9 +26,9 @@ export function tagAnCaret(text: string, caret: number): TagFund | null {
     if (stelle > tag.start && stelle <= tag.end) return tag;
   }
   const hash = stelle - 1;
-  if (hash >= 0 && text[hash] === '#' && hashIstAnfang(text, hash)) {
+  if (hash >= 0 && text[hash] === PFAD_PRAEFIX && hashIstAnfang(text, hash)) {
     const danach = text[stelle];
-    if (danach === undefined || !NAMENSZEICHEN.test(danach)) {
+    if (danach === undefined || !istNamenszeichen(danach)) {
       return { name: '', start: hash, end: stelle };
     }
   }

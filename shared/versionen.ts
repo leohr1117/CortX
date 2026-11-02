@@ -6,6 +6,15 @@ export interface Versionseintrag {
 
 export const VERSIONEN: readonly Versionseintrag[] = [
   {
+    version: '1.8.1',
+    datum: '2026-11-02',
+    zeilen: [
+      'A line that starts with #topic/page files that part of the note. One note can go to several pages.',
+      'Text before the first target line goes to the Inbox. A #tag in the middle of a line stays in the text.',
+      'An empty topic stays in the library and shows 0 pages until you delete the topic.',
+    ],
+  },
+  {
     version: '1.8.0',
     datum: '2026-11-02',
     zeilen: [

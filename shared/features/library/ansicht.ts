@@ -36,12 +36,20 @@ export function tagesLabel(iso: string, jetzt: Date): string {
   return `${datum.getDate()} ${monat} ${datum.getFullYear()}`;
 }
 
+export const LEERE_SEITEN = '0 pages';
+
 export function letzteNotizZeile(iso: string, jetzt: Date): string {
   const label = tagesLabel(iso, jetzt);
   if (label === 'Unknown') return 'Last note';
   if (label === 'Today') return 'Last note today';
   if (label === 'Yesterday') return 'Last note yesterday';
   return `Last note ${label}`;
+}
+
+export function themaUnterzeile(zeile: BibliothekZeile, jetzt: Date): string {
+  if (zeile.count === 0) return LEERE_SEITEN;
+  if (!zeile.lastNote) return '';
+  return letzteNotizZeile(zeile.lastNote, jetzt);
 }
 
 export function uhrzeit(iso: string): string {
@@ -62,7 +70,7 @@ export function baueBibliothek(zeilen: readonly BibliothekZeile[]): Bibliothek {
       }
     : { name: INBOX_NAME, count: 0, lastNote: null };
   const topics = zeilen
-    .filter((zeile) => !gleicherName(zeile.name, INBOX_NAME) && zeile.count > 0)
+    .filter((zeile) => !gleicherName(zeile.name, INBOX_NAME))
     .map((zeile) => ({ name: zeile.name, count: zeile.count, lastNote: zeile.lastNote }))
     .sort((a, b) => a.name.localeCompare(b.name, 'en', { sensitivity: 'base' }));
   return { inbox, topics };

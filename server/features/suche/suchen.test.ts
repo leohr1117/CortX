@@ -81,8 +81,8 @@ describe('note search', () => {
   it('finds one account’s notes across topics, newest first, and keeps the full text', async () => {
     const { server, db } = await app();
     const aelter = await lege(server, 'Loose lantern bulb');
-    const mittel = await lege(server, `Hang the porch lantern ${'alpha '.repeat(40)}tailmarker #Home`);
-    const neuer = await lege(server, 'Meet at 50% (draft) about the lantern budget #Work');
+    const mittel = await lege(server, `#Home\nHang the porch lantern ${'alpha '.repeat(40)}tailmarker`);
+    const neuer = await lege(server, '#Work\nMeet at 50% (draft) about the lantern budget');
     db.prepare('UPDATE "note" SET created = ? WHERE id = ?').run('2026-10-01T09:00:00.000Z', aelter);
     db.prepare('UPDATE "note" SET created = ? WHERE id = ?').run('2026-10-15T18:00:00.000Z', mittel);
     db.prepare('UPDATE "note" SET created = ? WHERE id = ?').run('2026-11-01T16:00:00.000Z', neuer);
@@ -149,8 +149,8 @@ describe('note search', () => {
 
   it('follows filing, editing, moving, topic changes, delete, and undo', async () => {
     const { server, db } = await app();
-    const id = await lege(server, 'Lantern in the shop #Shop');
-    await lege(server, 'A quiet shelf #Shelf');
+    const id = await lege(server, '#Shop\nLantern in the shop');
+    await lege(server, '#Shelf\nA quiet shelf');
 
     const zuerst = await treffer(server, 'lantern');
     expect(zuerst.hits).toEqual([expect.objectContaining({ id, topic: 'Shop', text: '# Lantern in the shop' })]);

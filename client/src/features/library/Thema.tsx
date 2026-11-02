@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
-import { gruppiereNotizen, uhrzeit } from '../../../../shared/features/library/index.ts';
+import { gruppiereNotizen, LEERE_SEITEN, uhrzeit } from '../../../../shared/features/library/index.ts';
 import { INBOX_NAME } from '../../../../shared/kern/grenzen.ts';
 import { gleicherName } from '../../../../shared/features/tags/index.ts';
 import type { Thema } from '../../../../shared/kern/modell.ts';
@@ -27,7 +27,8 @@ import {
   Umbenennen,
   Zusammen,
 } from '../topics/index.ts';
-import { ladeThema, LeseFehler, notizPfad, themaPfad } from './api.ts';
+import { KARTE_TEXT, zeigeKarte } from '../../ui/karte.tsx';
+import { bibliothekNeu, ladeThema, LeseFehler, notizPfad, themaPfad } from './api.ts';
 import { LeseText } from '../format/index.ts';
 import { TerminZeile } from '../termine/index.ts';
 import { Kopf } from './Kopf.tsx';
@@ -90,6 +91,8 @@ export function ThemaAnsicht() {
   const [notizMeldung, setNotizMeldung] = useState<NotizMeldung | null>(liesGemerkteNotiz);
   const [undoFehler, setUndoFehler] = useState<string | null>(null);
   const sperre = useRef(false);
+  const zurueckRef = useRef<() => Promise<void>>(async () => {});
+  const letzteRef = useRef(false);
 
   useEffect(() => {
     if (!name) return;
@@ -185,8 +188,19 @@ export function ThemaAnsicht() {
       setTitel(ansicht.topic);
       setNotizen(ansicht.notes);
       setFehler(null);
+      bibliothekNeu();
     } catch (grund: unknown) {
-      setUndoFehler(grund instanceof NotizFehler ? grund.message : 'Could not undo.');
+      const text = grund instanceof NotizFehler ? grund.message : 'Could not undo.';
+      if (letzteRef.current) {
+        zeigeKarte(text, {
+          text: KARTE_TEXT.rueckgaengig,
+          run: () => {
+            void zurueckRef.current();
+          },
+        });
+      } else {
+        setUndoFehler(text);
+      }
     } finally {
       sperre.current = false;
       setBeschaeftigt(false);
@@ -246,6 +260,19 @@ export function ThemaAnsicht() {
 
   const inbox = gleicherName(titel, INBOX_NAME);
   const gruppen = notizen ? gruppiereNotizen(notizen, new Date()) : [];
+  const letzteSeite = notizen !== null && notizen.length === 0 && notizMeldung !== null;
+  letzteRef.current = letzteSeite;
+  zurueckRef.current = notizZurueck;
+
+  useEffect(() => {
+    if (!letzteSeite || !notizMeldung) return;
+    zeigeKarte(KARTE_TEXT.seiteGeloescht, {
+      text: KARTE_TEXT.rueckgaengig,
+      run: () => {
+        void zurueckRef.current();
+      },
+    });
+  }, [letzteSeite, notizMeldung]);
   const aktion =
     notizen && !inbox ? (
       <ThemenKnopf
@@ -275,6 +302,7 @@ export function ThemaAnsicht() {
       <main className="inhalt">
         {fehler ? <p className="leer1">{fehler}</p> : null}
         {notizen && notizen.length === 0 && inbox ? <p className="leer1">Inbox is empty.</p> : null}
+        {notizen && notizen.length === 0 && !inbox ? <p className="leer1">{LEERE_SEITEN}</p> : null}
         {gruppen.map((gruppe) => (
           <section key={gruppe.label}>
             <h2 className="ab">{gruppe.label}</h2>
@@ -324,7 +352,7 @@ export function ThemaAnsicht() {
           onWahl={(ziel) => void zusammen(ziel)}
         />
       ) : null}
-      {notizMeldung ? (
+      {notizMeldung && notizen !== null && notizen.length > 0 ? (
         <NotizToast fehler={undoFehler} gesperrt={beschaeftigt} onUndo={() => void notizZurueck()} />
       ) : null}
       {wechselId !== null ? (

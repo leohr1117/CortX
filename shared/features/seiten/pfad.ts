@@ -1,13 +1,7 @@
 import { INBOX_NAME } from '../../kern/grenzen.ts';
 import type { Thema } from '../../kern/modell.ts';
-import {
-  entferneTag,
-  findeTags,
-  loeseThema,
-  passendeThemen,
-  ersetzeTag,
-  type TagFund,
-} from '../tags/regeln.ts';
+import { loeseThema, passendeThemen, ersetzeTag, type TagFund } from '../tags/regeln.ts';
+import { EBENEN, PFAD_TRENNER, zerlegeZielzeilen, type PfadEbene } from './register.ts';
 import { schluessel, tokenForm } from './text.ts';
 
 export interface SeiteKurz {
@@ -22,7 +16,7 @@ export interface PfadTeil {
   neu: boolean;
 }
 
-export interface AblagePlan {
+export interface AblageZiel {
   text: string;
   topicName: string;
   source: 'tag' | 'manual';
@@ -31,9 +25,14 @@ export interface AblagePlan {
   abschnitt: string | null;
   neuSeite: boolean;
   neuAbschnitt: boolean;
+  teile: PfadTeil[];
+  hinweis: string | null;
+}
+
+export interface AblagePlan {
+  ziele: AblageZiel[];
   ungueltig: boolean;
   hinweis: string | null;
-  teile: PfadTeil[];
 }
 
 export interface VorschlagEintrag {
@@ -49,12 +48,15 @@ export interface VorschlagListe {
   gewaehlt: number;
 }
 
-const EBENEN = 3;
 const NAEHE = 2;
 const MIN_AEHNLICH = 3;
 const TIEFE = 'A path has at most three levels.';
 const LUECKE = 'That path is missing a name.';
-const NEU = ['New topic', 'New page', 'New section'] as const;
+const NEU: Record<PfadEbene, string> = {
+  thema: 'New topic',
+  seite: 'New page',
+  abschnitt: 'New section',
+};
 
 interface NamenTreffer {
   name: string;
@@ -102,7 +104,7 @@ function hinweisFuer(name: string | null): string | null {
 
 export function caretEbene(name: string, relativ: number): { ebene: number; fragment: string } {
   const stelle = Math.max(0, Math.min(relativ, name.length));
-  const teile = name.split('/');
+  const teile = name.split(PFAD_TRENNER);
   let pos = 0;
   for (let index = 0; index < teile.length; index += 1) {
     const stueck = teile[index] ?? '';
@@ -120,17 +122,17 @@ export function ersetzeSegment(
   relativ: number,
 ): { text: string; caret: number } {
   const lage = caretEbene(tag.name, relativ);
-  const teile = tag.name.split('/');
+  const teile = tag.name.split(PFAD_TRENNER);
   while (teile.length <= lage.ebene) teile.push('');
   teile[lage.ebene] = einsetzen;
-  return ersetzeTag(text, tag, teile.join('/'));
+  return ersetzeTag(text, tag, teile.join(PFAD_TRENNER));
 }
 
 function rohTeile(name: string): { teile: string[]; ungueltig: 'tiefe' | 'luecke' | null } {
-  const teile = name.split('/');
+  const teile = name.split(PFAD_TRENNER);
   if (teile.length > 1 && teile[teile.length - 1] === '') teile.pop();
   if (teile.some((teil) => teil.length === 0)) return { teile, ungueltig: 'luecke' };
-  if (teile.length > EBENEN) return { teile, ungueltig: 'tiefe' };
+  if (teile.length > EBENEN.length) return { teile, ungueltig: 'tiefe' };
   return { teile, ungueltig: null };
 }
 
@@ -155,7 +157,7 @@ function loeseNamen(fragment: string, kandidaten: readonly NamenTreffer[]): Name
   return { name: fragment, neu: true, hinweis: hinweisFuer(meintest(fragment, kandidaten.map((eintrag) => eintrag.name))), id: null, offen: false };
 }
 
-function leerPlan(text: string): AblagePlan {
+function inboxZiel(text: string): AblageZiel {
   return {
     text,
     topicName: INBOX_NAME,
@@ -165,35 +167,14 @@ function leerPlan(text: string): AblagePlan {
     abschnitt: null,
     neuSeite: false,
     neuAbschnitt: false,
-    ungueltig: false,
-    hinweis: null,
     teile: [{ name: INBOX_NAME, neu: false }],
+    hinweis: null,
   };
 }
 
-function ungueltigPlan(text: string, hinweis: string): AblagePlan {
-  return {
-    text,
-    topicName: INBOX_NAME,
-    source: 'tag',
-    neu: false,
-    seite: null,
-    abschnitt: null,
-    neuSeite: false,
-    neuAbschnitt: false,
-    ungueltig: true,
-    hinweis,
-    teile: [],
-  };
-}
-
-export function planeAblage(roh: string, themen: readonly Thema[], seiten: readonly SeiteKurz[] = []): AblagePlan | null {
-  if (roh.trim().length === 0) return null;
-  const erster = findeTags(roh)[0];
-  if (!erster || erster.name.length === 0) return leerPlan(roh.trim());
-  const pfad = rohTeile(erster.name);
-  const text = entferneTag(roh, erster).trim();
-  if (pfad.ungueltig) return ungueltigPlan(text, pfad.ungueltig === 'tiefe' ? TIEFE : LUECKE);
+function loesePfad(name: string, body: string, themen: readonly Thema[], seiten: readonly SeiteKurz[]): AblageZiel | { hinweis: string } {
+  const pfad = rohTeile(name);
+  if (pfad.ungueltig) return { hinweis: pfad.ungueltig === 'tiefe' ? TIEFE : LUECKE };
   const themaLos = loeseThema(pfad.teile[0] ?? '', [...themen]) ?? { name: pfad.teile[0] ?? '', neu: true };
   const themaHinweis = themaLos.neu ? hinweisFuer(meintest(pfad.teile[0] ?? '', themen.map((thema) => thema.name))) : null;
   const teile: PfadTeil[] = [{ name: themaLos.name, neu: themaLos.neu }];
@@ -214,7 +195,7 @@ export function planeAblage(roh: string, themen: readonly Thema[], seiten: reado
   }
   if (pfad.teile.length >= 3 && seite) {
     const fund = seiten.find((eintrag) => eintrag.id === seitenId);
-    const abschnitte = (fund?.abschnitte ?? []).map((name, index) => ({ name, id: index }));
+    const abschnitte = (fund?.abschnitte ?? []).map((titel, index) => ({ name: titel, id: index }));
     const los = loeseNamen(pfad.teile[2] ?? '', abschnitte);
     abschnitt = los.name;
     neuAbschnitt = los.neu;
@@ -222,7 +203,7 @@ export function planeAblage(roh: string, themen: readonly Thema[], seiten: reado
     if (los.hinweis) hinweis = los.hinweis;
   }
   return {
-    text,
+    text: body,
     topicName: themaLos.name,
     source: 'tag',
     neu: themaLos.neu,
@@ -230,14 +211,34 @@ export function planeAblage(roh: string, themen: readonly Thema[], seiten: reado
     abschnitt,
     neuSeite,
     neuAbschnitt,
-    ungueltig: false,
-    hinweis,
     teile,
+    hinweis,
   };
 }
 
+function istZiel(wert: AblageZiel | { hinweis: string }): wert is AblageZiel {
+  return 'topicName' in wert;
+}
+
+export function planeAblage(roh: string, themen: readonly Thema[], seiten: readonly SeiteKurz[] = []): AblagePlan | null {
+  const rohTeileListe = zerlegeZielzeilen(roh);
+  if (!rohTeileListe) return null;
+  const ziele: AblageZiel[] = [];
+  for (const teil of rohTeileListe) {
+    if (teil.pfad === null) {
+      ziele.push(inboxZiel(teil.text));
+      continue;
+    }
+    const ziel = loesePfad(teil.pfad, teil.text, themen, seiten);
+    if (!istZiel(ziel)) return { ziele: [], ungueltig: true, hinweis: ziel.hinweis };
+    ziele.push(ziel);
+  }
+  if (ziele.length === 0) return null;
+  return { ziele, ungueltig: false, hinweis: null };
+}
+
 function listeAus(
-  ebene: number,
+  ebene: PfadEbene,
   fragment: string,
   treffer: VorschlagEintrag[],
   gewaehltName: string | null,
@@ -254,7 +255,7 @@ function listeAus(
   return {
     treffer,
     neu,
-    neuText: `${NEU[ebene] ?? NEU[0]} “${fragment}”`,
+    neuText: `${NEU[ebene]} “${fragment}”`,
     gewaehlt,
   };
 }
@@ -266,11 +267,11 @@ function themenListe(fragment: string, themen: readonly Thema[]): VorschlagListe
     zahl: String(thema.count),
   }));
   const los = loeseThema(fragment, [...themen]);
-  return listeAus(0, fragment, treffer, los && !los.neu ? los.name : null, false);
+  return listeAus('thema', fragment, treffer, los && !los.neu ? los.name : null, false);
 }
 
 function seitenListe(name: string, fragment: string, themen: readonly Thema[], seiten: readonly SeiteKurz[]): VorschlagListe {
-  const basis = name.split('/')[0] ?? '';
+  const basis = name.split(PFAD_TRENNER)[0] ?? '';
   const thema = loeseThema(basis, [...themen]);
   const pool = thema && !thema.neu ? seitenIn(thema.name, seiten) : [];
   const nadel = schluessel(fragment);
@@ -279,7 +280,7 @@ function seitenListe(name: string, fragment: string, themen: readonly Thema[], s
   );
   const treffer = liste.map((seite) => ({ name: seite.titel, einsetzen: tokenForm(seite.titel), zahl: null }));
   const los = fragment.length > 0 ? loeseNamen(fragment, liste.map((seite) => ({ name: seite.titel, id: seite.id }))) : null;
-  return listeAus(1, fragment, treffer, los && !los.neu ? los.name : null, Boolean(los?.offen));
+  return listeAus('seite', fragment, treffer, los && !los.neu ? los.name : null, Boolean(los?.offen));
 }
 
 function abschnittListe(
@@ -288,7 +289,7 @@ function abschnittListe(
   themen: readonly Thema[],
   seiten: readonly SeiteKurz[],
 ): VorschlagListe {
-  const teile = name.split('/');
+  const teile = name.split(PFAD_TRENNER);
   const thema = loeseThema(teile[0] ?? '', [...themen]);
   const pool = thema && !thema.neu ? seitenIn(thema.name, seiten) : [];
   const seite = (teile[1] ?? '').length > 0 ? loeseNamen(teile[1] ?? '', pool.map((eintrag) => ({ name: eintrag.titel, id: eintrag.id }))) : null;
@@ -304,7 +305,7 @@ function abschnittListe(
           liste.map((titel, index) => ({ name: titel, id: index })),
         )
       : null;
-  return listeAus(2, fragment, treffer, los && !los.neu ? los.name : null, Boolean(los?.offen));
+  return listeAus('abschnitt', fragment, treffer, los && !los.neu ? los.name : null, Boolean(los?.offen));
 }
 
 export function vorschlaege(
@@ -314,8 +315,9 @@ export function vorschlaege(
   relativ = name.length,
 ): VorschlagListe {
   const lage = caretEbene(name, relativ);
-  if (lage.ebene <= 0) return themenListe(lage.fragment, themen);
-  if (lage.ebene === 1) return seitenListe(name, lage.fragment, themen, seiten);
-  if (lage.ebene === 2) return abschnittListe(name, lage.fragment, themen, seiten);
+  const stufe = EBENEN[lage.ebene];
+  if (stufe === 'thema') return themenListe(lage.fragment, themen);
+  if (stufe === 'seite') return seitenListe(name, lage.fragment, themen, seiten);
+  if (stufe === 'abschnitt') return abschnittListe(name, lage.fragment, themen, seiten);
   return { treffer: [], neu: false, neuText: '', gewaehlt: 0 };
 }

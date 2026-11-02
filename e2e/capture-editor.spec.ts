@@ -108,10 +108,12 @@ test('the capture tag menu and filing follow the keyboard', async ({ page }, tes
     await erwarteQuelle(page, `Ping #${thema}\n`);
     await expect(liste).toHaveCount(0);
     await expect(page.getByRole('status')).toHaveCount(0);
+    await setzeQuelle(page, `#${thema}\nPing`);
     await page.getByRole('button', { name: 'File' }).click();
   } else {
     await erwarteQuelle(page, `Ping #${thema}`);
     await expect(liste).toHaveCount(0);
+    await setzeQuelle(page, `#${thema}\nPing`);
     await page.keyboard.press('Control+Enter');
   }
   await expect(page.getByRole('status')).toContainText('Added to');

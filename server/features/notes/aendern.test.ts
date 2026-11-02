@@ -67,7 +67,7 @@ describe('note edit and delete', () => {
 
   it('saves trimmed text and leaves topic, time, pin, and corrections alone', async () => {
     const { server, db } = await paar();
-    const id = await notiz(server, 'Call #Work tomorrow');
+    const id = await notiz(server, '#Work\nCall tomorrow');
     const verschoben = await server.inject({
       method: 'POST',
       url: `/api/notes/${id}/move`,
@@ -127,7 +127,7 @@ describe('note edit and delete', () => {
 
   it('deletes a note and undo restores text, topic, time, pin, and corrections', async () => {
     const { server, db } = await paar();
-    const id = await notiz(server, 'Pinned thought #Work');
+    const id = await notiz(server, '#Work\nPinned thought');
     const clientId = randomUUID();
     const created = '2026-10-28T08:20:00.000Z';
     db.prepare('UPDATE "note" SET created = ?, source = ?, ai_confidence = ?, client_id = ?, pinned = 1 WHERE id = ?').run(
@@ -182,7 +182,7 @@ describe('note edit and delete', () => {
 
   it('undo fails when the note or its topic cannot be restored', async () => {
     const { server, db } = await paar();
-    const id = await notiz(server, 'Gone #Work');
+    const id = await notiz(server, '#Work\nGone');
     const weg = await server.inject({ method: 'POST', url: `/api/notes/${id}/delete` });
     const token = weg.json().token as string;
     db.prepare('DELETE FROM "topic" WHERE name_key = ?').run('work');

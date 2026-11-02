@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.8.1
+
+A line that starts with #topic/page files that part of the note. One note can go to several pages. Text before the first such line goes to the Inbox. A #tag in the middle of a line stays in the text.
+
+An empty topic stays in the library and shows 0 pages until you delete the topic. Deleting the last page shows Page deleted, and Undo brings it back.
+
 ## 1.8.0
 
 A topic lists its pages. The page title is the first heading, and sections are the level-two headings on that page.

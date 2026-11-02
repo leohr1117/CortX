@@ -25,7 +25,7 @@ describe('tag rules', () => {
   it('reads a slash path as one tag and files the page', () => {
     expect(findeTags('#school/math')).toEqual([{ name: 'school/math', start: 0, end: 12 }]);
     expect(tagAnCaret('#school/math', 3)).toEqual({ name: 'school/math', start: 0, end: 12 });
-    expect(planeAblage('See #school/math', themen)).toMatchObject({
+    expect(planeAblage('#school/math See', themen)?.ziele[0]).toMatchObject({
       text: 'See',
       topicName: 'school',
       seite: 'math',
@@ -33,15 +33,25 @@ describe('tag rules', () => {
       neu: true,
       neuSeite: true,
     });
+    expect(planeAblage('See #school/math', themen)?.ziele[0]).toMatchObject({
+      text: 'See #school/math',
+      topicName: INBOX_NAME,
+      source: 'manual',
+    });
   });
 
-  it('keeps only the first tag for filing and removes it', () => {
-    const plan = planeAblage('see #Home and #work later', themen);
-    expect(plan).toMatchObject({ text: 'see and #work later', topicName: 'Home', source: 'tag', neu: false });
+  it('files a line-start path and leaves a later hash in the text', () => {
+    const plan = planeAblage('#Home see and #work later', themen);
+    expect(plan?.ziele[0]).toMatchObject({ text: 'see and #work later', topicName: 'Home', source: 'tag', neu: false });
+    expect(planeAblage('see #Home and #work later', themen)?.ziele[0]).toMatchObject({
+      text: 'see #Home and #work later',
+      topicName: INBOX_NAME,
+      source: 'manual',
+    });
   });
 
   it('files text without a tag in the Inbox', () => {
-    expect(planeAblage('  Buy milk  ', themen)).toMatchObject({
+    expect(planeAblage('  Buy milk  ', themen)?.ziele[0]).toMatchObject({
       text: 'Buy milk',
       topicName: INBOX_NAME,
       source: 'manual',
@@ -54,7 +64,7 @@ describe('tag rules', () => {
   });
 
   it('matches topic names without case and keeps the stored spelling', () => {
-    expect(planeAblage('Call #WORK tomorrow', themen)).toMatchObject({
+    expect(planeAblage('#WORK Call tomorrow', themen)?.ziele[0]).toMatchObject({
       text: 'Call tomorrow',
       topicName: 'Work',
       source: 'tag',
@@ -63,7 +73,7 @@ describe('tag rules', () => {
   });
 
   it('resolves a prefix to the topic with the most notes', () => {
-    expect(planeAblage('Fix #wo soon', themen)).toMatchObject({ text: 'Fix soon', topicName: 'Work', neu: false });
+    expect(planeAblage('#wo Fix soon', themen)?.ziele[0]).toMatchObject({ text: 'Fix soon', topicName: 'Work', neu: false });
   });
 
   it('prefers an exact name over a longer prefix with more notes', () => {
@@ -71,11 +81,11 @@ describe('tag rules', () => {
       { name: 'Workout', count: 20 },
       { name: 'Wo', count: 1 },
     ];
-    expect(planeAblage('Go #wo', liste)).toMatchObject({ topicName: 'Wo', neu: false });
+    expect(planeAblage('#wo Go', liste)?.ziele[0]).toMatchObject({ topicName: 'Wo', neu: false });
   });
 
   it('plans a new topic with the typed spelling', () => {
-    expect(planeAblage('Idea #Garten', themen)).toMatchObject({
+    expect(planeAblage('#Garten Idea', themen)?.ziele[0]).toMatchObject({
       text: 'Idea',
       topicName: 'Garten',
       source: 'tag',
@@ -84,7 +94,7 @@ describe('tag rules', () => {
   });
 
   it('allows a note that is only a tag', () => {
-    expect(planeAblage('#Home', themen)).toMatchObject({ text: '', topicName: 'Home', source: 'tag' });
+    expect(planeAblage('#Home', themen)?.ziele[0]).toMatchObject({ text: '', topicName: 'Home', source: 'tag' });
   });
 
   it('cleans the gap left by the removed tag', () => {
@@ -116,7 +126,11 @@ describe('tag rules', () => {
     expect(liste.neu).toBe(false);
     expect(liste.treffer.map((thema) => thema.name)).toEqual(['Work', 'Workout', 'Home', INBOX_NAME]);
     expect(tagAnCaret('hello #', 'hello #'.length)).toEqual({ name: '', start: 6, end: 7 });
-    expect(planeAblage('hello #', themen)).toMatchObject({ topicName: INBOX_NAME, source: 'manual' });
+    expect(planeAblage('hello #', themen)?.ziele[0]).toMatchObject({
+      text: 'hello #',
+      topicName: INBOX_NAME,
+      source: 'manual',
+    });
   });
 
   it('reads the tag at the caret and replaces it', () => {

@@ -4,6 +4,7 @@ import {
   bibliothekLeer,
   gruppiereNotizen,
   letzteNotizZeile,
+  themaUnterzeile,
   tagesLabel,
   uhrzeit,
   type BibliothekZeile,
@@ -51,7 +52,7 @@ describe('library view', () => {
     ];
     const ansicht = baueBibliothek(roh);
     expect(ansicht.inbox).toEqual({ name: 'Inbox', count: 3, lastNote: iso(11, 1, 8, 0) });
-    expect(ansicht.topics.map((thema) => thema.name)).toEqual(['Books', 'Work']);
+    expect(ansicht.topics.map((thema) => thema.name)).toEqual(['Books', 'ideas', 'Work']);
     expect(bibliothekLeer(ansicht)).toBe(false);
   });
 
@@ -65,6 +66,13 @@ describe('library view', () => {
     ]);
     expect(bibliothekLeer(nurThema)).toBe(false);
     expect(nurThema.inbox.count).toBe(0);
+    const nurLeer = baueBibliothek([
+      { name: 'Inbox', count: 0, lastNote: null },
+      { name: 'Home', count: 0, lastNote: null },
+    ]);
+    expect(bibliothekLeer(nurLeer)).toBe(false);
+    expect(nurLeer.topics).toEqual([{ name: 'Home', count: 0, lastNote: null }]);
+    expect(themaUnterzeile(nurLeer.topics[0]!, JETZT)).toBe('0 pages');
   });
 
   it('groups notes under a day with the newest day first', () => {

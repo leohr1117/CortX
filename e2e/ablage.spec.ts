@@ -18,7 +18,7 @@ test.beforeEach(async ({ page }) => {
 
 test('a shorthand path shows the target and files into the section', async ({ page }, testInfo) => {
   test.setTimeout(90_000);
-  const erstellt = await page.request.post('/api/notes', { data: { text: 'Seed #school/Seite' } });
+  const erstellt = await page.request.post('/api/notes', { data: { text: '#school/Seite\nSeed' } });
   expect(erstellt.ok()).toBeTruthy();
   const id = ((await erstellt.json()) as { id: number }).id;
   const umbenannt = await page.request.post(`/api/notes/${id}`, { data: { text: SEITE, version: 1 } });
@@ -28,24 +28,24 @@ test('a shorthand path shows the target and files into the section', async ({ pa
   await warteBereit(page);
   await expect(page.getByRole('textbox', { name: 'Note' })).toBeFocused();
 
-  await setzeQuelle(page, 'Idea #Garten/Algebra');
+  await setzeQuelle(page, '#Garten/Algebra Idea');
   await expect(page.locator('.ziel')).toContainText('Goes to');
   await expect(page.locator('.ziel b')).toHaveText(['Garten', 'Algebra']);
   await expect(page.locator('.ziel')).toContainText('(new)');
 
-  await setzeQuelle(page, 'Hmm #wrk');
+  await setzeQuelle(page, '#wrk Hmm');
   await expect(page.locator('.ziel')).toContainText('Did you mean Work?');
   await expect(page.locator('.ziel b')).toHaveText('wrk');
   await expect(page.locator('.ziel')).toContainText('(new)');
 
-  await setzeQuelle(page, 'Too #a/b/c/d');
+  await setzeQuelle(page, '#a/b/c/d Too');
   await expect(page.locator('.ziel')).toHaveText('A path has at most three levels.');
   await expect(page.getByRole('button', { name: 'File' })).toBeDisabled();
 
-  await setzeQuelle(page, 'Verb #school/deu');
+  await setzeQuelle(page, '#school/deu');
   await expect(page.getByRole('option', { name: 'Deutsch LK', exact: true }).first()).toBeVisible();
 
-  await setzeQuelle(page, 'Verb #school/deutsch-lk/analysis');
+  await setzeQuelle(page, '#school/deutsch-lk/analysis Verb');
   await expect(page.locator('.ziel')).toContainText('Goes to');
   await expect(page.locator('.ziel b')).toHaveText(['school', 'Deutsch LK', 'Analysis']);
   await expect(page.locator('.ziel')).not.toContainText('(new)');
@@ -58,7 +58,7 @@ test('a shorthand path shows the target and files into the section', async ({ pa
   await expect(page.getByRole('status')).toContainText('Deutsch LK > Analysis');
   await erwarteQuelle(page, '');
 
-  await setzeQuelle(page, 'Tail #school/deutsch-lk');
+  await setzeQuelle(page, '#school/deutsch-lk Tail');
   await expect(page.locator('.ziel b')).toHaveText(['school', 'Deutsch LK']);
   await page.getByRole('button', { name: 'File' }).click();
   await expect(page.getByRole('status')).toContainText('Added to');

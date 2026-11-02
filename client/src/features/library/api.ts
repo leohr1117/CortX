@@ -39,6 +39,12 @@ export function notizPfad(id: number): string {
   return `/library/note?id=${id}`;
 }
 
+export const BIBLIOTHEK_NEU = 'cortx-bibliothek-neu';
+
+export function bibliothekNeu(): void {
+  window.dispatchEvent(new Event(BIBLIOTHEK_NEU));
+}
+
 export function ladeBibliothek(): Promise<Bibliothek> {
   return hole<Bibliothek>('/api/library');
 }

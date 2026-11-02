@@ -10,7 +10,7 @@ async function saee(url: string, cookie: string, thema: string, anzahl: number):
     const antwort = await fetch(`${url}/api/notes`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Cookie: cookie },
-      body: JSON.stringify({ text: `${thema} note ${index} #${thema}` }),
+      body: JSON.stringify({ text: `#${thema}\n${thema} note ${index}` }),
     });
     if (!antwort.ok) {
       throw new Error(`Seed ${thema} failed with ${antwort.status}.`);

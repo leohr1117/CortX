@@ -19,14 +19,17 @@ const seiten: SeiteKurz[] = [
 
 describe('filing path', () => {
   it('files a topic, page, and section and matches spaces as hyphens', () => {
-    expect(planeAblage('Buy milk', themen, seiten)).toMatchObject({
+    const inbox = planeAblage('Buy milk', themen, seiten);
+    expect(inbox?.ungueltig).toBe(false);
+    expect(inbox?.ziele[0]).toMatchObject({
       text: 'Buy milk',
       topicName: INBOX_NAME,
       seite: null,
       source: 'manual',
     });
-    const plan = planeAblage('Verb #deutsch-lk/grammatik/faelle', themen, seiten);
-    expect(plan).toMatchObject({
+    const plan = planeAblage('#deutsch-lk/grammatik/faelle Verb', themen, seiten);
+    expect(plan?.ungueltig).toBe(false);
+    expect(plan?.ziele[0]).toMatchObject({
       text: 'Verb',
       topicName: 'Deutsch LK',
       seite: 'Grammatik',
@@ -34,32 +37,33 @@ describe('filing path', () => {
       neu: false,
       neuSeite: false,
       neuAbschnitt: false,
-      ungueltig: false,
     });
-    expect(plan?.teile.map((teil) => teil.name)).toEqual(['Deutsch LK', 'Grammatik', 'Faelle']);
+    expect(plan?.ziele[0]?.teile.map((teil) => teil.name)).toEqual(['Deutsch LK', 'Grammatik', 'Faelle']);
   });
 
   it('marks a new part, a similar name, and an invalid path', () => {
-    const neu = planeAblage('Idea #Garten/Algebra', themen, seiten);
-    expect(neu?.teile).toEqual([
+    const neu = planeAblage('#Garten/Algebra Idea', themen, seiten);
+    expect(neu?.ziele[0]?.teile).toEqual([
       { name: 'Garten', neu: true },
       { name: 'Algebra', neu: true },
     ]);
-    expect(neu?.hinweis).toBeNull();
-    expect(planeAblage('Hmm #hme', themen, seiten)?.hinweis).toBe('Did you mean Home?');
-    expect(planeAblage('Too #a/b/c/d', themen, seiten)).toMatchObject({
+    expect(neu?.ziele[0]?.hinweis).toBeNull();
+    expect(planeAblage('#hme Hmm', themen, seiten)?.ziele[0]?.hinweis).toBe('Did you mean Home?');
+    expect(planeAblage('#a/b/c/d Too', themen, seiten)).toMatchObject({
       ungueltig: true,
       hinweis: 'A path has at most three levels.',
+      ziele: [],
     });
-    expect(planeAblage('Gap #a//b', themen, seiten)).toMatchObject({
+    expect(planeAblage('#a//b Gap', themen, seiten)).toMatchObject({
       ungueltig: true,
       hinweis: 'That path is missing a name.',
+      ziele: [],
     });
-    expect(planeAblage('Open #school/', themen, seiten)).toMatchObject({
+    expect(planeAblage('#school/', themen, seiten)?.ziele[0]).toMatchObject({
       topicName: 'school',
       seite: null,
-      ungueltig: false,
     });
+    expect(planeAblage('#school/', themen, seiten)?.ungueltig).toBe(false);
   });
 
   it('suggests one level at a time and does not pick among several page prefixes', () => {
@@ -80,7 +84,7 @@ describe('filing path', () => {
   });
 
   it('appends to the newest page when two titles match', () => {
-    const plan = planeAblage('Next #deutsch-lk/grammatik', themen, seiten);
-    expect(plan).toMatchObject({ seite: 'Grammatik', neuSeite: false });
+    const plan = planeAblage('#deutsch-lk/grammatik Next', themen, seiten);
+    expect(plan?.ziele[0]).toMatchObject({ seite: 'Grammatik', neuSeite: false });
   });
 });

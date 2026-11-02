@@ -16,8 +16,10 @@ export {
   planeAblage,
   vorschlaege,
   type AblagePlan,
+  type AblageZiel,
   type PfadTeil,
   type SeiteKurz,
   type VorschlagEintrag,
   type VorschlagListe,
 } from './pfad.ts';
+export { EBENEN, PFAD_PRAEFIX, PFAD_TRENNER, zerlegeZielzeilen, type RohTeil } from './register.ts';

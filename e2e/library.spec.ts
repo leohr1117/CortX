@@ -52,7 +52,7 @@ test.beforeEach(async ({ page }) => {
 test('a filed note can be read from its topic', async ({ page }, testInfo) => {
   const thema = `Regal${testInfo.project.name}`;
   const text = `Shelf note ${testInfo.project.name}`;
-  const antwort = await page.request.post('/api/notes', { data: { text: `${text} #${thema}` } });
+  const antwort = await page.request.post('/api/notes', { data: { text: `#${thema}\n${text}` } });
   expect(antwort.ok()).toBeTruthy();
   await page.goto('/library');
   await page.getByRole('link', { name: new RegExp(`^${thema}\\b`) }).click();
@@ -141,8 +141,18 @@ test('library, topic, and empty states', async ({ page }, testInfo) => {
 
     loescheNotizen(false);
     await oeffneLibrary(page);
-    await expect(page.getByText('No notes yet.')).toBeVisible();
-    await expect(page.locator('.zeile')).toHaveCount(0);
+    await expect(page.getByText('No notes yet.')).toHaveCount(0);
+    await expect(page.locator('.zeile .ti')).toHaveText(['Inbox', 'Books', 'Home', 'Ideas', LISBON, 'Work', 'Workout']);
+    await expect(page.locator('.zeile .ne')).toHaveText([
+      'Notes without a topic',
+      '0 pages',
+      '0 pages',
+      '0 pages',
+      '0 pages',
+      '0 pages',
+      '0 pages',
+    ]);
+    await expect(page.locator('.zeile .wert')).toHaveText(['0', '0', '0', '0', '0', '0', '0']);
     await page.screenshot({ path: `${BILDER}/${testInfo.project.name}-04b-library-empty.png` });
     await page.getByRole('link', { name: 'Back to Capture' }).click();
     await expect(page).toHaveURL(/\/$/);

@@ -59,11 +59,11 @@ async function auffuellen(
 
 test('change picker lists topics and closes without a move', async ({ page }, testInfo) => {
   test.setTimeout(90_000);
-  await auffuellen(page, 'Books', 9, (index) => `Books ${index} #Books`, false);
-  await auffuellen(page, 'Ideas', 23, (index) => `Ideas ${index} #Ideas`, false);
+  await auffuellen(page, 'Books', 9, (index) => `#Books\nBooks ${index}`, false);
+  await auffuellen(page, 'Ideas', 23, (index) => `#Ideas\nIdeas ${index}`, false);
   await auffuellen(page, LISBON, 5, (index) => `Lisbon ${index}`, true);
   await auffuellen(page, 'Inbox', 3, (index) => `Inbox loose ${index}`, false);
-  await setzeQuelle(page, 'Pay the rent #Home');
+  await setzeQuelle(page, '#Home\nPay the rent');
   await page.getByRole('button', { name: 'File' }).click();
   await expect(page.getByRole('status')).toContainText('Added to');
   await expect(page.getByRole('status')).toContainText('Home');
@@ -139,7 +139,7 @@ test('hash opens suggestions and the keyboard follows the device', async ({ page
   await expect(page.getByRole('option').nth(1)).toContainText('6');
   await expect(page.getByRole('option').nth(2)).toContainText('New topic “wo”');
   await expect(page.getByRole('option').nth(0)).toHaveAttribute('aria-selected', 'true');
-  await expect(page.locator('.ziel b')).toHaveText('Work');
+  await expect(page.locator('.ziel b')).toHaveText('Inbox');
   const tagBox = await page.locator('.hier').boundingBox();
   const listBox = await liste.boundingBox();
   expect(tagBox).not.toBeNull();
@@ -152,7 +152,7 @@ test('hash opens suggestions and the keyboard follows the device', async ({ page
     await page.keyboard.press('Enter');
     await erwarteQuelle(page, `${TAG_TEXT}\n`);
     await expect(liste).toHaveCount(0);
-    await expect(page.locator('.ziel b')).toHaveText('Work');
+    await expect(page.locator('.ziel b')).toHaveText('Inbox');
     const knopf = await page.getByRole('button', { name: 'File' }).boundingBox();
     expect(knopf).not.toBeNull();
     expect(knopf!.y).toBeGreaterThan(400);
@@ -164,14 +164,14 @@ test('hash opens suggestions and the keyboard follows the device', async ({ page
   await page.keyboard.press('Enter');
   await erwarteQuelle(page, TAG_TEXT.replace('#wo', '#Workout'));
   await expect(liste).toHaveCount(0);
-  await expect(page.locator('.ziel b')).toHaveText('Workout');
+  await expect(page.locator('.ziel b')).toHaveText('Inbox');
 });
 
 test('a suggestion can be tapped', async ({ page }) => {
   await setzeQuelle(page, 'Remember #wo');
   await page.getByRole('option', { name: /Workout/ }).click();
   await erwarteQuelle(page, 'Remember #Workout');
-  await expect(page.locator('.ziel b')).toHaveText('Workout');
+  await expect(page.locator('.ziel b')).toHaveText('Inbox');
   await setzeQuelle(page, 'Remember #zz');
   await page.getByRole('option', { name: /New topic/ }).click();
   await erwarteQuelle(page, 'Remember #zz');
@@ -190,7 +190,7 @@ test('files with the button and with ctrl enter', async ({ page }, testInfo) => 
   await expect(feld).toBeFocused();
   await expect(page.getByRole('button', { name: 'File' })).toBeDisabled();
 
-  await setzeQuelle(page, 'Pay the rent #Home');
+  await setzeQuelle(page, '#Home\nPay the rent');
   await expect(page.locator('.ziel b')).toHaveText('Home');
   await page.keyboard.press('Control+Enter');
   await expect(page.getByRole('status')).toContainText('Added to');
@@ -205,7 +205,7 @@ test('files with the button and with ctrl enter', async ({ page }, testInfo) => 
 });
 
 test('change moves the note onto an existing or new topic', async ({ page }, testInfo) => {
-  await setzeQuelle(page, 'Move me #Home');
+  await setzeQuelle(page, '#Home\nMove me');
   await page.getByRole('button', { name: 'File' }).click();
   await expect(page.getByRole('status')).toContainText('Added to');
   await expect(page.getByRole('status')).toContainText('Home');

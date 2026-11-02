@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router';
 import {
   bibliothekLeer,
-  letzteNotizZeile,
+  themaUnterzeile,
   type Bibliothek,
   type BibliothekZeile,
 } from '../../../../shared/features/library/index.ts';
@@ -19,11 +19,11 @@ import {
 import { Suchleiste, Trefferliste, sucheNotizen, type SuchTreffer } from '../suche/index.ts';
 import { BibliothekMenue } from '../version/index.ts';
 import { AbmeldenKnopf } from '../zugang/index.ts';
-import { ladeBibliothek, themaPfad } from './api.ts';
+import { BIBLIOTHEK_NEU, ladeBibliothek, themaPfad } from './api.ts';
 import { Kopf } from './Kopf.tsx';
 
 function Zeile({ zeile, inbox, jetzt }: { zeile: BibliothekZeile; inbox: boolean; jetzt: Date }) {
-  const ne = inbox ? 'Notes without a topic' : zeile.lastNote ? letzteNotizZeile(zeile.lastNote, jetzt) : '';
+  const ne = inbox ? 'Notes without a topic' : themaUnterzeile(zeile, jetzt);
   return (
     <Link className="zeile" to={themaPfad(zeile.name)}>
       <span className="sym">{inbox ? <PosteingangIcon /> : <HashIcon />}</span>
@@ -72,6 +72,25 @@ export function LibraryAnsicht() {
     return () => {
       aktiv = false;
     };
+  }, []);
+
+  useEffect(() => {
+    function neu() {
+      const id = anfrage.current + 1;
+      anfrage.current = id;
+      ladeBibliothek()
+        .then((daten) => {
+          if (anfrage.current === id) {
+            setStand(daten);
+            setFehler(false);
+          }
+        })
+        .catch(() => {
+          if (anfrage.current === id) setFehler(true);
+        });
+    }
+    window.addEventListener(BIBLIOTHEK_NEU, neu);
+    return () => window.removeEventListener(BIBLIOTHEK_NEU, neu);
   }, []);
 
   useEffect(() => {

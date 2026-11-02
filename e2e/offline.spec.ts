@@ -34,7 +34,7 @@ test('files offline and syncs the note once', async ({ page }, testInfo) => {
   const thema = `Zed${testInfo.project.name}`;
   const vorher = await themaZahl(page, thema);
 
-  await setzeQuelle(page, `Offline marker ${testInfo.project.name} #${thema}`);
+  await setzeQuelle(page, `#${thema}\nOffline marker ${testInfo.project.name}`);
   await page.context().setOffline(true);
   await page.getByRole('button', { name: 'File' }).click();
   await erwarteQuelle(page, '');
@@ -67,7 +67,7 @@ test('files offline and syncs the note once', async ({ page }, testInfo) => {
   await expect.poll(() => themaZahl(page, thema)).toBe(vorher + 1);
   await expect.poll(() => warteschlangeLaenge(page)).toBe(0);
 
-  await setzeQuelle(page, `Second ${testInfo.project.name} #${thema}`);
+  await setzeQuelle(page, `#${thema}\nSecond ${testInfo.project.name}`);
   await page.context().setOffline(true);
   await page.getByRole('button', { name: 'File' }).click();
   await expect(page.getByRole('status')).toHaveText('Filed offline · syncs later');

@@ -36,8 +36,8 @@ describe('library api', () => {
     expect(leer.statusCode).toBe(200);
     expect(leer.json()).toEqual({ inbox: { name: 'Inbox', count: 0, lastNote: null }, topics: [] });
 
-    const aelter = await lege(server, 'Older #Books');
-    const neuer = await lege(server, 'Newer #Books');
+    const aelter = await lege(server, '#Books\nOlder');
+    const neuer = await lege(server, '#Books\nNewer');
     await lege(server, 'Loose thought');
     db.prepare('UPDATE "note" SET created = ? WHERE id = ?').run('2026-10-30T10:00:00.000Z', aelter);
     db.prepare('UPDATE "note" SET created = ? WHERE id = ?').run('2026-10-31T10:00:00.000Z', neuer);
@@ -58,9 +58,9 @@ describe('library api', () => {
 
   it('returns one topic’s notes, newest first, and hides the other topics', async () => {
     const { server, db } = await app();
-    const erst = await lege(server, 'First #Work');
-    const zweit = await lege(server, 'Second #Work');
-    await lege(server, 'Elsewhere #Home');
+    const erst = await lege(server, '#Work\nFirst');
+    const zweit = await lege(server, '#Work\nSecond');
+    await lege(server, '#Home\nElsewhere');
     db.prepare('UPDATE "note" SET created = ? WHERE id = ?').run('2026-10-28T08:20:00.000Z', erst);
     db.prepare('UPDATE "note" SET created = ? WHERE id = ?').run('2026-11-01T14:32:00.000Z', zweit);
 

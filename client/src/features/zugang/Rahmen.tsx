@@ -1,4 +1,5 @@
 import { Outlet } from 'react-router';
+import { KartenHost } from '../../ui/karte.tsx';
 import { UpdateHinweis } from '../version/index.ts';
 import { naechsteAnsicht } from './ansicht.ts';
 import { Anmeldung } from './Anmeldung.tsx';
@@ -12,6 +13,7 @@ export function Rahmen() {
   return (
     <>
       <Outlet />
+      <KartenHost />
       <UpdateHinweis />
     </>
   );

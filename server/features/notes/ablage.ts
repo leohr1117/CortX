@@ -50,8 +50,21 @@ function zielText(topic: string, titel: string, abschnitt: string | null, angeha
   return `${topic} > ${titel}`;
 }
 
-function haengeAn(db: DatabaseSync, seite: NotizZeile, block: string, abschnitt: string | null, kontoId: string): AblageErgebnis {
-  if (block.trim().length === 0) throw new AppFehler(400, LEER);
+class SchonDa extends Error {
+  readonly zeile: NotizZeile;
+
+  constructor(zeile: NotizZeile) {
+    super('already filed');
+    this.zeile = zeile;
+  }
+}
+
+interface AltBild {
+  text: string;
+  version: number;
+}
+
+function haenge(db: DatabaseSync, seite: NotizZeile, block: string, abschnitt: string | null, kontoId: string): NotizZeile {
   const text = haengeBlock(seite.text, block, abschnitt);
   pruefeLaenge(text);
   db.prepare(
@@ -61,15 +74,45 @@ function haengeAn(db: DatabaseSync, seite: NotizZeile, block: string, abschnitt:
     .prepare('UPDATE "note" SET text = ?, version = version + 1 WHERE id = ? AND account_id = ? AND version = ?')
     .run(text, seite.id, kontoId, seite.version);
   if (Number(geschrieben.changes) !== 1) throw new AppFehler(409, KONFLIKT);
-  const undo = merkeUndo(db, kontoId, { art: 'anhaengen', id: seite.id, text: seite.text, version: seite.version });
   const neu = liesNotizNachId(db, seite.id, kontoId);
   if (!neu) throw new AppFehler(500, 'Could not file the note.');
-  const titel = seitentitel(neu.text);
+  return neu;
+}
+
+function legeNeu(
+  db: DatabaseSync,
+  text: string,
+  topicId: number,
+  source: NotizZeile['source'],
+  clientId: string | null,
+  kontoId: string,
+): NotizZeile {
+  pruefeLaenge(text);
+  try {
+    const info = db
+      .prepare(
+        `INSERT INTO "note" (text, created, topic_id, source, ai_confidence, client_id, pinned, account_id)
+         VALUES (?, ?, ?, ?, NULL, ?, 0, ?)`,
+      )
+      .run(text, new Date().toISOString(), topicId, source, clientId, kontoId);
+    const zeile = liesNotizNachId(db, Number(info.lastInsertRowid), kontoId);
+    if (!zeile) throw new AppFehler(500, 'Could not file the note.');
+    return zeile;
+  } catch (fehler) {
+    if (clientId && fehler instanceof Error && fehler.message.includes('UNIQUE')) {
+      const vorhanden = liesNotizNachClient(db, clientId, kontoId);
+      if (vorhanden) throw new SchonDa(vorhanden);
+    }
+    throw fehler;
+  }
+}
+
+function schonDa(zeile: NotizZeile): AblageErgebnis {
   return {
-    notiz: alsNotiz(neu),
+    notiz: alsNotiz(zeile),
     neu: false,
-    ziel: zielText(neu.topic, titel, abschnitt, true),
-    undo,
+    ziel: `${zeile.topic} > ${seitentitel(zeile.text)}`,
+    undo: '',
   };
 }
 
@@ -77,53 +120,66 @@ export function legeAb(db: DatabaseSync, roh: string, clientId: string | null, k
   return transaktion(db, () => {
     if (clientId) {
       const vorhanden = liesNotizNachClient(db, clientId, kontoId);
-      if (vorhanden) {
-        return {
-          notiz: alsNotiz(vorhanden),
-          neu: false,
-          ziel: `${vorhanden.topic} > ${seitentitel(vorhanden.text)}`,
-          undo: '',
-        };
-      }
+      if (vorhanden) return schonDa(vorhanden);
     }
     const plan = planeAblage(roh, listeThemen(db, kontoId), listeSeiten(db, kontoId));
     if (!plan) throw new AppFehler(400, 'Write something to file.');
     if (plan.ungueltig) throw new AppFehler(400, plan.hinweis ?? UNGUELTIG);
-    const topicId = plan.neu ? legeThemaAn(db, plan.topicName, kontoId) : themaId(db, plan.topicName, kontoId);
-    if (topicId === null) throw new AppFehler(500, 'Could not file the note.');
-    if (plan.seite && !plan.neuSeite) {
-      const seite = findeSeite(db, topicId, plan.seite, kontoId);
-      if (seite) return haengeAn(db, seite, plan.text, plan.abschnitt, kontoId);
-    }
-    const text = plan.seite ? neueSeite(plan.seite, plan.abschnitt, plan.text) : mitH1(plan.text, plan.topicName);
-    pruefeLaenge(text);
-    const created = new Date().toISOString();
+    const neuIds = new Set<number>();
+    const alt = new Map<number, AltBild>();
+    const ziele: string[] = [];
+    let letzte: NotizZeile | null = null;
+    let irgendeinNeu = false;
+    let clientOffen = clientId;
     try {
-      const info = db
-        .prepare(
-          `INSERT INTO "note" (text, created, topic_id, source, ai_confidence, client_id, pinned, account_id)
-           VALUES (?, ?, ?, ?, NULL, ?, 0, ?)`,
-        )
-        .run(text, created, topicId, plan.source, clientId, kontoId);
-      const id = Number(info.lastInsertRowid);
-      const zeile = liesNotizNachId(db, id, kontoId);
-      if (!zeile) throw new AppFehler(500, 'Could not file the note.');
-      const undo = merkeUndo(db, kontoId, { art: 'anlegen', id, text: zeile.text, version: zeile.version });
-      const titel = seitentitel(zeile.text);
-      return { notiz: alsNotiz(zeile), neu: true, ziel: zielText(zeile.topic, titel, null, false), undo };
-    } catch (fehler) {
-      if (clientId && fehler instanceof Error && fehler.message.includes('UNIQUE')) {
-        const vorhanden = liesNotizNachClient(db, clientId, kontoId);
-        if (vorhanden) {
-          return {
-            notiz: alsNotiz(vorhanden),
-            neu: false,
-            ziel: `${vorhanden.topic} > ${seitentitel(vorhanden.text)}`,
-            undo: '',
-          };
+      for (const ziel of plan.ziele) {
+        const topicId = ziel.neu ? legeThemaAn(db, ziel.topicName, kontoId) : themaId(db, ziel.topicName, kontoId);
+        if (topicId === null) throw new AppFehler(500, 'Could not file the note.');
+        if (ziel.seite) {
+          const seite = findeSeite(db, topicId, ziel.seite, kontoId);
+          if (seite) {
+            if (ziel.text.trim().length === 0) {
+              if (neuIds.has(seite.id)) continue;
+              throw new AppFehler(400, LEER);
+            }
+            if (!neuIds.has(seite.id) && !alt.has(seite.id)) {
+              alt.set(seite.id, { text: seite.text, version: seite.version });
+            }
+            const neu = haenge(db, seite, ziel.text, ziel.abschnitt, kontoId);
+            letzte = neu;
+            ziele.push(zielText(neu.topic, seitentitel(neu.text), ziel.abschnitt, true));
+            continue;
+          }
         }
+        const text = ziel.seite ? neueSeite(ziel.seite, ziel.abschnitt, ziel.text) : mitH1(ziel.text, ziel.topicName);
+        const zeile = legeNeu(db, text, topicId, ziel.source, clientOffen, kontoId);
+        clientOffen = null;
+        neuIds.add(zeile.id);
+        irgendeinNeu = true;
+        letzte = zeile;
+        ziele.push(zielText(zeile.topic, seitentitel(zeile.text), null, false));
       }
+    } catch (fehler) {
+      if (fehler instanceof SchonDa) return schonDa(fehler.zeile);
       throw fehler;
     }
+    if (!letzte) throw new AppFehler(500, 'Could not file the note.');
+    const schritte: Array<{ art: 'anhaengen' | 'anlegen'; id: number; text: string; version: number; nachher?: number }> = [];
+    for (const [id, bild] of alt) {
+      const zeile = liesNotizNachId(db, id, kontoId);
+      if (!zeile) throw new AppFehler(500, 'Could not file the note.');
+      schritte.push({ art: 'anhaengen', id, text: bild.text, version: bild.version, nachher: zeile.version });
+    }
+    for (const id of neuIds) {
+      const zeile = liesNotizNachId(db, id, kontoId);
+      if (!zeile) throw new AppFehler(500, 'Could not file the note.');
+      schritte.push({ art: 'anlegen', id, text: zeile.text, version: zeile.version });
+    }
+    return {
+      notiz: alsNotiz(letzte),
+      neu: irgendeinNeu,
+      ziel: ziele.join(' · '),
+      undo: merkeUndo(db, kontoId, { art: 'sammel', schritte }),
+    };
   });
 }

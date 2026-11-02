@@ -15,6 +15,7 @@ export {
   planeAblage,
   vorschlaege,
   type AblagePlan,
+  type AblageZiel,
   type SeiteKurz,
   type VorschlagEintrag,
   type VorschlagListe,

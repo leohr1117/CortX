@@ -183,12 +183,74 @@ export function loescheNotiz(db: DatabaseSync, id: number, kontoId: string): { t
   });
 }
 
+interface SammelSchritt {
+  art: 'anhaengen' | 'anlegen';
+  id: number;
+  text: string;
+  version: number;
+  nachher: number | null;
+}
+
+function sammelBild(payload: string): SammelSchritt[] | null {
+  try {
+    const roh = JSON.parse(payload) as { art?: unknown; schritte?: unknown };
+    if (roh.art !== 'sammel' || !Array.isArray(roh.schritte) || roh.schritte.length === 0) return null;
+    const schritte: SammelSchritt[] = [];
+    for (const schritt of roh.schritte) {
+      if (!schritt || typeof schritt !== 'object') return null;
+      const eintrag = schritt as { art?: unknown; id?: unknown; text?: unknown; version?: unknown; nachher?: unknown };
+      if ((eintrag.art !== 'anhaengen' && eintrag.art !== 'anlegen') || typeof eintrag.id !== 'number') return null;
+      if (typeof eintrag.text !== 'string' || typeof eintrag.version !== 'number') return null;
+      if (eintrag.art === 'anhaengen') {
+        if (typeof eintrag.nachher !== 'number') return null;
+        schritte.push({ art: 'anhaengen', id: eintrag.id, text: eintrag.text, version: eintrag.version, nachher: eintrag.nachher });
+        continue;
+      }
+      schritte.push({ art: 'anlegen', id: eintrag.id, text: eintrag.text, version: eintrag.version, nachher: null });
+    }
+    return schritte;
+  } catch {
+    return null;
+  }
+}
+
+function schrittZurueck(db: DatabaseSync, schritt: SammelSchritt, kontoId: string): Notiz {
+  const notiz = liesNotizNachId(db, schritt.id, kontoId);
+  if (!notiz) throw new AppFehler(409, GEHT_NICHT);
+  if (schritt.art === 'anhaengen') {
+    if (notiz.version !== schritt.nachher) throw new AppFehler(409, GEHT_NICHT);
+    const geschrieben = db
+      .prepare('UPDATE "note" SET text = ?, version = version + 1 WHERE id = ? AND account_id = ? AND version = ?')
+      .run(schritt.text, schritt.id, kontoId, schritt.nachher);
+    if (Number(geschrieben.changes) !== 1) throw new AppFehler(409, GEHT_NICHT);
+    const neu = liesNotizNachId(db, schritt.id, kontoId);
+    if (!neu) throw new AppFehler(500, GEHT_NICHT);
+    return alsNotiz(neu);
+  }
+  if (notiz.text !== schritt.text || notiz.version !== schritt.version) throw new AppFehler(409, GEHT_NICHT);
+  db.prepare('DELETE FROM "note_revision" WHERE note_id = ?').run(schritt.id);
+  db.prepare('DELETE FROM "correction" WHERE note_id = ?').run(schritt.id);
+  const weg = db.prepare('DELETE FROM "note" WHERE id = ? AND account_id = ?').run(schritt.id, kontoId);
+  if (Number(weg.changes) !== 1) throw new AppFehler(409, GEHT_NICHT);
+  return alsNotiz(notiz);
+}
+
+function sammelZurueck(db: DatabaseSync, schritte: readonly SammelSchritt[], kontoId: string): Notiz {
+  let letzte: Notiz | null = null;
+  for (const schritt of schritte) letzte = schrittZurueck(db, schritt, kontoId);
+  if (!letzte) throw new AppFehler(500, GEHT_NICHT);
+  db.prepare('DELETE FROM "note_undo" WHERE account_id = ?').run(kontoId);
+  return letzte;
+}
+
 export function stelleNotizHer(db: DatabaseSync, token: string, kontoId: string): Notiz {
   return transaktion(db, () => {
     const zeile = db.prepare('SELECT payload FROM "note_undo" WHERE token = ? AND account_id = ?').get(token, kontoId) as
       | { payload: string }
       | undefined;
     if (!zeile) throw new AppFehler(404, NICHTS);
+    const sammel = sammelBild(zeile.payload);
+    if (sammel) return sammelZurueck(db, sammel, kontoId);
     const seitenUndo = seitenBild(zeile.payload);
     if (seitenUndo) return seitenZurueck(db, seitenUndo, kontoId);
     const bild = liesBild(zeile.payload);

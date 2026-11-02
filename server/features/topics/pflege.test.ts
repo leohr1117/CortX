@@ -52,7 +52,7 @@ describe('topic maintenance api', () => {
 
   it('renames a topic, keeps its notes, and rejects empty, duplicate, and reserved names', async () => {
     const { server, db } = await paar();
-    const id = await lege(server, 'Chapter #Books');
+    const id = await lege(server, '#Books\nChapter');
     const vorher = bestand(db);
     const gleich = await server.inject({
       method: 'POST',
@@ -91,7 +91,7 @@ describe('topic maintenance api', () => {
     expect(studio.statusCode).toBe(200);
     expect(studio.json()).toEqual({ topic: 'Side \u2013 Project' });
 
-    await lege(server, 'Desk #Home');
+    await lege(server, '#Home\nDesk');
     const doppelt = await server.inject({
       method: 'POST',
       url: '/api/topics/rename',
@@ -151,14 +151,14 @@ describe('topic maintenance api', () => {
 
   it('merges every note into the target and undo restores the rows', async () => {
     const { server, db } = await paar();
-    const bleib = await lege(server, 'Keep this #Ideas');
+    const bleib = await lege(server, '#Ideas\nKeep this');
     const fest = await lege(server, 'Pinned thought');
     await verschiebe(server, fest, 'Work');
     const clientId = randomUUID();
     db.prepare(
       'UPDATE "note" SET source = ?, ai_confidence = ?, client_id = ?, pinned = ?, created = ? WHERE id = ?',
     ).run('ai', 0.4, clientId, 1, '2026-10-02T08:00:00.000Z', fest);
-    const lose = await lege(server, 'Loose #Work');
+    const lose = await lege(server, '#Work\nLoose');
     const vorher = bestand(db);
     const workId = (vorher.topics as Array<{ id: number; name: string }>).find((thema) => thema.name === 'Work')?.id;
 
@@ -213,10 +213,10 @@ describe('topic maintenance api', () => {
 
   it('deletes a topic into Inbox and undo restores notes and corrections', async () => {
     const { server, db } = await paar();
-    const daheim = await lege(server, 'Stays #Home');
-    const weg = await lege(server, 'Was in work #Work');
+    const daheim = await lege(server, '#Home\nStays');
+    const weg = await lege(server, '#Work\nWas in work');
     await verschiebe(server, weg, 'Home');
-    const bleib = await lege(server, 'Goes to inbox #Work');
+    const bleib = await lege(server, '#Work\nGoes to inbox');
     db.prepare('UPDATE "note" SET created = ? WHERE id = ?').run('2026-10-28T08:20:00.000Z', bleib);
     const vorher = bestand(db);
     const inboxVorher = (vorher.topics as Array<{ id: number; name: string }>).find((thema) => thema.name === 'Inbox')?.id;
@@ -257,8 +257,8 @@ describe('topic maintenance api', () => {
 
   it('keeps only the latest undo and refuses Inbox, itself, and unknown targets', async () => {
     const { server, db } = await paar();
-    await lege(server, 'One #Books');
-    await lege(server, 'Two #Home');
+    await lege(server, '#Books\nOne');
+    await lege(server, '#Home\nTwo');
     const erstes = await server.inject({ method: 'POST', url: '/api/topics/delete', payload: { name: 'Books' } });
     const zweites = await server.inject({ method: 'POST', url: '/api/topics/delete', payload: { name: 'Home' } });
     const alt = (erstes.json() as { token: string }).token;
@@ -268,7 +268,7 @@ describe('topic maintenance api', () => {
     expect(db.prepare('SELECT name FROM "topic" WHERE name = ?').get('Books')).toBeUndefined();
     expect(db.prepare('SELECT name FROM "topic" WHERE name = ?').get('Home')).toEqual({ name: 'Home' });
 
-    await lege(server, 'Three #Work');
+    await lege(server, '#Work\nThree');
     const vorher = bestand(db);
     const faelle = [
       { url: '/api/topics/delete', payload: { name: 'Inbox' }, status: 400, error: 'Inbox cannot be changed.' },

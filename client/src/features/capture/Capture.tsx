@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Link } from 'react-router';
 import type { EditorView } from '@codemirror/view';
-import { seitentitel, type AblagePlan, type SeiteKurz } from '../../../../shared/features/seiten/index.ts';
+import { EBENEN, PFAD_TRENNER, seitentitel, type SeiteKurz } from '../../../../shared/features/seiten/index.ts';
 import { caretEbene, ersetzeSegment, ersetzeTag, planeAblage, tagAnCaret, vorschlaege } from '../../../../shared/features/tags/index.ts';
 import { NOTE_TEXT_MAX } from '../../../../shared/kern/grenzen.ts';
 import type { Thema } from '../../../../shared/kern/modell.ts';
@@ -12,6 +12,7 @@ import { ApiFehler, ladeSeiten, ladeThemen, legeNotizAb, macheRueckgaengig } fro
 import { fangStrgEnter, setzeHinweis, tagFeld, tastenWennOffen, type TagAktionen } from './erkennung.ts';
 import { useMenuePlatz } from './menuePlatz.ts';
 import { Vorschlag } from './Vorschlag.tsx';
+import { leeresAnhaengen, ZielText } from './Ziel.tsx';
 
 type Meldung =
   | { art: 'abgelegt'; id: number; ziel: string; undo: string }
@@ -146,7 +147,7 @@ export function CaptureAnsicht() {
   const relativ = tag ? caret - tag.start - 1 : 0;
   const lage = tag ? caretEbene(tag.name, relativ) : null;
   const schluessel = tag ? `${tag.start}:${tag.name}` : '';
-  const liste = tag && lage && lage.ebene <= 2 && zu !== schluessel ? vorschlaege(tag.name, themen, seiten, relativ) : null;
+  const liste = tag && lage && lage.ebene < EBENEN.length && zu !== schluessel ? vorschlaege(tag.name, themen, seiten, relativ) : null;
   const offen = liste !== null && (liste.treffer.length > 0 || liste.neu);
   const aktiv = wahlFuer === schluessel ? wahl : (liste?.gewaehlt ?? 0);
   const plan = text.trim().length === 0 ? null : planeAblage(text, themen, seiten);
@@ -183,7 +184,7 @@ export function CaptureAnsicht() {
     if (index < liste.treffer.length) {
       const einsetzen = liste.treffer[index]?.einsetzen;
       if (!einsetzen) return;
-      const neu = tag.name.includes('/') ? ersetzeSegment(text, tag, einsetzen, relativ) : ersetzeTag(text, tag, einsetzen);
+      const neu = tag.name.includes(PFAD_TRENNER) ? ersetzeSegment(text, tag, einsetzen, relativ) : ersetzeTag(text, tag, einsetzen);
       setZu(`${tag.start}:${neu.text.slice(tag.start + 1, neu.caret)}`);
       if (!editor) {
         setzeAussen(neu.text, neu.caret);
@@ -231,7 +232,7 @@ export function CaptureAnsicht() {
       setMeldung({ art: 'fehler', text: zielPlan.hinweis ?? 'Could not file the note.' });
       return;
     }
-    if (zielPlan?.seite && !zielPlan.neuSeite && zielPlan.text.trim().length === 0) {
+    if (zielPlan && leeresAnhaengen(zielPlan)) {
       setMeldung({ art: 'fehler', text: 'Write something to add.' });
       return;
     }
@@ -373,22 +374,5 @@ export function CaptureAnsicht() {
         </div>
       ) : null}
     </div>
-  );
-}
-
-function ZielText({ plan }: { plan: AblagePlan }) {
-  if (plan.ungueltig) return plan.hinweis;
-  return (
-    <>
-      {'Goes to '}
-      {plan.teile.map((teil, index) => (
-        <span key={`${index}-${teil.name}`}>
-          {index > 0 ? ' > ' : null}
-          <b>{teil.name}</b>
-          {teil.neu ? ' (new)' : null}
-        </span>
-      ))}
-      {plan.hinweis ? ` · ${plan.hinweis}` : null}
-    </>
   );
 }

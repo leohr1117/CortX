@@ -132,7 +132,7 @@ describe('account session', () => {
       method: 'POST',
       url: '/api/notes',
       headers: { cookie: cookieA },
-      payload: { text: 'Private #Work' },
+      payload: { text: '#Work\nPrivate' },
     });
     expect(notiz.statusCode).toBe(201);
     const id = (notiz.json() as { id: number }).id;
