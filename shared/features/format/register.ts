@@ -1,3 +1,4 @@
+import { ART } from './baum.ts';
 import {
   aktivCode,
   aktivFett,
@@ -37,7 +38,12 @@ import {
   WICHTIG_ZEILE,
 } from './zeile.ts';
 
-export type InlineArt = 'fett' | 'kursiv' | 'streich' | 'wichtig' | 'code';
+export type InlineArt =
+  | typeof ART.fett
+  | typeof ART.kursiv
+  | typeof ART.streich
+  | typeof ART.wichtig
+  | typeof ART.code;
 
 interface InlineEintrag {
   art: InlineArt;
@@ -46,20 +52,31 @@ interface InlineEintrag {
 }
 
 export type FormatBefehl =
-  | 'fett'
-  | 'kursiv'
+  | typeof ART.fett
+  | typeof ART.kursiv
   | 'strich'
-  | 'wichtig'
-  | 'code'
-  | 'ueberschrift'
-  | 'liste'
-  | 'haken'
-  | 'link';
+  | typeof ART.wichtig
+  | typeof ART.code
+  | typeof ART.ueberschrift
+  | typeof ART.liste
+  | typeof ART.haken
+  | typeof ART.link;
 
-export type FormatId = FormatBefehl | 'codeblock' | 'nummer';
+export type FormatId = FormatBefehl | typeof ART.codeblock | typeof ART.nummer;
 
 export type VorschauTag = 'strong' | 'em' | 's' | 'code' | 'mark';
-export type VorschauWidget = 'punkt' | 'nummer' | 'haken';
+export const WIDGET = {
+  punkt: 'punkt',
+  nummer: 'nummer',
+  haken: 'haken',
+} as const;
+
+export const KUERZEL_ART = {
+  wort: 'wort',
+  zeile: 'zeile',
+} as const;
+
+export type VorschauWidget = (typeof WIDGET)[keyof typeof WIDGET];
 
 interface SyntaxPaar extends InlineEintrag {
   folge: number;
@@ -92,8 +109,8 @@ export interface FormatVorschau {
 }
 
 export type FormatKuerzel =
-  | { art: 'wort'; ende: string }
-  | { art: 'zeile'; genau: string; ersatz: string };
+  | { art: typeof KUERZEL_ART.wort; ende: string }
+  | { art: typeof KUERZEL_ART.zeile; genau: string; ersatz: string };
 
 export type BefehlRun = (text: string, start: number, ende: number, ziel?: string) => TextWahl;
 export type BefehlAktiv = (text: string, start: number, ende: number) => boolean;
@@ -122,99 +139,99 @@ const HAKEN_PFAD = ['m3 7 2 2 4-4', 'm3 17 2 2 4-4', 'M13 6h8', 'M13 12h8', 'M13
 
 export const FORMAT_REGISTER: readonly FormatEintrag[] = [
   {
-    id: 'fett',
+    id: ART.fett,
     syntax: {
       paare: [
-        { art: 'fett', marker: FETT_MARKER, knopf: true, folge: 3 },
-        { art: 'fett', marker: FETT_UNTER, knopf: false, folge: 4 },
+        { art: ART.fett, marker: FETT_MARKER, knopf: true, folge: 3 },
+        { art: ART.fett, marker: FETT_UNTER, knopf: false, folge: 4 },
       ],
     },
     knopf: { zeichen: 'B', beschriftung: 'Bold', klasse: 'fett', gedrueckt: true, taste: 'Mod-b' },
-    vorschau: { art: 'fett', klasse: 'cm-fett', rang: 1, tag: 'strong' },
-    kuerzel: { art: 'wort', ende: FETT_MARKER },
+    vorschau: { art: ART.fett, klasse: 'cm-fett', rang: 1, tag: 'strong' },
+    kuerzel: { art: KUERZEL_ART.wort, ende: FETT_MARKER },
     get run() { return schalteFett; },
     get isActive() { return aktivFett; },
   },
   {
-    id: 'kursiv',
+    id: ART.kursiv,
     syntax: {
       paare: [
-        { art: 'kursiv', marker: KURSIV_MARKER, knopf: true, folge: 5 },
-        { art: 'kursiv', marker: KURSIV_UNTER, knopf: false, folge: 6 },
+        { art: ART.kursiv, marker: KURSIV_MARKER, knopf: true, folge: 5 },
+        { art: ART.kursiv, marker: KURSIV_UNTER, knopf: false, folge: 6 },
       ],
     },
     knopf: { zeichen: 'I', beschriftung: 'Italic', klasse: 'kursiv', gedrueckt: true, taste: 'Mod-i' },
-    vorschau: { art: 'kursiv', klasse: 'cm-kursiv', rang: 2, tag: 'em' },
+    vorschau: { art: ART.kursiv, klasse: 'cm-kursiv', rang: 2, tag: 'em' },
     get run() { return schalteKursiv; },
     get isActive() { return aktivKursiv; },
   },
   {
     id: 'strich',
-    syntax: { paare: [{ art: 'streich', marker: STREICH_MARKER, knopf: true, folge: 2 }] },
+    syntax: { paare: [{ art: ART.streich, marker: STREICH_MARKER, knopf: true, folge: 2 }] },
     knopf: { zeichen: 'S', beschriftung: 'Strikethrough', klasse: 'strich', gedrueckt: true, taste: 'Mod-Shift-x' },
-    vorschau: { art: 'streich', klasse: 'cm-strich', rang: 3, tag: 's' },
+    vorschau: { art: ART.streich, klasse: 'cm-strich', rang: 3, tag: 's' },
     get run() { return schalteStrich; },
     get isActive() { return aktivStrich; },
   },
   {
-    id: 'wichtig',
+    id: ART.wichtig,
     syntax: {
-      paare: [{ art: 'wichtig', marker: WICHTIG_INLINE, knopf: true, folge: 1 }],
+      paare: [{ art: ART.wichtig, marker: WICHTIG_INLINE, knopf: true, folge: 1 }],
       zeile: WICHTIG_ZEILE,
     },
     knopf: { zeichen: '', beschriftung: 'Important', pfade: WICHTIG_PFAD, gedrueckt: true },
-    vorschau: { art: 'wichtig', klasse: 'cm-wichtig', rang: 8, tag: 'mark' },
+    vorschau: { art: ART.wichtig, klasse: 'cm-wichtig', rang: 8, tag: 'mark' },
     get run() { return schalteWichtig; },
     get isActive() { return aktivWichtig; },
   },
   {
-    id: 'code',
-    syntax: { paare: [{ art: 'code', marker: CODE_INLINE, knopf: true, folge: 0 }], zaun: CODE_ZAUN },
+    id: ART.code,
+    syntax: { paare: [{ art: ART.code, marker: CODE_INLINE, knopf: true, folge: 0 }], zaun: CODE_ZAUN },
     knopf: { zeichen: '</>', beschriftung: 'Code', gedrueckt: true, taste: 'Mod-e' },
-    vorschau: { art: 'code', klasse: 'cm-code', rang: 4, tag: 'code' },
+    vorschau: { art: ART.code, klasse: 'cm-code', rang: 4, tag: 'code' },
     get run() { return schalteCode; },
     get isActive() { return aktivCode; },
   },
   {
-    id: 'ueberschrift',
+    id: ART.ueberschrift,
     syntax: { einsetzen: UEBERSCHRIFT_MARKER },
     knopf: { zeichen: 'H', beschriftung: 'Heading', gedrueckt: true, taste: 'Mod-Shift-h' },
-    vorschau: { art: 'ueberschrift', klasse: 'cm-ueberschrift', rang: 6 },
+    vorschau: { art: ART.ueberschrift, klasse: 'cm-ueberschrift', rang: 6 },
     get run() { return schalteKopf; },
     get isActive() { return aktivKopf; },
   },
   {
-    id: 'liste',
+    id: ART.liste,
     syntax: { einsetzen: LISTEN_EINFUEGEN },
     knopf: { zeichen: '', beschriftung: 'Bulleted list', pfade: LISTE_PFAD, gedrueckt: true, taste: 'Mod-Shift-l' },
-    vorschau: { art: 'liste', widget: 'punkt' },
+    vorschau: { art: ART.liste, widget: WIDGET.punkt },
     get run() { return schalteListe; },
     get isActive() { return aktivListe; },
   },
   {
-    id: 'haken',
+    id: ART.haken,
     syntax: { einsetzen: HAKEN_EINFUEGEN },
     knopf: { zeichen: '', beschriftung: 'Checklist', pfade: HAKEN_PFAD, gedrueckt: true, taste: 'Mod-Shift-u' },
-    vorschau: { art: 'haken', widget: 'haken' },
-    kuerzel: { art: 'zeile', genau: HAKEN_KUERZEL, ersatz: HAKEN_EINFUEGEN },
+    vorschau: { art: ART.haken, widget: WIDGET.haken },
+    kuerzel: { art: KUERZEL_ART.zeile, genau: HAKEN_KUERZEL, ersatz: HAKEN_EINFUEGEN },
     get run() { return schalteHaken; },
     get isActive() { return aktivHaken; },
   },
   {
-    id: 'link',
+    id: ART.link,
     syntax: { geruest: LINK_GERUEST },
     knopf: { zeichen: 'Link', beschriftung: 'Link', klasse: 'breit', gedrueckt: false, ziel: true, taste: 'Mod-k' },
-    vorschau: { art: 'link', klasse: 'cm-link', rang: 5 },
+    vorschau: { art: ART.link, klasse: 'cm-link', rang: 5 },
     get run() { return laufLink; },
     get isActive() { return aktivLink; },
   },
   {
-    id: 'codeblock',
-    vorschau: { art: 'codeblock', klasse: 'cm-codeblock', rang: 7 },
+    id: ART.codeblock,
+    vorschau: { art: ART.codeblock, klasse: 'cm-codeblock', rang: 7 },
   },
   {
-    id: 'nummer',
-    vorschau: { art: 'nummer', widget: 'nummer' },
+    id: ART.nummer,
+    vorschau: { art: ART.nummer, widget: WIDGET.nummer },
   },
 ];
 
@@ -240,15 +257,15 @@ export function leistenEintraege(): readonly LeistenEintrag[] {
   const aus: LeistenEintrag[] = [];
   for (const eintrag of FORMAT_REGISTER) {
     if (!eintrag.knopf || !eintrag.run || !eintrag.isActive) continue;
-    if (eintrag.id === 'codeblock' || eintrag.id === 'nummer') continue;
+    if (eintrag.id === ART.codeblock || eintrag.id === ART.nummer) continue;
     aus.push(eintrag as LeistenEintrag);
   }
   return aus;
 }
 
 export function kuerzelEintraege(): readonly FormatEintrag[] {
-  const zeile = FORMAT_REGISTER.filter((eintrag) => eintrag.kuerzel?.art === 'zeile');
-  const wort = FORMAT_REGISTER.filter((eintrag) => eintrag.kuerzel?.art === 'wort');
+  const zeile = FORMAT_REGISTER.filter((eintrag) => eintrag.kuerzel?.art === KUERZEL_ART.zeile);
+  const wort = FORMAT_REGISTER.filter((eintrag) => eintrag.kuerzel?.art === KUERZEL_ART.wort);
   return [...zeile, ...wort];
 }
 
@@ -315,7 +332,7 @@ export interface FormatStil {
 }
 
 interface StilEintrag {
-  art: 'code' | 'wichtig';
+  art: typeof ART.code | typeof ART.wichtig;
   stil: FormatStil;
 }
 
@@ -323,14 +340,14 @@ const STIL_FELDER = ['schrift', 'hintergrund', 'farbe'] as const;
 
 export const STIL_REGISTER: readonly StilEintrag[] = [
   {
-    art: 'code',
+    art: ART.code,
     stil: {
       schrift: 'ui-monospace, "Cascadia Mono", Consolas, monospace',
       hintergrund: 'var(--flaeche-2)',
     },
   },
   {
-    art: 'wichtig',
+    art: ART.wichtig,
     stil: { hintergrund: '#f3e2a8', farbe: '#1a1a1a' },
   },
 ];
@@ -349,7 +366,7 @@ export function kombiniereStil(arten: readonly string[]): FormatStil {
 }
 
 export function stilAttribut(arten: readonly string[]): string | undefined {
-  if (!arten.includes('code') || !arten.includes('wichtig')) return undefined;
+  if (!arten.includes(ART.code) || !arten.includes(ART.wichtig)) return undefined;
   const hintergrund = kombiniereStil(arten).hintergrund;
   if (!hintergrund) return undefined;
   return `${STIL_VAR}:${hintergrund}`;

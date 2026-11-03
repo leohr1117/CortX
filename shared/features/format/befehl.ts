@@ -1,7 +1,7 @@
-import type { Beleg } from './baum.ts';
+import { ART, type Beleg } from './baum.ts';
 import type { TextWahl } from './ueberschrift.ts';
 import { schalteUeberschrift } from './ueberschrift.ts';
-import { belege } from './lesen.ts';
+import { belege, zeilenTreffer } from './lesen.ts';
 import {
   INLINE_REGISTER,
   cursorInSchale,
@@ -11,9 +11,9 @@ import {
   type InlineArt,
   type InlineStand,
 } from './register.ts';
-import { hakenVon, listenLaenge, nummerLaenge, ohneWagen } from './zeile.ts';
+import { ohneWagen } from './zeile.ts';
 
-const ARTEN: readonly InlineArt[] = ['fett', 'kursiv', 'streich', 'wichtig', 'code'];
+const ARTEN: readonly InlineArt[] = [ART.fett, ART.kursiv, ART.streich, ART.wichtig, ART.code];
 const SONDE = '\uE000';
 
 function knopfMarker(art: InlineArt): string {
@@ -72,7 +72,7 @@ export function inlineAn(text: string, start: number, ende: number): InlineStand
 export function hatInlineWichtig(text: string, start: number, ende: number): boolean {
   const wahl = klemme(text, start, ende);
   return belege(text).some((beleg) => {
-    if (beleg.art !== 'wichtig' || beleg.marker.length < 2) return false;
+    if (beleg.art !== ART.wichtig || beleg.marker.length < 2) return false;
     if (wahl.start === wahl.ende) return cursorImInhalt(beleg, wahl.start);
     return enthaelt(beleg, wahl.start, wahl.ende);
   });
@@ -105,7 +105,7 @@ function aussenVonCode(text: string, start: number, ende: number): { start: numb
   let von = start;
   let bis = ende;
   if (start === ende) {
-    for (const beleg of passende(lagen(text, start, ende), 'code', start, ende)) {
+    for (const beleg of passende(lagen(text, start, ende), ART.code, start, ende)) {
       const spanne = spanneZurueck(beleg, start);
       von = Math.min(von, spanne.von);
       bis = Math.max(bis, spanne.bis);
@@ -113,7 +113,7 @@ function aussenVonCode(text: string, start: number, ende: number): { start: numb
     return { start: von, ende: bis };
   }
   for (const beleg of belege(text)) {
-    if (beleg.art !== 'code' || !enthaelt(beleg, start, ende)) continue;
+    if (beleg.art !== ART.code || !enthaelt(beleg, start, ende)) continue;
     von = Math.min(von, beleg.ganzVon);
     bis = Math.max(bis, beleg.ganzBis);
   }
@@ -128,7 +128,7 @@ export function schalteInline(text: string, start: number, ende: number, art: In
     if (marker.length > 0) return entferne(text, marker, wahl.start, wahl.ende);
   }
   const zeichen = knopfMarker(art);
-  const ziel = art === 'code' ? wahl : aussenVonCode(text, wahl.start, wahl.ende);
+  const ziel = art === ART.code ? wahl : aussenVonCode(text, wahl.start, wahl.ende);
   const neu =
     text.slice(0, ziel.start) + zeichen + text.slice(ziel.start, ziel.ende) + zeichen + text.slice(ziel.ende);
   const schub = zeichen.length;
@@ -142,19 +142,19 @@ function einsetzen(id: FormatBefehl): string {
 }
 
 function zeilenMarker(): string {
-  const wert = formatVon('wichtig').syntax?.zeile;
+  const wert = formatVon(ART.wichtig).syntax?.zeile;
   if (!wert) throw new Error('missing syntax');
   return wert;
 }
 
 function zaunMarker(): string {
-  const wert = formatVon('code').syntax?.zaun;
+  const wert = formatVon(ART.code).syntax?.zaun;
   if (!wert) throw new Error('missing syntax');
   return wert;
 }
 
 function linkGeruest(): string {
-  const wert = formatVon('link').syntax?.geruest;
+  const wert = formatVon(ART.link).syntax?.geruest;
   if (!wert) throw new Error('missing syntax');
   return wert;
 }
@@ -199,42 +199,58 @@ function schaltePraefix(
   };
 }
 
-function listenWeg(zeile: string): number {
-  const liste = listenLaenge(zeile);
-  if (liste > 0) return liste;
-  return nummerLaenge(zeile);
+function prefixLaenge(beleg: Beleg): number {
+  const erste = beleg.marker[0];
+  return erste ? erste[1] - erste[0] : 0;
+}
+
+function listenBeleg(beleg: Beleg): boolean {
+  if (beleg.art === ART.liste || beleg.art === ART.nummer) return true;
+  return beleg.art === ART.haken && (beleg.listenLaenge ?? 0) > 0;
 }
 
 export function schalteFett(text: string, start: number, ende: number): TextWahl {
-  return schalteInline(text, start, ende, 'fett');
+  return schalteInline(text, start, ende, ART.fett);
 }
 
 export function schalteKursiv(text: string, start: number, ende: number): TextWahl {
-  return schalteInline(text, start, ende, 'kursiv');
+  return schalteInline(text, start, ende, ART.kursiv);
 }
 
 export function schalteStrich(text: string, start: number, ende: number): TextWahl {
-  return schalteInline(text, start, ende, 'streich');
+  return schalteInline(text, start, ende, ART.streich);
 }
 
 export function schalteListe(text: string, start: number, ende: number): TextWahl {
-  return schaltePraefix(text, start, ende, einsetzen('liste'), (zeile) => listenWeg(zeile) > 0, listenWeg);
+  const wahl = klemme(text, start, ende);
+  const beleg = zeilenTreffer(text, wahl.start, listenBeleg);
+  const laenge = !beleg ? 0 : beleg.art === ART.haken ? (beleg.listenLaenge ?? 0) : prefixLaenge(beleg);
+  return schaltePraefix(text, start, ende, einsetzen(ART.liste), () => laenge > 0, () => laenge);
 }
 
 export function schalteHaken(text: string, start: number, ende: number): TextWahl {
-  return schaltePraefix(
-    text,
-    start,
-    ende,
-    einsetzen('haken'),
-    (zeile) => hakenVon(zeile) !== null,
-    (zeile) => hakenVon(zeile)?.laenge ?? 0,
-  );
+  const wahl = klemme(text, start, ende);
+  const beleg = zeilenTreffer(text, wahl.start, (eintrag) => eintrag.art === ART.haken);
+  const laenge = beleg ? prefixLaenge(beleg) : 0;
+  return schaltePraefix(text, start, ende, einsetzen(ART.haken), () => laenge > 0, () => laenge);
+}
+
+function markerZeile(text: string, beleg: Beleg, index: number): string {
+  const spanne = beleg.marker[index];
+  if (!spanne) return '';
+  return ohneWagen(text.slice(spanne[0], spanne[1]));
+}
+
+function zaunBeleg(text: string, von: number, bis: number, zaun: string): boolean {
+  return belege(text).some((beleg) => {
+    if (beleg.art !== ART.codeblock || beleg.ganzVon !== von || beleg.ganzBis !== bis) return false;
+    return markerZeile(text, beleg, 0) === zaun && markerZeile(text, beleg, 1) === zaun;
+  });
 }
 
 export function schalteCode(text: string, start: number, ende: number): TextWahl {
   const wahl = klemme(text, start, ende);
-  if (!text.slice(wahl.start, wahl.ende).includes('\n')) return schalteInline(text, wahl.start, wahl.ende, 'code');
+  if (!text.slice(wahl.start, wahl.ende).includes('\n')) return schalteInline(text, wahl.start, wahl.ende, ART.code);
   const zaun = zaunMarker();
   const von = text.lastIndexOf('\n', wahl.start - 1) + 1;
   let cursor = wahl.ende;
@@ -243,9 +259,7 @@ export function schalteCode(text: string, start: number, ende: number): TextWahl
   const bis = nl < 0 ? text.length : nl;
   const block = text.slice(von, bis);
   const zeilen = block.split('\n');
-  const erste = ohneWagen(zeilen[0] ?? '');
-  const letzte = ohneWagen(zeilen[zeilen.length - 1] ?? '');
-  if (zeilen.length >= 3 && erste === zaun && letzte === zaun) {
+  if (zaunBeleg(text, von, bis, zaun)) {
     const kern = zeilen.slice(1, -1).join('\n');
     return { text: text.slice(0, von) + kern + text.slice(bis), start: von, ende: von + kern.length };
   }
@@ -266,38 +280,32 @@ export function schalteVerknuepfung(text: string, start: number, ende: number, z
   };
 }
 
-function zeileKern(text: string, index: number): string {
-  const { von, bis } = zeileUm(text, index);
-  return ohneWagen(text.slice(von, bis));
+function zeileWichtig(beleg: Beleg): boolean {
+  return beleg.art === ART.wichtig && beleg.marker.length === 1;
 }
 
 function zeilenWichtig(text: string, start: number, ende: number): TextWahl {
   const marker = zeilenMarker();
-  return schaltePraefix(
-    text,
-    start,
-    ende,
-    marker,
-    (zeile) => zeile.startsWith(marker),
-    (zeile) => (zeile.startsWith(marker) ? marker.length : 0),
-  );
+  const wahl = klemme(text, start, ende);
+  const beleg = zeilenTreffer(text, wahl.start, zeileWichtig);
+  const laenge = beleg ? prefixLaenge(beleg) : 0;
+  return schaltePraefix(text, start, ende, marker, () => laenge > 0, () => laenge);
 }
 
 export function schalteWichtig(text: string, start: number, ende: number): TextWahl {
   const wahl = klemme(text, start, ende);
   const inhalt = text.slice(wahl.start, wahl.ende);
   const einzeilig = !inhalt.includes('\n');
-  const kern = zeileKern(text, wahl.start);
-  const zeilenForm = kern.startsWith(zeilenMarker());
+  const zeilenForm = zeilenTreffer(text, wahl.start, zeileWichtig) !== null;
   if (einzeilig && hatInlineWichtig(text, wahl.start, wahl.ende)) {
-    return schalteInline(text, wahl.start, wahl.ende, 'wichtig');
+    return schalteInline(text, wahl.start, wahl.ende, ART.wichtig);
   }
   if (zeilenForm) return zeilenWichtig(text, wahl.start, wahl.ende);
   if (einzeilig && inlineAn(text, wahl.start, wahl.ende).wichtig) {
-    return schalteInline(text, wahl.start, wahl.ende, 'wichtig');
+    return schalteInline(text, wahl.start, wahl.ende, ART.wichtig);
   }
   if (einzeilig && (inhalt.length > 0 || cursorInSchale(text, wahl.start))) {
-    return schalteInline(text, wahl.start, wahl.ende, 'wichtig');
+    return schalteInline(text, wahl.start, wahl.ende, ART.wichtig);
   }
   return zeilenWichtig(text, wahl.start, wahl.ende);
 }

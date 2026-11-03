@@ -8,11 +8,13 @@ import {
   type ViewUpdate,
 } from '@codemirror/view';
 import {
+  ART,
   STIL_REGISTER,
   leseDokument,
   nurMarker,
   stilAttribut,
   vorschauSchichten,
+  WIDGET,
   vorschauWidget,
   type Beleg,
 } from '../../../../shared/features/format/index.ts';
@@ -126,9 +128,9 @@ function caretInBeleg(view: EditorView, beleg: Beleg): boolean {
 
 function widgetFuer(beleg: Beleg): WidgetType | null {
   const art = vorschauWidget(beleg.art);
-  if (art === 'punkt') return new PunktWidget();
-  if (art === 'nummer') return new NummerWidget(beleg.zahl ?? '');
-  if (art === 'haken') return new HakenWidget(beleg.abgehakt === true);
+  if (art === WIDGET.punkt) return new PunktWidget();
+  if (art === WIDGET.nummer) return new NummerWidget(beleg.zahl ?? '');
+  if (art === WIDGET.haken) return new HakenWidget(beleg.abgehakt === true);
   return null;
 }
 
@@ -141,13 +143,13 @@ function baue(view: EditorView): DecorationSet {
   const zeilen = new Set<number>();
   const kacheln = new Map<number, Kachel>();
   for (const beleg of leseDokument(text).belege) {
-    const zeilenForm = beleg.art === 'wichtig' && beleg.marker.length === 1;
+    const zeilenForm = beleg.art === ART.wichtig && beleg.marker.length === 1;
     if (zeilenForm) zeilen.add(beleg.ganzVon);
     const zeigeSchale = nurMarker(text.slice(beleg.von, beleg.bis)) && caretInBeleg(view, beleg);
     for (const [von, bis] of beleg.marker) {
       if (bis <= von) continue;
       const ende = Math.min(bis, text.length);
-      if (beleg.art === 'wichtig') {
+      if (beleg.art === ART.wichtig) {
         if (!markerAktiv(view, von, ende)) {
           for (let i = Math.max(0, von); i < ende; i += 1) {
             if (text[i] === '\n') break;

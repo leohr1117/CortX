@@ -1,7 +1,10 @@
 export {
+  ART,
+  EBENE,
   belege,
   leseBaum,
   leseDokument,
+  zeilenTreffer,
   type Beleg,
   type BelegArt,
   type Dokument,
@@ -23,15 +26,7 @@ export {
   type LeseWichtig,
   type LeseWichtigTeil,
 } from './lesen.ts';
-export {
-  hakenVon,
-  kopfMarke,
-  listenLaenge,
-  nummerLaenge,
-  UEBERSCHRIFT_MARKER,
-  WICHTIG_ZEILE,
-  type KopfMarke,
-} from './zeile.ts';
+export { UEBERSCHRIFT_MARKER, WICHTIG_ZEILE } from './zeile.ts';
 export {
   schalteCode,
   schalteFett,
@@ -50,6 +45,8 @@ export { liegtInCode, wandleKuerzel } from './kuerzel.ts';
 export {
   FORMAT_REGISTER,
   INLINE_REGISTER,
+  KUERZEL_ART,
+  WIDGET,
   STIL_REGISTER,
   STIL_VAR,
   formatVon,

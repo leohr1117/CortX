@@ -1,4 +1,4 @@
-import { formatVon, type FormatBefehl } from '../../../../shared/features/format/index.ts';
+import { ART, formatVon, type FormatBefehl } from '../../../../shared/features/format/index.ts';
 
 export interface Druck {
   fett: boolean;
@@ -20,14 +20,14 @@ function aktiv(id: FormatBefehl, text: string, start: number, ende: number): boo
 
 export function leseDruck(text: string, start: number, ende: number): Druck {
   return {
-    fett: aktiv('fett', text, start, ende),
-    kursiv: aktiv('kursiv', text, start, ende),
+    fett: aktiv(ART.fett, text, start, ende),
+    kursiv: aktiv(ART.kursiv, text, start, ende),
     strich: aktiv('strich', text, start, ende),
-    code: aktiv('code', text, start, ende),
-    link: aktiv('link', text, start, ende),
-    ueberschrift: aktiv('ueberschrift', text, start, ende),
-    liste: aktiv('liste', text, start, ende),
-    haken: aktiv('haken', text, start, ende),
-    wichtig: aktiv('wichtig', text, start, ende),
+    code: aktiv(ART.code, text, start, ende),
+    link: aktiv(ART.link, text, start, ende),
+    ueberschrift: aktiv(ART.ueberschrift, text, start, ende),
+    liste: aktiv(ART.liste, text, start, ende),
+    haken: aktiv(ART.haken, text, start, ende),
+    wichtig: aktiv(ART.wichtig, text, start, ende),
   };
 }

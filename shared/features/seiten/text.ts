@@ -1,6 +1,6 @@
-import type { LeseBlock, LeseTeil } from '../format/baum.ts';
+import { ART, EBENE, type LeseBlock, type LeseTeil } from '../format/baum.ts';
 import { leseDokument } from '../format/lesen.ts';
-import { zeilenStuecke } from '../format/zeile.ts';
+import { kopfZeichen, zeilenStuecke } from '../format/zeile.ts';
 
 export function ersteZeile(text: string): string {
   const ende = text.indexOf('\n');
@@ -19,7 +19,7 @@ export function schluessel(name: string): string {
 function plain(teile: readonly LeseTeil[]): string {
   let aus = '';
   for (const teil of teile) {
-    if (teil.art === 'link') aus += plain(teil.teile);
+    if (teil.art === ART.link) aus += plain(teil.teile);
     else if ('text' in teil) aus += teil.text;
     else aus += plain(teil.teile);
   }
@@ -27,10 +27,10 @@ function plain(teile: readonly LeseTeil[]): string {
 }
 
 function zeilenText(block: LeseBlock): string {
-  if (block.art === 'codeblock') return block.text;
-  if (block.art === 'ueberschrift' || block.art === 'wichtig') return plain(block.teile);
-  if (block.art === 'liste') return plain(block.punkte[0] ?? []);
-  if (block.art === 'haken') return plain(block.punkte[0]?.teile ?? []);
+  if (block.art === ART.codeblock) return block.text;
+  if (block.art === ART.ueberschrift || block.art === ART.wichtig) return plain(block.teile);
+  if (block.art === ART.liste) return plain(block.punkte[0] ?? []);
+  if (block.art === ART.haken) return plain(block.punkte[0]?.teile ?? []);
   return plain(block.zeilen[0] ?? []);
 }
 
@@ -54,8 +54,10 @@ export function abschnittStellen(text: string): AbschnittStelle[] {
   const koepfe: AbschnittStelle[] = [];
   let sucheAb = 0;
   for (const block of dok.bloecke) {
-    if (block.art !== 'ueberschrift' || block.stufe !== 2) continue;
-    const beleg = dok.belege.slice(sucheAb).find((eintrag) => eintrag.art === 'ueberschrift' && eintrag.stufe === 2);
+    if (block.art !== ART.ueberschrift || block.stufe !== EBENE.abschnitt) continue;
+    const beleg = dok.belege.slice(sucheAb).find(
+      (eintrag) => eintrag.art === ART.ueberschrift && eintrag.stufe === EBENE.abschnitt,
+    );
     if (!beleg) continue;
     sucheAb = dok.belege.indexOf(beleg) + 1;
     koepfe.push({ titel: plain(block.teile).trim(), inhaltBis: beleg.ganzVon });
@@ -86,7 +88,8 @@ export function neueSeite(titel: string | null, abschnitt: string | null, body: 
   const rest = body.trim();
   if (!titel) return rest.length === 0 ? ersatz.trim() : rest;
   if (abschnitt) {
-    const block = rest.length === 0 ? `## ${abschnitt}` : `## ${abschnitt}\n\n${rest}`;
+    const kopf = `${kopfZeichen(EBENE.abschnitt)}${abschnitt}`;
+    const block = rest.length === 0 ? kopf : `${kopf}\n\n${rest}`;
     return verbinde(titel, block);
   }
   if (rest.length === 0) return titel;
@@ -102,7 +105,8 @@ export function haengeBlock(seite: string, block: string, abschnitt: string | nu
   const stellen = abschnittStellen(seite);
   const treffer = stellen.find((stelle) => schluessel(stelle.titel) === schluessel(abschnitt));
   if (!treffer) {
-    const kopf = stueck.length === 0 ? `## ${abschnitt}` : `## ${abschnitt}\n\n${stueck}`;
+    const zeile = `${kopfZeichen(EBENE.abschnitt)}${abschnitt}`;
+    const kopf = stueck.length === 0 ? zeile : `${zeile}\n\n${stueck}`;
     return verbinde(seite, kopf);
   }
   if (stueck.length === 0) return seite;

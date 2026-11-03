@@ -1,4 +1,4 @@
-import type { Beleg, LeseTeil } from './baum.ts';
+import { ART, type Beleg, type LeseTeil } from './baum.ts';
 import {
   CODE_INLINE,
   FETT_MARKER,
@@ -12,7 +12,7 @@ import {
 const ESCAPE = new Set(['\\', '`', '*', '_', '~', '[', ']', '!']);
 
 interface Fund {
-  art: 'code' | 'link' | 'fett' | 'kursiv' | 'streich' | 'wichtig';
+  art: typeof ART.code | typeof ART.link | typeof ART.fett | typeof ART.kursiv | typeof ART.streich | typeof ART.wichtig;
   von: number;
   bis: number;
   innenVon: number;
@@ -28,11 +28,11 @@ function wortZeichen(zeichen: string): boolean {
 function haengeText(teile: LeseTeil[], text: string): void {
   if (text.length === 0) return;
   const letzte = teile[teile.length - 1];
-  if (letzte?.art === 'text') {
+  if (letzte?.art === ART.text) {
     letzte.text += text;
     return;
   }
-  teile.push({ art: 'text', text });
+  teile.push({ art: ART.text, text });
 }
 
 function sucheCode(zeile: string, i: number): Fund | null {
@@ -50,7 +50,7 @@ function sucheCode(zeile: string, i: number): Fund | null {
     while (zeile[j + z] === CODE_INLINE) z += 1;
     if (z === lang && j > ab) {
       return {
-        art: 'code',
+        art: ART.code,
         von: i,
         bis: j + lang,
         innenVon: ab,
@@ -74,7 +74,7 @@ function sucheLink(zeile: string, i: number): Fund | null {
   const ziel = zeile.slice(klammer + 2, ende);
   if (ziel.length === 0 || /[\s<>"']/.test(ziel) || /[\u0000-\u001f\u007f]/.test(ziel)) return null;
   return {
-    art: 'link',
+    art: ART.link,
     von: i,
     bis: ende + 1,
     innenVon: i + 1,
@@ -158,11 +158,11 @@ function versuch(zeile: string, i: number, inLink: boolean): Fund | 'sprung' | n
   const zeichen = zeile[i];
   if (zeichen === CODE_INLINE) return sucheCode(zeile, i);
   if (zeichen === '[' && zeile[i - 1] !== '!' && !inLink) return sucheLink(zeile, i);
-  if (zeile.startsWith(STREICH_MARKER, i)) return suchePaar(zeile, i, STREICH_MARKER, 'streich');
-  if (zeile.startsWith(FETT_MARKER, i)) return suchePaar(zeile, i, FETT_MARKER, 'fett');
-  if (zeile.startsWith(FETT_UNTER, i)) return suchePaar(zeile, i, FETT_UNTER, 'fett');
-  if (zeichen === KURSIV_MARKER) return suchePaar(zeile, i, KURSIV_MARKER, 'kursiv');
-  if (zeichen === KURSIV_UNTER) return suchePaar(zeile, i, KURSIV_UNTER, 'kursiv');
+  if (zeile.startsWith(STREICH_MARKER, i)) return suchePaar(zeile, i, STREICH_MARKER, ART.streich);
+  if (zeile.startsWith(FETT_MARKER, i)) return suchePaar(zeile, i, FETT_MARKER, ART.fett);
+  if (zeile.startsWith(FETT_UNTER, i)) return suchePaar(zeile, i, FETT_UNTER, ART.fett);
+  if (zeichen === KURSIV_MARKER) return suchePaar(zeile, i, KURSIV_MARKER, ART.kursiv);
+  if (zeichen === KURSIV_UNTER) return suchePaar(zeile, i, KURSIV_UNTER, ART.kursiv);
   return null;
 }
 
@@ -260,18 +260,18 @@ function wichtigPaare(zeile: string, vorher: string): Map<number, number> {
   return paare;
 }
 
-function alsSchrift(art: 'fett' | 'kursiv' | 'streich' | 'wichtig', teile: LeseTeil[]): LeseTeil {
-  const inhalt = teile.length > 0 ? teile : [{ art: 'text' as const, text: '' }];
-  const schlicht = teile.length === 1 && teile[0]?.art === 'text' ? teile[0].text : null;
+function alsSchrift(art: typeof ART.fett | typeof ART.kursiv | typeof ART.streich | typeof ART.wichtig, teile: LeseTeil[]): LeseTeil {
+  const inhalt = teile.length > 0 ? teile : [{ art: ART.text, text: '' }];
+  const schlicht = teile.length === 1 && teile[0]?.art === ART.text ? teile[0].text : null;
   if (schlicht !== null) {
-    if (art === 'fett') return { art, text: schlicht };
-    if (art === 'kursiv') return { art, text: schlicht };
-    if (art === 'streich') return { art, text: schlicht };
+    if (art === ART.fett) return { art, text: schlicht };
+    if (art === ART.kursiv) return { art, text: schlicht };
+    if (art === ART.streich) return { art, text: schlicht };
     return { art, text: schlicht };
   }
-  if (art === 'fett') return { art, teile: inhalt };
-  if (art === 'kursiv') return { art, teile: inhalt };
-  if (art === 'streich') return { art, teile: inhalt };
+  if (art === ART.fett) return { art, teile: inhalt };
+  if (art === ART.kursiv) return { art, teile: inhalt };
+  if (art === ART.streich) return { art, teile: inhalt };
   return { art, teile: inhalt };
 }
 
@@ -295,7 +295,7 @@ export function leseInline(
     if (zu !== undefined) {
       const innenVon = i + WICHTIG_INLINE.length;
       const fund: Fund = {
-        art: 'wichtig',
+        art: ART.wichtig,
         von: i,
         bis: zu + WICHTIG_INLINE.length,
         innenVon,
@@ -307,7 +307,7 @@ export function leseInline(
       };
       const innen = zeile.slice(innenVon, zu);
       const schrift = leseInline(innen, basis + innenVon, inLink, '\n');
-      teile.push(alsSchrift('wichtig', schrift.teile));
+      teile.push(alsSchrift(ART.wichtig, schrift.teile));
       belege.push(belegAbsolut(basis, fund), ...schrift.belege);
       i = fund.bis;
       continue;
@@ -324,13 +324,13 @@ export function leseInline(
       continue;
     }
     const innen = zeile.slice(fund.innenVon, fund.innenBis);
-    if (fund.art === 'code') {
-      teile.push({ art: 'code', text: innen });
+    if (fund.art === ART.code) {
+      teile.push({ art: ART.code, text: innen });
       belege.push(belegAbsolut(basis, fund));
-    } else if (fund.art === 'link') {
+    } else if (fund.art === ART.link) {
       const label = leseInline(innen, basis + fund.innenVon, true, zeile[fund.innenVon - 1] ?? '\n');
-      const inhalt = label.teile.length > 0 ? label.teile : [{ art: 'text' as const, text: '' }];
-      teile.push({ art: 'link', teile: inhalt, ziel: fund.ziel ?? '' });
+      const inhalt = label.teile.length > 0 ? label.teile : [{ art: ART.text, text: '' }];
+      teile.push({ art: ART.link, teile: inhalt, ziel: fund.ziel ?? '' });
       belege.push(belegAbsolut(basis, fund), ...label.belege);
     } else {
       const schrift = leseInline(innen, basis + fund.innenVon, inLink, '\n');

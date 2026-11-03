@@ -1,40 +1,61 @@
+export const ART = {
+  text: 'text',
+  fett: 'fett',
+  kursiv: 'kursiv',
+  streich: 'streich',
+  wichtig: 'wichtig',
+  code: 'code',
+  link: 'link',
+  absatz: 'absatz',
+  liste: 'liste',
+  haken: 'haken',
+  ueberschrift: 'ueberschrift',
+  codeblock: 'codeblock',
+  nummer: 'nummer',
+} as const;
+
+export const EBENE = {
+  titel: 1,
+  abschnitt: 2,
+} as const;
+
 export interface LeseTextTeil {
-  art: 'text';
+  art: typeof ART.text;
   text: string;
 }
 
 export interface LeseFettTeil {
-  art: 'fett';
+  art: typeof ART.fett;
   text: string;
 }
 
 export interface LeseKursivTeil {
-  art: 'kursiv';
+  art: typeof ART.kursiv;
   text: string;
 }
 
 export interface LeseStreichTeil {
-  art: 'streich';
+  art: typeof ART.streich;
   text: string;
 }
 
 export interface LeseWichtigTeil {
-  art: 'wichtig';
+  art: typeof ART.wichtig;
   text: string;
 }
 
 export interface LeseVerschachtelt {
-  art: 'fett' | 'kursiv' | 'streich' | 'wichtig';
+  art: typeof ART.fett | typeof ART.kursiv | typeof ART.streich | typeof ART.wichtig;
   teile: LeseTeil[];
 }
 
 export interface LeseCodeTeil {
-  art: 'code';
+  art: typeof ART.code;
   text: string;
 }
 
 export interface LeseLinkTeil {
-  art: 'link';
+  art: typeof ART.link;
   teile: LeseTeil[];
   ziel: string;
 }
@@ -50,12 +71,12 @@ export type LeseTeil =
   | LeseLinkTeil;
 
 export interface LeseAbsatz {
-  art: 'absatz';
+  art: typeof ART.absatz;
   zeilen: LeseTeil[][];
 }
 
 export interface LeseListe {
-  art: 'liste';
+  art: typeof ART.liste;
   punkte: LeseTeil[][];
   geordnet?: boolean;
 }
@@ -66,40 +87,40 @@ export interface LeseHakenPunkt {
 }
 
 export interface LeseHaken {
-  art: 'haken';
+  art: typeof ART.haken;
   punkte: LeseHakenPunkt[];
 }
 
 export interface LeseUeberschrift {
-  art: 'ueberschrift';
+  art: typeof ART.ueberschrift;
   teile: LeseTeil[];
   stufe?: number;
 }
 
 export interface LeseWichtig {
-  art: 'wichtig';
+  art: typeof ART.wichtig;
   teile: LeseTeil[];
 }
 
 export interface LeseCodeBlock {
-  art: 'codeblock';
+  art: typeof ART.codeblock;
   text: string;
 }
 
 export type LeseBlock = LeseAbsatz | LeseListe | LeseHaken | LeseUeberschrift | LeseWichtig | LeseCodeBlock;
 
 export type BelegArt =
-  | 'fett'
-  | 'kursiv'
-  | 'streich'
-  | 'code'
-  | 'link'
-  | 'codeblock'
-  | 'liste'
-  | 'nummer'
-  | 'haken'
-  | 'ueberschrift'
-  | 'wichtig';
+  | typeof ART.fett
+  | typeof ART.kursiv
+  | typeof ART.streich
+  | typeof ART.code
+  | typeof ART.link
+  | typeof ART.codeblock
+  | typeof ART.liste
+  | typeof ART.nummer
+  | typeof ART.haken
+  | typeof ART.ueberschrift
+  | typeof ART.wichtig;
 
 export interface Beleg {
   art: BelegArt;
@@ -107,6 +128,9 @@ export interface Beleg {
   bis: number;
   ganzVon: number;
   ganzBis: number;
+  bisZeile?: number;
+  listenLaenge?: number;
+  innen?: Beleg[];
   marker: Array<[number, number]>;
   ziel?: string;
   abgehakt?: boolean;

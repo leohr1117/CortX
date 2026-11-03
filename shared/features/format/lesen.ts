@@ -1,4 +1,4 @@
-import type { Beleg, BelegArt, Dokument, LeseBlock, LeseHakenPunkt, LeseListe, LeseTeil } from './baum.ts';
+import { ART, type Beleg, type BelegArt, type Dokument, type LeseBlock, type LeseHakenPunkt, type LeseListe, type LeseTeil } from './baum.ts';
 import { leseInline } from './inline.ts';
 import {
   WICHTIG_ZEILE,
@@ -35,24 +35,14 @@ export type {
   LeseWichtig,
   LeseWichtigTeil,
 } from './baum.ts';
-export { kopfMarke, UEBERSCHRIFT_MARKER, WICHTIG_ZEILE } from './zeile.ts';
-
-function besonders(zeile: string): boolean {
-  return (
-    zaunAuf(zeile) !== null ||
-    kopfMarke(zeile) !== null ||
-    wichtigZeile(zeile) ||
-    hakenVon(zeile) !== null ||
-    listenLaenge(zeile) > 0 ||
-    nummerLaenge(zeile) > 0
-  );
-}
+export { ART, EBENE } from './baum.ts';
+export { UEBERSCHRIFT_MARKER, WICHTIG_ZEILE } from './zeile.ts';
 
 function struktur(
   art: BelegArt,
   stueck: ZeilenStueck,
   laenge: number,
-  extra?: { abgehakt?: boolean; zahl?: string; stufe?: number },
+  extra?: { abgehakt?: boolean; zahl?: string; stufe?: number; listenLaenge?: number },
 ): Beleg {
   const ganzBis = stueck.von + stueck.zeile.length;
   const beleg: Beleg = {
@@ -61,12 +51,39 @@ function struktur(
     bis: ganzBis,
     ganzVon: stueck.von,
     ganzBis,
+    bisZeile: stueck.bis,
     marker: laenge > 0 ? [[stueck.von, stueck.von + laenge]] : [],
   };
   if (extra?.abgehakt !== undefined) beleg.abgehakt = extra.abgehakt;
   if (extra?.zahl !== undefined) beleg.zahl = extra.zahl;
   if (extra?.stufe !== undefined) beleg.stufe = extra.stufe;
+  if (extra?.listenLaenge) beleg.listenLaenge = extra.listenLaenge;
   return beleg;
+}
+
+function klassifiziere(stueck: ZeilenStueck): Beleg | null {
+  const kopf = kopfMarke(stueck.zeile);
+  if (kopf) {
+    const extra = kopf.stufe > 0 ? { stufe: kopf.stufe } : undefined;
+    return struktur(ART.ueberschrift, stueck, kopf.laenge, extra);
+  }
+  if (wichtigZeile(stueck.zeile)) return struktur(ART.wichtig, stueck, WICHTIG_ZEILE.length);
+  const kasten = hakenVon(stueck.zeile);
+  if (kasten) {
+    return struktur(ART.haken, stueck, kasten.laenge, {
+      abgehakt: kasten.abgehakt,
+      listenLaenge: listenLaenge(stueck.zeile),
+    });
+  }
+  const liste = listenLaenge(stueck.zeile);
+  if (liste > 0) return struktur(ART.liste, stueck, liste);
+  const nummer = nummerLaenge(stueck.zeile);
+  if (nummer > 0) return struktur(ART.nummer, stueck, nummer, { zahl: stueck.zeile.slice(0, nummer - 2) });
+  return null;
+}
+
+function besonders(stueck: ZeilenStueck): boolean {
+  return zaunAuf(stueck.zeile) !== null || klassifiziere(stueck) !== null;
 }
 
 function zeileInline(stueck: ZeilenStueck, laenge: number): { teile: LeseTeil[]; belege: Beleg[] } {
@@ -77,6 +94,15 @@ function zeileInline(stueck: ZeilenStueck, laenge: number): { teile: LeseTeil[];
 function codeText(roh: string): string {
   const ohne = roh.replaceAll('\r', '');
   return ohne.endsWith('\n') ? ohne.slice(0, -1) : ohne;
+}
+
+function innenBelege(stuecke: readonly ZeilenStueck[], von: number, bis: number): Beleg[] {
+  const innen: Beleg[] = [];
+  for (let k = von; k < bis; k += 1) {
+    const fund = klassifiziere(stuecke[k]!);
+    if (fund) innen.push(fund);
+  }
+  return innen;
 }
 
 function liesZaun(
@@ -106,20 +132,25 @@ function liesZaun(
   } else if (text.length > ganzBis) {
     ganzBis = text.length;
   }
+  const beleg: Beleg = {
+    art: ART.codeblock,
+    von: inhaltVon,
+    bis: inhaltBis,
+    ganzVon: auf.von,
+    ganzBis,
+    marker,
+  };
+  const innen = innenBelege(stuecke, index + 1, zu ? j : stuecke.length);
+  if (innen.length > 0) beleg.innen = innen;
   return {
-    block: { art: 'codeblock', text: codeText(text.slice(inhaltVon, inhaltBis)) },
-    belege: [
-      {
-        art: 'codeblock',
-        von: inhaltVon,
-        bis: inhaltBis,
-        ganzVon: auf.von,
-        ganzBis,
-        marker,
-      },
-    ],
+    block: { art: ART.codeblock, text: codeText(text.slice(inhaltVon, inhaltBis)) },
+    belege: [beleg],
     naechst: zu ? j + 1 : stuecke.length,
   };
+}
+
+function laengeVon(beleg: Beleg): number {
+  return beleg.von - beleg.ganzVon;
 }
 
 export function leseDokument(text: string): Dokument {
@@ -138,71 +169,86 @@ export function leseDokument(text: string): Dokument {
       i = fund.naechst;
       continue;
     }
-    const kopf = kopfMarke(stueck.zeile);
-    if (kopf) {
-      const inline = zeileInline(stueck, kopf.laenge);
+    const klasse = klassifiziere(stueck);
+    if (klasse?.art === ART.ueberschrift) {
+      const inline = zeileInline(stueck, laengeVon(klasse));
       bloecke.push(
-        kopf.stufe > 0
-          ? { art: 'ueberschrift', teile: inline.teile, stufe: kopf.stufe }
-          : { art: 'ueberschrift', teile: inline.teile },
+        klasse.stufe !== undefined
+          ? { art: ART.ueberschrift, teile: inline.teile, stufe: klasse.stufe }
+          : { art: ART.ueberschrift, teile: inline.teile },
       );
-      const extra = kopf.stufe > 0 ? { stufe: kopf.stufe } : undefined;
-      belege.push(struktur('ueberschrift', stueck, kopf.laenge, extra), ...inline.belege);
+      belege.push(klasse, ...inline.belege);
       i += 1;
       continue;
     }
-    if (wichtigZeile(stueck.zeile)) {
-      const inline = zeileInline(stueck, WICHTIG_ZEILE.length);
-      bloecke.push({ art: 'wichtig', teile: inline.teile });
-      belege.push(struktur('wichtig', stueck, WICHTIG_ZEILE.length), ...inline.belege);
+    if (klasse?.art === ART.wichtig) {
+      const inline = zeileInline(stueck, laengeVon(klasse));
+      bloecke.push({ art: ART.wichtig, teile: inline.teile });
+      belege.push(klasse, ...inline.belege);
       i += 1;
       continue;
     }
-    const kasten = hakenVon(stueck.zeile);
-    if (kasten) {
+    if (klasse?.art === ART.haken) {
       const punkte: LeseHakenPunkt[] = [];
       while (i < stuecke.length) {
         const zeile = stuecke[i]!;
-        const haken = hakenVon(zeile.zeile);
-        if (!haken) break;
-        const inline = zeileInline(zeile, haken.laenge);
-        punkte.push({ abgehakt: haken.abgehakt, teile: inline.teile });
-        belege.push(struktur('haken', zeile, haken.laenge, { abgehakt: haken.abgehakt }), ...inline.belege);
+        const haken = klassifiziere(zeile);
+        if (haken?.art !== ART.haken) break;
+        const inline = zeileInline(zeile, laengeVon(haken));
+        punkte.push({ abgehakt: haken.abgehakt === true, teile: inline.teile });
+        belege.push(haken, ...inline.belege);
         i += 1;
       }
-      bloecke.push({ art: 'haken', punkte });
+      bloecke.push({ art: ART.haken, punkte });
       continue;
     }
-    const liste = listenLaenge(stueck.zeile);
-    const nummer = nummerLaenge(stueck.zeile);
-    if (liste > 0 || nummer > 0) {
-      const geordnet = nummer > 0;
+    if (klasse?.art === ART.liste || klasse?.art === ART.nummer) {
+      const geordnet = klasse.art === ART.nummer;
       const punkte: LeseTeil[][] = [];
       while (i < stuecke.length) {
         const zeile = stuecke[i]!;
-        const laenge = geordnet ? nummerLaenge(zeile.zeile) : listenLaenge(zeile.zeile);
-        if (laenge === 0) break;
-        const inline = zeileInline(zeile, laenge);
+        const eintrag = klassifiziere(zeile);
+        if (!eintrag || (geordnet ? eintrag.art !== ART.nummer : eintrag.art !== ART.liste)) break;
+        const inline = zeileInline(zeile, laengeVon(eintrag));
         punkte.push(inline.teile);
-        const extra = geordnet ? { zahl: zeile.zeile.slice(0, laenge - 2) } : undefined;
-        belege.push(struktur(geordnet ? 'nummer' : 'liste', zeile, laenge, extra), ...inline.belege);
+        belege.push(eintrag, ...inline.belege);
         i += 1;
       }
-      const block: LeseListe = geordnet ? { art: 'liste', punkte, geordnet: true } : { art: 'liste', punkte };
+      const block: LeseListe = geordnet ? { art: ART.liste, punkte, geordnet: true } : { art: ART.liste, punkte };
       bloecke.push(block);
       continue;
     }
     const zeilen: LeseTeil[][] = [];
-    while (i < stuecke.length && !besonders(stuecke[i]!.zeile)) {
+    while (i < stuecke.length && !besonders(stuecke[i]!)) {
       const zeile = stuecke[i]!;
       const inline = zeileInline(zeile, 0);
       zeilen.push(inline.teile);
       belege.push(...inline.belege);
       i += 1;
     }
-    bloecke.push({ art: 'absatz', zeilen });
+    bloecke.push({ art: ART.absatz, zeilen });
   }
   return { bloecke, belege };
+}
+
+function mitInnen(liste: readonly Beleg[]): Beleg[] {
+  const aus: Beleg[] = [];
+  for (const beleg of liste) {
+    aus.push(beleg);
+    if (beleg.innen) aus.push(...beleg.innen);
+  }
+  return aus;
+}
+
+export function zeilenTreffer(text: string, index: number, passend: (beleg: Beleg) => boolean): Beleg | null {
+  const stelle = Number.isFinite(index) ? Math.floor(index) : 0;
+  const sicher = Math.max(0, Math.min(stelle, text.length));
+  for (const beleg of mitInnen(leseDokument(text).belege)) {
+    if (!passend(beleg)) continue;
+    const ende = beleg.bisZeile ?? beleg.ganzBis;
+    if (sicher >= beleg.ganzVon && sicher <= ende) return beleg;
+  }
+  return null;
 }
 
 export function leseBaum(text: string): LeseBlock[] {

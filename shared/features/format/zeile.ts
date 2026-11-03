@@ -1,4 +1,5 @@
 export const UEBERSCHRIFT_MARKER = '= ';
+const HASH = '#';
 export const WICHTIG_INLINE = '!!';
 export const FETT_MARKER = '**';
 export const FETT_UNTER = '__';
@@ -14,10 +15,15 @@ export interface KopfMarke {
   laenge: number;
 }
 
+export function kopfZeichen(stufe: number): string {
+  const ebene = Math.max(1, Math.min(6, Math.floor(stufe)));
+  return `${HASH.repeat(ebene)} `;
+}
+
 export function kopfMarke(zeile: string): KopfMarke | null {
   if (zeile.startsWith(UEBERSCHRIFT_MARKER)) return { stufe: 0, laenge: UEBERSCHRIFT_MARKER.length };
   let hashes = 0;
-  while (hashes < 6 && zeile[hashes] === '#') hashes += 1;
+  while (hashes < 6 && zeile[hashes] === HASH) hashes += 1;
   if (hashes === 0 || zeile[hashes] !== ' ') return null;
   return { stufe: hashes, laenge: hashes + 1 };
 }

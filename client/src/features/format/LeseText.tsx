@@ -1,5 +1,7 @@
 import type { CSSProperties, ReactNode } from 'react';
 import {
+  ART,
+  EBENE,
   STIL_VAR,
   kombiniereStil,
   sicherZiel,
@@ -14,9 +16,9 @@ import {
 import { HakenIcon } from '../../ui/icons.tsx';
 
 function Markierung({ children }: { children: ReactNode }) {
-  const hintergrund = kombiniereStil(['wichtig']).hintergrund;
+  const hintergrund = kombiniereStil([ART.wichtig]).hintergrund;
   const style = hintergrund ? ({ [STIL_VAR]: hintergrund } as CSSProperties) : undefined;
-  const Tag = vorschauTag('wichtig') as VorschauTag;
+  const Tag = vorschauTag(ART.wichtig) as VorschauTag;
   return (
     <Tag style={style}>
       <span className="sr-nur">Wichtig</span>
@@ -26,13 +28,13 @@ function Markierung({ children }: { children: ReactNode }) {
 }
 
 function Schrift({ teil, verlinken }: { teil: LeseTeil; verlinken: boolean }) {
-  if (teil.art === 'text') return teil.text;
-  if (teil.art === 'code') {
-    const Tag = vorschauTag('code') as VorschauTag;
+  if (teil.art === ART.text) return teil.text;
+  if (teil.art === ART.code) {
+    const Tag = vorschauTag(ART.code) as VorschauTag;
     return <Tag>{teil.text}</Tag>;
   }
-  if (teil.art === 'link') return <LinkTeil teil={teil} verlinken={verlinken} />;
-  if (teil.art === 'wichtig') {
+  if (teil.art === ART.link) return <LinkTeil teil={teil} verlinken={verlinken} />;
+  if (teil.art === ART.wichtig) {
     if ('teile' in teil) {
       return (
         <Markierung>
@@ -93,10 +95,10 @@ function Block({
   verlinken: boolean;
   abschnitt: number | null;
 }) {
-  if (block.art === 'ueberschrift') {
+  if (block.art === ART.ueberschrift) {
     const inhalt = <Teile teile={block.teile} verlinken={verlinken} />;
-    if (block.stufe === 1) return <h2 className="titel">{inhalt}</h2>;
-    if (block.stufe === 2) {
+    if (block.stufe === EBENE.titel) return <h2 className="titel">{inhalt}</h2>;
+    if (block.stufe === EBENE.abschnitt) {
       return (
         <h2 className="abschnitt" id={abschnitt === null ? undefined : `abschnitt-${abschnitt}`}>
           {inhalt}
@@ -105,7 +107,7 @@ function Block({
     }
     return <h3>{inhalt}</h3>;
   }
-  if (block.art === 'liste') {
+  if (block.art === ART.liste) {
     const Tag = block.geordnet ? 'ol' : 'ul';
     return (
       <Tag>
@@ -117,7 +119,7 @@ function Block({
       </Tag>
     );
   }
-  if (block.art === 'wichtig') {
+  if (block.art === ART.wichtig) {
     return (
       <div className="wichtigzeile">
         <Markierung>
@@ -126,8 +128,8 @@ function Block({
       </div>
     );
   }
-  if (block.art === 'haken') return <Haken punkte={block.punkte} verlinken={verlinken} />;
-  if (block.art === 'codeblock') {
+  if (block.art === ART.haken) return <Haken punkte={block.punkte} verlinken={verlinken} />;
+  if (block.art === ART.codeblock) {
     return (
       <pre>
         <code>{block.text}</code>
@@ -151,7 +153,7 @@ export function LeseText({ text, verlinken = false }: { text: string; verlinken?
   return (
     <div className="lesetext">
       {baum.map((block, index) => {
-        const abschnitt = block.art === 'ueberschrift' && block.stufe === 2 ? nummer++ : null;
+        const abschnitt = block.art === ART.ueberschrift && block.stufe === EBENE.abschnitt ? nummer++ : null;
         return <Block key={index} block={block} verlinken={verlinken} abschnitt={abschnitt} />;
       })}
     </div>

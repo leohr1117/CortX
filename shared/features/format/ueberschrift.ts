@@ -1,3 +1,5 @@
+import { ART, type Beleg } from './baum.ts';
+import { zeilenTreffer } from './lesen.ts';
 import { formatVon } from './register.ts';
 
 export interface TextWahl {
@@ -34,15 +36,18 @@ function ruecke(index: number, grenze: number, delta: number): number {
 }
 
 function marker(): string {
-  const wert = formatVon('ueberschrift').syntax?.einsetzen;
+  const wert = formatVon(ART.ueberschrift).syntax?.einsetzen;
   if (!wert) throw new Error('missing syntax');
   return wert;
 }
 
+function legacyKopf(text: string, index: number): Beleg | null {
+  return zeilenTreffer(text, index, (beleg) => beleg.art === ART.ueberschrift && beleg.stufe === undefined);
+}
+
 export function zeileIstUeberschrift(text: string, index: number): boolean {
   const wahl = klemme(text, index, index);
-  const { von, bis } = grenzen(text, wahl.start);
-  return kernVon(text, von, bis).startsWith(marker());
+  return legacyKopf(text, wahl.start) !== null;
 }
 
 export function schalteUeberschrift(text: string, start: number, ende: number): TextWahl {
@@ -50,11 +55,12 @@ export function schalteUeberschrift(text: string, start: number, ende: number): 
   const { von, bis } = grenzen(text, wahl.start);
   const kern = kernVon(text, von, bis);
   const zeichen = marker();
-  const an = kern.startsWith(zeichen);
-  const neu = an
-    ? text.slice(0, von) + kern.slice(zeichen.length) + text.slice(von + kern.length)
+  const kopf = legacyKopf(text, wahl.start);
+  const laenge = kopf?.marker[0] ? kopf.marker[0][1] - kopf.marker[0][0] : 0;
+  const neu = laenge > 0
+    ? text.slice(0, von) + kern.slice(laenge) + text.slice(von + kern.length)
     : text.slice(0, von) + zeichen + text.slice(von);
-  const delta = an ? -zeichen.length : zeichen.length;
+  const delta = laenge > 0 ? -laenge : zeichen.length;
   return {
     text: neu,
     start: ruecke(wahl.start, von, delta),

@@ -52,10 +52,13 @@ const NAEHE = 2;
 const MIN_AEHNLICH = 3;
 const TIEFE = 'A path has at most three levels.';
 const LUECKE = 'That path is missing a name.';
+const THEMA: PfadEbene = EBENEN[0];
+const SEITE: PfadEbene = EBENEN[1];
+const ABSCHNITT: PfadEbene = EBENEN[2];
 const NEU: Record<PfadEbene, string> = {
-  thema: 'New topic',
-  seite: 'New page',
-  abschnitt: 'New section',
+  [THEMA]: 'New topic',
+  [SEITE]: 'New page',
+  [ABSCHNITT]: 'New section',
 };
 
 interface NamenTreffer {
@@ -267,7 +270,7 @@ function themenListe(fragment: string, themen: readonly Thema[]): VorschlagListe
     zahl: String(thema.count),
   }));
   const los = loeseThema(fragment, [...themen]);
-  return listeAus('thema', fragment, treffer, los && !los.neu ? los.name : null, false);
+  return listeAus(THEMA, fragment, treffer, los && !los.neu ? los.name : null, false);
 }
 
 function seitenListe(name: string, fragment: string, themen: readonly Thema[], seiten: readonly SeiteKurz[]): VorschlagListe {
@@ -280,7 +283,7 @@ function seitenListe(name: string, fragment: string, themen: readonly Thema[], s
   );
   const treffer = liste.map((seite) => ({ name: seite.titel, einsetzen: tokenForm(seite.titel), zahl: null }));
   const los = fragment.length > 0 ? loeseNamen(fragment, liste.map((seite) => ({ name: seite.titel, id: seite.id }))) : null;
-  return listeAus('seite', fragment, treffer, los && !los.neu ? los.name : null, Boolean(los?.offen));
+  return listeAus(SEITE, fragment, treffer, los && !los.neu ? los.name : null, Boolean(los?.offen));
 }
 
 function abschnittListe(
@@ -305,7 +308,7 @@ function abschnittListe(
           liste.map((titel, index) => ({ name: titel, id: index })),
         )
       : null;
-  return listeAus('abschnitt', fragment, treffer, los && !los.neu ? los.name : null, Boolean(los?.offen));
+  return listeAus(ABSCHNITT, fragment, treffer, los && !los.neu ? los.name : null, Boolean(los?.offen));
 }
 
 export function vorschlaege(
@@ -316,8 +319,8 @@ export function vorschlaege(
 ): VorschlagListe {
   const lage = caretEbene(name, relativ);
   const stufe = EBENEN[lage.ebene];
-  if (stufe === 'thema') return themenListe(lage.fragment, themen);
-  if (stufe === 'seite') return seitenListe(name, lage.fragment, themen, seiten);
-  if (stufe === 'abschnitt') return abschnittListe(name, lage.fragment, themen, seiten);
+  if (stufe === THEMA) return themenListe(lage.fragment, themen);
+  if (stufe === SEITE) return seitenListe(name, lage.fragment, themen, seiten);
+  if (stufe === ABSCHNITT) return abschnittListe(name, lage.fragment, themen, seiten);
   return { treffer: [], neu: false, neuText: '', gewaehlt: 0 };
 }

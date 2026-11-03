@@ -6,6 +6,7 @@ import { versionKleiner } from './features/version/hinweis.ts';
 import { AKTUELLE_VERSION, VERSIONEN } from './versionen.ts';
 
 const ERWARTET = [
+  '1.8.16',
   '1.8.15',
   '1.8.14',
   '1.8.13',

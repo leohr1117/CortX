@@ -1,6 +1,7 @@
+import { ART } from './baum.ts';
 import type { TextWahl } from './ueberschrift.ts';
 import { leseDokument } from './lesen.ts';
-import { kuerzelEintraege } from './register.ts';
+import { KUERZEL_ART, kuerzelEintraege } from './register.ts';
 
 function musterWort(ende: string): RegExp {
   const zeichen = ende[0] ?? '';
@@ -24,7 +25,7 @@ function wortKuerzel(text: string, pos: number, von: number, davor: string, ende
 export function liegtInCode(text: string, index: number): boolean {
   if (index < 0 || index >= text.length) return false;
   return leseDokument(text).belege.some(
-    (beleg) => (beleg.art === 'code' || beleg.art === 'codeblock') && index >= beleg.ganzVon && index < beleg.ganzBis,
+    (beleg) => (beleg.art === ART.code || beleg.art === ART.codeblock) && index >= beleg.ganzVon && index < beleg.ganzBis,
   );
 }
 
@@ -35,13 +36,13 @@ export function wandleKuerzel(text: string, cursor: number): TextWahl | null {
   const davor = text.slice(von, pos);
   for (const eintrag of kuerzelEintraege()) {
     const regel = eintrag.kuerzel;
-    if (regel?.art !== 'zeile' || davor !== regel.genau) continue;
+    if (regel?.art !== KUERZEL_ART.zeile || davor !== regel.genau) continue;
     const stelle = von + regel.genau.length;
     return { text: text.slice(0, von) + regel.ersatz + text.slice(pos), start: stelle, ende: stelle };
   }
   for (const eintrag of kuerzelEintraege()) {
     const regel = eintrag.kuerzel;
-    if (regel?.art !== 'wort') continue;
+    if (regel?.art !== KUERZEL_ART.wort) continue;
     const fund = wortKuerzel(text, pos, von, davor, regel.ende);
     if (fund) return fund;
   }
