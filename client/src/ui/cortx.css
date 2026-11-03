@@ -1200,15 +1200,13 @@ input.feld::placeholder { color: var(--leise); }
 .schreib .cm-ueberschrift { font-weight: 650; }
 .schreib .cm-link { color: var(--fokus); }
 .schreib .cm-wichtig {
-  background: #f3e2a8;
   background: var(--wichtig-hintergrund);
-  color: #1a1a1a;
   color: var(--wichtig-schrift);
   border-radius: var(--radius-2);
   box-shadow: inset 0 -2px 0 #5c4314;
   box-shadow: inset 0 -2px 0 var(--wichtig-strich);
 }
-.schreib .cm-link.cm-wichtig { color: #1a1a1a; color: var(--wichtig-schrift); text-decoration: underline; }
+.schreib .cm-link.cm-wichtig { color: var(--wichtig-schrift); text-decoration: underline; }
 .schreib .cm-marker-weg {
   font-size: 0;
   line-height: 0;
@@ -1229,7 +1227,6 @@ input.feld::placeholder { color: var(--leise); }
 }
 .schreib .cm-editor .cm-line.cm-wichtig-zeile {
   padding-left: var(--abstand-10);
-  box-shadow: inset 3px 0 0 #b8892e;
   box-shadow: inset 3px 0 0 var(--wichtig-balken);
 }
 .schreib .cm-wichtig-marker { color: var(--wichtig-marker); }
@@ -1288,9 +1285,7 @@ input.feld::placeholder { color: var(--leise); }
 }
 .lesetext mark {
   position: relative;
-  background: #f3e2a8;
   background: var(--wichtig-hintergrund);
-  color: #1a1a1a;
   color: var(--wichtig-schrift);
   border-radius: var(--radius-2);
   border-bottom: 2px solid #5c4314;
@@ -1301,7 +1296,6 @@ input.feld::placeholder { color: var(--leise); }
 }
 .lesetext mark a { color: inherit; text-decoration: underline; }
 .lesetext .wichtigzeile {
-  border-left: 3px solid #b8892e;
   border-left: 3px solid var(--wichtig-balken);
   padding-left: var(--abstand-8);
   min-height: 24px;

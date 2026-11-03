@@ -44,8 +44,10 @@ describe('important and code on the page', () => {
     const farbe = wichtig?.stil.farbe ?? '';
     expect(schrift.length).toBeGreaterThan(0);
     expect(css.split(`font-family: ${schrift}`).length - 1).toBeGreaterThanOrEqual(2);
-    expect(css).toContain(`background: ${gold}`);
-    expect(css).toContain(`color: ${farbe}`);
+    expect(css).toContain(`--wichtig-hintergrund: ${gold}`);
+    expect(css).toContain(`--wichtig-schrift: ${farbe}`);
+    expect(css).toContain('background: var(--wichtig-hintergrund)');
+    expect(css).toContain('color: var(--wichtig-schrift)');
     expect(css).toContain(`var(${STIL_VAR}, var(--flaeche-2))`);
     expect(css).not.toContain('.cm-code.cm-wichtig');
     expect(css).not.toContain('.cm-codeblock.cm-wichtig');

@@ -68,14 +68,23 @@ describe('wichtig on the page', () => {
 
   it('uses a gold highlight with enough contrast and no red', () => {
     const css = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '../../ui/cortx.css'), 'utf8');
-    const hintergrund = '#f3e2a8';
-    const schrift = '#1a1a1a';
-    const balken = '#b8892e';
-    const strich = '#5c4314';
-    expect(css).toContain(`background: ${hintergrund}`);
-    expect(css).toContain(`color: ${schrift}`);
-    expect(css).toContain(`border-left: 3px solid ${balken}`);
-    expect(css).toContain(strich);
+    const wurzel = css.match(/:root\s*\{([^}]*)\}/)?.[1] ?? '';
+    const wert = (name: string) => wurzel.match(new RegExp(`${name}:\\s*(#[0-9a-fA-F]{6})`))?.[1] ?? '';
+    const hintergrund = wert('--wichtig-hintergrund');
+    const schrift = wert('--wichtig-schrift');
+    const balken = wert('--wichtig-balken');
+    const strich = wert('--wichtig-strich');
+    expect(hintergrund).toBe('#f3e2a8');
+    expect(schrift).toBe('#1a1a1a');
+    expect(balken).toBe('#b8892e');
+    expect(strich).toBe('#5c4314');
+    expect(css).toContain('background: var(--wichtig-hintergrund)');
+    expect(css).toContain('color: var(--wichtig-schrift)');
+    expect(css).toContain('border-left: 3px solid var(--wichtig-balken)');
+    expect(css).not.toContain('background: #f3e2a8');
+    expect(css).not.toContain('color: #1a1a1a');
+    expect(css).not.toContain('solid #b8892e');
+    expect(css).not.toContain('0 0 #b8892e');
     expect(kontrast(hintergrund, schrift)).toBeGreaterThanOrEqual(4.5);
     for (const farbe of [hintergrund, balken, strich]) {
       const ton = farbton(farbe);
