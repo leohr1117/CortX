@@ -1,5 +1,7 @@
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import {
+  STIL_VAR,
+  kombiniereStil,
   sicherZiel,
   leseBaum,
   type LeseBlock,
@@ -10,8 +12,10 @@ import {
 import { HakenIcon } from '../../ui/icons.tsx';
 
 function Markierung({ children }: { children: ReactNode }) {
+  const hintergrund = kombiniereStil(['wichtig']).hintergrund;
+  const style = hintergrund ? ({ [STIL_VAR]: hintergrund } as CSSProperties) : undefined;
   return (
-    <mark>
+    <mark style={style}>
       <span className="sr-nur">Wichtig</span>
       {children}
     </mark>

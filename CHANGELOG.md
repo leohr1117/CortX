@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.8.9
+
+Words that are both important and code show the gold highlight and the code font. The order of those two formats does not change the highlight.
+
 ## 1.8.8
 
 Housekeeping only. CortX looks and works the same.

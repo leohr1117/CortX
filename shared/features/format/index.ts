@@ -38,9 +38,14 @@ export {
 export { liegtInCode, wandleKuerzel } from './kuerzel.ts';
 export {
   INLINE_REGISTER,
+  STIL_REGISTER,
+  STIL_VAR,
   inlineAn,
+  kombiniereStil,
   nurMarker,
   schalteInline,
+  stilAttribut,
+  type FormatStil,
   type InlineArt,
   type InlineStand,
 } from './register.ts';

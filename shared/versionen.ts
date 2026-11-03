@@ -6,6 +6,14 @@ export interface Versionseintrag {
 
 export const VERSIONEN: readonly Versionseintrag[] = [
   {
+    version: '1.8.9',
+    datum: '2026-11-03',
+    zeilen: [
+      'Words that are both important and code show the gold highlight and the code font.',
+      'The order of those two formats does not change the highlight.',
+    ],
+  },
+  {
     version: '1.8.8',
     datum: '2026-11-03',
     zeilen: ['Housekeeping only. CortX looks and works the same.'],

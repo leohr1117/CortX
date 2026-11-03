@@ -7,7 +7,7 @@ import {
   type DecorationSet,
   type ViewUpdate,
 } from '@codemirror/view';
-import { leseDokument, nurMarker, type Beleg } from '../../../../shared/features/format/index.ts';
+import { leseDokument, nurMarker, stilAttribut, type Beleg } from '../../../../shared/features/format/index.ts';
 
 const FETT = 1;
 const KURSIV = 2;
@@ -95,6 +95,13 @@ interface Kachel {
   von: number;
   bis: number;
   widget: WidgetType;
+}
+
+function artenAus(bit: number): string[] {
+  const arten: string[] = [];
+  if (bit & CODE) arten.push('code');
+  if (bit & WICHTIG) arten.push('wichtig');
+  return arten;
 }
 
 function klasse(bit: number): string {
@@ -202,7 +209,13 @@ function baue(view: EditorView): DecorationSet {
     const bit = stil[i] ?? 0;
     let j = i + 1;
     while (j < text.length && !verdeckt[j] && !gedimmt[j] && stil[j] === bit && !zeilen.has(j)) j += 1;
-    if (bit !== 0) bau.add(i, j, Decoration.mark({ class: klasse(bit) }));
+    if (bit !== 0) {
+      const attribut = stilAttribut(artenAus(bit));
+      const marke = attribut
+        ? Decoration.mark({ class: klasse(bit), attributes: { style: attribut } })
+        : Decoration.mark({ class: klasse(bit) });
+      bau.add(i, j, marke);
+    }
     i = j;
   }
   return bau.finish();
