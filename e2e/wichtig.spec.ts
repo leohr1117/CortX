@@ -59,12 +59,10 @@ test('the Wichtig button marks words and a line on a phone', async ({ page }, te
     await expect(page.locator('.schreib .cm-wichtig-zeile')).toBeVisible();
     await page.screenshot({ path: `${BILDER}/handy-wichtig-edit.png`, fullPage: true });
 
-    const offen = TEXT.indexOf('!!');
-    const anna = TEXT.indexOf('Anna');
-    await setzeCursor(page, anna + 2);
-    await expect(page.locator('.cm-line').first().locator('.cm-wichtig-marker')).toHaveCount(2);
-    await setzeCursor(page, offen + 1);
-    await expect(page.locator('.cm-line').first().locator('.cm-wichtig-marker')).toHaveCount(1);
+    await expect(page.locator('.schreib .cm-wichtig', { hasText: 'Anna' })).toBeVisible();
+    await expect(page.locator('.schreib .cm-wichtig', { hasText: 'Anna' })).not.toContainText('!!');
+    await expect(page.locator('.schreib .cm-wichtig-zeile')).not.toContainText('!!');
+    await expect(page.locator('.schreib')).toContainText('!!not!!');
 
     await setzeQuelle(page, 'Hello');
     await setzeAuswahl(page, 0, 5);

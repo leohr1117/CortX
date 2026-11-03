@@ -13,7 +13,7 @@ interface Sicht {
 }
 
 function sicht(page: Page) {
-  return page.locator('.schreib .cm-editor');
+  return page.locator('.schreib .cm-editor, .schreib.modell-host .ProseMirror');
 }
 
 export async function liesQuelle(page: Page): Promise<string> {

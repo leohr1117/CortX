@@ -24,7 +24,7 @@ function versatz(stunde: number, minute: number): string {
 }
 
 async function tippe(page: Page, text: string): Promise<void> {
-  await page.locator('.schreib .cm-content').pressSequentially(text, { delay: 30 });
+  await page.getByRole('textbox', { name: 'Note' }).pressSequentially(text, { delay: 30 });
 }
 
 test.beforeAll(() => {

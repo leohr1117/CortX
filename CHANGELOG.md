@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.12.0
+
+Editing a note shows formatting without the marker characters. Checkboxes in a note can be toggled, and they stay toggled after a reload.
+
 ## 1.11.1
 
 Internal cleanup, nothing changes for you.

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ComponentType } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { ablageZeile, planeNotizText, textMeldung } from '../../../../shared/features/edit/index.ts';
 import { schalteKasten } from '../../../../shared/features/format/index.ts';
@@ -6,7 +6,7 @@ import { abschnittNamen, pfadText, seitentitel } from '../../../../shared/featur
 import type { Notiz } from '../../../../shared/kern/modell.ts';
 import { TEXTE } from '../../../../shared/kern/texte.ts';
 import { AugeIcon, StiftIcon } from '../../ui/icons.tsx';
-import { Editor, LeseText } from '../format/index.ts';
+import { LeseText } from '../format/index.ts';
 import { themaPfad } from '../library/api.ts';
 import { Kopf } from '../library/Kopf.tsx';
 import { liesNotizEntwurf, schreibNotizEntwurf } from '../offline/index.ts';
@@ -17,6 +17,15 @@ import { NotizKnopf } from './Menue.tsx';
 import { ThemenWahl } from './ThemenWahl.tsx';
 
 const SPEICHER_PAUSE_MS = 400;
+
+type SchreibFeld = ComponentType<{ text: string; ungueltig?: boolean; onText: (text: string) => void }>;
+
+let schreibLaden: Promise<SchreibFeld> | null = null;
+
+function ladeSchreibfeld(): Promise<SchreibFeld> {
+  schreibLaden ??= import('../format/NotizEditor.tsx').then((mod) => mod.NotizEditor);
+  return schreibLaden;
+}
 
 type Modus = 'lesen' | 'schreiben';
 type Ausgang = 'ok' | 'leer' | 'netz' | 'fehler';
@@ -43,6 +52,7 @@ export function NotizSeite() {
   const [bereit, setBereit] = useState(false);
   const [menue, setMenue] = useState(false);
   const [wechsel, setWechsel] = useState(false);
+  const [schreibFeld, setSchreibFeld] = useState<SchreibFeld | null>(null);
   const kette = useRef(Promise.resolve());
   const basisRef = useRef('');
   const feldRef = useRef('');
@@ -98,6 +108,11 @@ export function NotizSeite() {
       aktiv = false;
     };
   }, [id]);
+
+  useEffect(() => {
+    if (!notiz) return;
+    void ladeSchreibfeld();
+  }, [notiz]);
 
   useEffect(() => {
     if (!bereit || !notiz) return;
@@ -200,6 +215,13 @@ export function NotizSeite() {
     setHinweis(null);
   }
 
+  async function oeffneSchreiben() {
+    const feldKomponente = await ladeSchreibfeld();
+    if (!da.current) return;
+    setSchreibFeld(() => feldKomponente);
+    setModus('schreiben');
+  }
+
   async function zeigeLesen() {
     const aus = await sichere(true);
     if (aus === 'leer' || aus === 'fehler' || !da.current) return;
@@ -236,13 +258,14 @@ export function NotizSeite() {
   const zeile = notiz ? ablageZeile(notiz, new Date()) : '';
   const pfad = notiz ? pfadText(notiz.topic, seitentitel(feld) || TEXTE.unbenannt) : undefined;
   const namen = notiz && modus === 'lesen' ? abschnittNamen(feld) : [];
+  const EditorFeld = schreibFeld;
   const aktion = notiz ? (
     <div className="kopf-aktion">
       <button
         type="button"
         className="ib"
         aria-label={modus === 'schreiben' ? TEXTE.lesen : TEXTE.schreiben}
-        onClick={() => void (modus === 'schreiben' ? zeigeLesen() : setModus('schreiben'))}
+        onClick={() => void (modus === 'schreiben' ? zeigeLesen() : oeffneSchreiben())}
       >
         {modus === 'schreiben' ? <AugeIcon /> : <StiftIcon />}
       </button>
@@ -288,8 +311,8 @@ export function NotizSeite() {
             <TerminZeile text={feld} created={notiz.created} />
           </>
         ) : null}
-        {notiz && modus === 'schreiben' ? (
-          <Editor
+        {notiz && modus === 'schreiben' && EditorFeld ? (
+          <EditorFeld
             text={feld}
             ungueltig={Boolean(fehler)}
             onText={(wert) => {

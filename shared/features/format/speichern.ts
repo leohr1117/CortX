@@ -373,7 +373,9 @@ function setze(doc: Node): string {
   for (let i = 0; i < kinder.length; i += 1) {
     const knoten = kinder[i]!;
     if (basis && j < basis.length && knoten.eq(basis[j]!)) {
-      aus += String(knoten.attrs.quelle ?? '');
+      let stueck = String(knoten.attrs.quelle ?? '');
+      if (i < kinder.length - 1 && !stueck.endsWith('\n') && !stueck.endsWith('\r')) stueck += '\n';
+      aus += stueck;
       j += 1;
       continue;
     }

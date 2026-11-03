@@ -1,6 +1,8 @@
 import type { Mark, Node } from 'prosemirror-model';
+import { Plugin } from 'prosemirror-state';
 import type { EditorView, MarkView, NodeView, NodeViewConstructor } from 'prosemirror-view';
 import { ART } from '../../../../shared/features/format/baum.ts';
+import { stilAttribut } from '../../../../shared/features/format/stil.ts';
 import '../../../../shared/features/format/modellkasten.ts';
 import { modell } from '../../../../shared/features/format/modell.ts';
 import {
@@ -114,9 +116,13 @@ function zeile(node: Node, view: EditorView, getPos: () => number | undefined): 
     dom.appendChild(document.createElement('br'));
     return { dom, update: (nachher) => nachher.type === node.type };
   }
-  const inhalt = node.type.name === 'punkt' || node.type.name === 'codeblock'
-    ? document.createElement(node.type.name === 'codeblock' ? 'code' : 'span')
-    : dom;
+  let inhalt = dom;
+  if (node.type.name === 'punkt') inhalt = document.createElement('span');
+  else if (node.type.name === 'codeblock') inhalt = document.createElement('code');
+  else if (node.type.name === 'wichtigZeile') {
+    inhalt = document.createElement('span');
+    inhalt.className = 'cm-wichtig';
+  }
   const markierung = node.type.name === 'punkt' ? marker(node, view, getPos) : null;
   const kasten = markierung?.classList.contains('cm-haken') ? markierung : null;
   if (markierung) dom.appendChild(markierung);
@@ -139,6 +145,7 @@ function zeile(node: Node, view: EditorView, getPos: () => number | undefined): 
       return Boolean(kasten && ziel instanceof globalThis.Node && kasten.contains(ziel));
     },
     ignoreMutation(mutation) {
+      if (mutation.type === 'attributes') return true;
       return !inhalt.contains(mutation.target);
     },
   };
@@ -155,7 +162,57 @@ function marke(mark: Mark): MarkView {
     const sicher = sicherZiel(ziel);
     if (sicher) dom.setAttribute('href', sicher);
   }
-  return { dom, contentDOM: dom };
+  return {
+    dom,
+    contentDOM: dom,
+    ignoreMutation(mutation) {
+      return mutation.type === 'attributes';
+    },
+  };
+}
+
+const INLINE = new Set(['cm-fett', 'cm-kursiv', 'cm-strich', 'cm-code', 'cm-wichtig', 'cm-link']);
+
+function klassenNamen(knoten: globalThis.Node): string[] {
+  if (knoten.nodeType !== 1) return [];
+  return (knoten as HTMLElement).className.split(/\s+/).filter(Boolean);
+}
+
+function gleicheSchichten(wurzel: HTMLElement): void {
+  const lauf = (knoten: globalThis.Node): void => {
+    for (let i = 0; i < knoten.childNodes.length; i += 1) {
+      const kind = knoten.childNodes[i];
+      if (!kind || kind.nodeType !== 1) continue;
+      const el = kind as HTMLElement;
+      let parent = el.parentNode;
+      while (parent && parent !== wurzel.parentNode) {
+        for (const name of klassenNamen(parent)) {
+          if (INLINE.has(name)) el.classList.add(name);
+        }
+        if (parent === wurzel) break;
+        parent = parent.parentNode;
+      }
+      if (el.classList.contains('cm-code') && el.classList.contains('cm-wichtig')) {
+        const stil = stilAttribut([ART.code, ART.wichtig]);
+        if (stil) el.setAttribute('style', stil);
+      }
+      lauf(el);
+    }
+  };
+  lauf(wurzel);
+}
+
+export function schichtenPlugin(): Plugin {
+  return new Plugin({
+    view(editorView) {
+      gleicheSchichten(editorView.dom);
+      return {
+        update(view) {
+          gleicheSchichten(view.dom);
+        },
+      };
+    },
+  });
 }
 
 export function knotenAnsichten(): Record<string, NodeViewConstructor> {

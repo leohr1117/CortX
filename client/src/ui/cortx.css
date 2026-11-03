@@ -1392,6 +1392,8 @@ input.feld::placeholder { color: var(--leise); }
   box-sizing: border-box;
   height: 100%;
   min-height: 0;
+  margin: 0;
+  border: 0;
   overflow: auto;
   white-space: pre-wrap;
   white-space: break-spaces;

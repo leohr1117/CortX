@@ -131,8 +131,10 @@ test('edit marks a heading and reading shows it while a tag stays text', async (
     await expect(nochmal).toBeVisible();
     await erwarteQuelle(page, mitKopf);
     await expect.poll(() => cursorKopf(page)).toBe(mitKopf.length);
-    if (testInfo.project.name === 'desktop') await setzeAuswahl(page, 0, 1);
-    else await setzeCursor(page, 0);
+    if (testInfo.project.name === 'desktop') {
+      const zeichen = mitKopf.indexOf('Ask');
+      await setzeAuswahl(page, zeichen, zeichen + 1);
+    } else await setzeCursor(page, 0);
     await expect(page.getByRole('button', { name: 'Heading' })).toHaveAttribute('aria-pressed', 'true');
     await page.getByRole('button', { name: 'Heading' }).click();
     await erwarteQuelle(page, THEMA);

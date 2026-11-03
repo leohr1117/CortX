@@ -84,7 +84,7 @@ test('a space after formatting survives typing and reload on a phone', async ({ 
     await page.locator('.notiz', { hasText: 'Hello' }).locator('a.tx').click();
     await page.getByRole('button', { name: 'Edit' }).click();
     await setzeQuelle(page, '**Hello**');
-    await page.locator('.schreib .cm-content').press('End');
+    await page.getByRole('textbox', { name: 'Note' }).press('End');
     await page.keyboard.press(' ');
     await erwarteQuelle(page, '**Hello** ');
     await expect.poll(() => sichereBestand().notes.find((eintrag) => eintrag.text.includes('Hello'))?.text ?? '').toBe('**Hello** ');

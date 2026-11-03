@@ -6,6 +6,14 @@ interface Versionseintrag {
 
 export const VERSIONEN: readonly Versionseintrag[] = [
   {
+    version: '1.12.0',
+    datum: '2026-11-03',
+    zeilen: [
+      'Editing a note shows formatting without the marker characters.',
+      'Checkboxes in a note can be toggled, and they stay toggled after a reload.',
+    ],
+  },
+  {
     version: '1.11.1',
     datum: '2026-11-03',
     zeilen: ['Internal cleanup, nothing changes for you.'],

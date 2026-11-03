@@ -44,6 +44,7 @@ interface ModellLeiste {
   view: ModellAnsicht | null;
   stand: number;
   modell: true;
+  onZiel?: () => void;
 }
 
 type LeistenProps = SpiegelLeiste | ModellLeiste;
@@ -197,6 +198,10 @@ export function Leiste(props: LeistenProps) {
               if (props.modell) {
                 const ansicht = props.view;
                 if (!ansicht) return;
+                if (eintrag.knopf.ziel) {
+                  props.onZiel?.();
+                  return;
+                }
                 void ladeModell().then((modul) => {
                   modul.wendeModell(ansicht, eintrag.modell);
                   setTick((wert) => wert + 1);

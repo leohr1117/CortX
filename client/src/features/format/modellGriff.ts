@@ -1,0 +1,142 @@
+import { TextSelection } from 'prosemirror-state';
+import type { EditorView } from 'prosemirror-view';
+import { lade } from '../../../../shared/features/format/laden.ts';
+import { speichere } from '../../../../shared/features/format/speichern.ts';
+import { grenzen } from './modellStelle.ts';
+
+interface Aenderung {
+  from: number;
+  to: number;
+  insert: string;
+}
+
+interface Wahl {
+  anchor: number;
+  head?: number;
+}
+
+interface Auftrag {
+  changes?: Aenderung;
+  selection?: Wahl;
+}
+
+interface Griff {
+  focus: () => void;
+  dispatch: (spec: Auftrag) => void;
+  readonly state: {
+    doc: { length: number; toString: () => string };
+    selection: { main: { head: number; anchor: number } };
+  };
+}
+
+interface Merk {
+  anchorPos: number;
+  anchor: number;
+  headPos: number;
+  head: number;
+}
+
+const merk = new WeakMap<EditorView, Merk>();
+
+function klemme(index: number, laenge: number): number {
+  if (!Number.isFinite(index)) return 0;
+  return Math.max(0, Math.min(Math.floor(index), laenge));
+}
+
+function stelle(doc: EditorView['state']['doc'], pos: number): number {
+  const safe = Math.max(0, Math.min(pos, doc.content.size));
+  return TextSelection.near(doc.resolve(safe)).from;
+}
+
+export function merkeEnde(view: EditorView, text: string): void {
+  const sel = view.state.selection;
+  merk.set(view, {
+    anchorPos: sel.anchor,
+    anchor: text.length,
+    headPos: sel.head,
+    head: text.length,
+  });
+}
+
+export function merkeWahl(view: EditorView, anchor: number, head: number): void {
+  const sel = view.state.selection;
+  merk.set(view, { anchorPos: sel.anchor, anchor, headPos: sel.head, head });
+}
+
+function offset(view: EditorView, text: string, pos: number, welches: 'head' | 'anchor'): number {
+  const eintrag = merk.get(view);
+  if (eintrag && eintrag[welches === 'head' ? 'headPos' : 'anchorPos'] === pos) {
+    return welches === 'head' ? eintrag.head : eintrag.anchor;
+  }
+  const grenze = grenzen(view.state.doc, text);
+  let fund = 0;
+  for (let i = 0; i < grenze.length; i += 1) {
+    if (grenze[i] === pos) fund = i;
+  }
+  return fund;
+}
+
+function waehle(view: EditorView, text: string, anchor: number, head: number): void {
+  const grenze = grenzen(view.state.doc, text);
+  const doc = view.state.doc;
+  const von = stelle(doc, grenze[klemme(anchor, text.length)] ?? 0);
+  const bis = stelle(doc, grenze[klemme(head, text.length)] ?? von);
+  const tr = view.state.tr.setSelection(TextSelection.between(doc.resolve(von), doc.resolve(bis)));
+  view.dispatch(tr.setMeta('programm', true));
+  merkeWahl(view, anchor, head);
+}
+
+function ersetze(view: EditorView, text: string, anchor: number, head: number): void {
+  const doc = lade(text);
+  let tr = view.state.tr.replaceWith(0, view.state.doc.content.size, doc.content);
+  const grenze = grenzen(tr.doc, text);
+  const von = stelle(tr.doc, grenze[klemme(anchor, text.length)] ?? 0);
+  const bis = stelle(tr.doc, grenze[klemme(head, text.length)] ?? von);
+  tr = tr.setSelection(TextSelection.between(tr.doc.resolve(von), tr.doc.resolve(bis)));
+  view.dispatch(tr.setMeta('programm', true));
+  merkeWahl(view, anchor, head);
+}
+
+export function haengeGriff(view: EditorView): void {
+  const dom = view.dom as HTMLElement & { cm?: Griff };
+  dom.cm = {
+    focus() {
+      view.focus();
+    },
+    dispatch(spec) {
+      const alt = speichere(view.state.doc);
+      if (spec.changes) {
+        const neu = alt.slice(0, spec.changes.from) + spec.changes.insert + alt.slice(spec.changes.to);
+        const anker = spec.selection ? spec.selection.anchor : neu.length;
+        const kopf = spec.selection?.head ?? anker;
+        ersetze(view, neu, anker, kopf);
+        return;
+      }
+      if (!spec.selection) return;
+      waehle(view, alt, spec.selection.anchor, spec.selection.head ?? spec.selection.anchor);
+    },
+    get state() {
+      const text = speichere(view.state.doc);
+      return {
+        doc: {
+          get length() {
+            return speichere(view.state.doc).length;
+          },
+          toString() {
+            return speichere(view.state.doc);
+          },
+        },
+        selection: {
+          main: {
+            get head() {
+              return offset(view, text, view.state.selection.head, 'head');
+            },
+            get anchor() {
+              return offset(view, text, view.state.selection.anchor, 'anchor');
+            },
+          },
+        },
+      };
+    },
+  };
+}
