@@ -11,6 +11,7 @@ import { NOTE_TEXT_MAX } from '../../../../shared/kern/grenzen.ts';
 import { kuerzelAn } from './kuerzelSpeicher.ts';
 import { modellAblage } from './modellAblage.ts';
 import { modellEingabe } from './modellEingabe.ts';
+import { zeilenPlugins } from './zeilenKuerzel.ts';
 import { haengeGriff, merkeEnde, merkeWahl } from './modellGriff.ts';
 import { zustandNach } from './modellLauf.ts';
 import { knotenAnsichten, markenAnsichten, schichtenPlugin } from './modellSicht.ts';
@@ -69,6 +70,7 @@ export function ModellEditor({
       doc: lade(anfang),
       plugins: [
         history(),
+        ...zeilenPlugins(),
         keymap({ 'Mod-z': undo, 'Mod-y': redo, 'Shift-Mod-z': redo }),
         keymap(formatTasten(() => onLinkRef.current?.())),
         ...modellEingabe(),

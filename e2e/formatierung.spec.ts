@@ -95,6 +95,27 @@ test('the format bar and typing shortcuts follow the screen size', async ({ page
   }
 });
 
+test('a typed dash and space becomes a list and backspace restores the characters', async ({ page }) => {
+  test.setTimeout(90_000);
+  const bestand = sichereBestand();
+  try {
+    setzeSchauspiel([{ name: 'Work', notizen: [{ text: 'Keep', created: versatz(11, 0) }] }]);
+    await page.goto('/library/topic?name=Work');
+    await page.locator('.notiz').first().locator('a.tx').click();
+    await page.getByRole('button', { name: 'Edit' }).click();
+    await setzeQuelle(page, '');
+    await tippe(page, '- ');
+    await expect(page.locator('.modell-host .cm-punkt')).toHaveCount(1);
+    await erwarteQuelle(page, '- ');
+    await page.keyboard.press('Backspace');
+    await expect(page.locator('.modell-host .cm-punkt')).toHaveCount(0);
+    await expect(page.locator('.modell-host .ProseMirror')).toHaveText('- ');
+    await erwarteQuelle(page, '- ');
+  } finally {
+    stelleBestand(bestand);
+  }
+});
+
 test('turning shortcuts off keeps the format buttons', async ({ page }) => {
   test.setTimeout(90_000);
   const bestand = sichereBestand();
