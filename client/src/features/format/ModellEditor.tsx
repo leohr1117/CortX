@@ -7,6 +7,7 @@ import { EditorView } from 'prosemirror-view';
 import { lade } from '../../../../shared/features/format/laden.ts';
 import { speichere } from '../../../../shared/features/format/speichern.ts';
 import { knotenAnsichten, markenAnsichten } from './modellSicht.ts';
+import { zustandNach } from './modellLauf.ts';
 
 function schreibeRef(ziel: Ref<EditorView | null> | undefined, wert: EditorView | null) {
   if (!ziel) return;
@@ -53,9 +54,11 @@ export function ModellEditor({
       markViews: markenAnsichten(),
       attributes: { role: 'textbox', 'aria-multiline': 'true' },
       dispatchTransaction(tr) {
-        const next = view.state.apply(tr);
+        const vorher = view.state;
+        const ersetzt = zustandNach(tr);
+        const next = ersetzt ?? vorher.apply(tr);
         view.updateState(next);
-        if (!tr.docChanged) return;
+        if (ersetzt ? next.doc.eq(vorher.doc) : !tr.docChanged) return;
         const wert = speichere(next.doc);
         gemeldet.current = wert;
         onTextRef.current(wert);
