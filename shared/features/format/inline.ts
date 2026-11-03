@@ -11,6 +11,8 @@ import {
 
 const ESCAPE = new Set(['\\', '`', '*', '_', '~', '[', ']', '!']);
 
+export const FLUCHTZEICHEN: ReadonlySet<string> = ESCAPE;
+
 interface Fund {
   art: typeof ART.code | typeof ART.link | typeof ART.fett | typeof ART.kursiv | typeof ART.streich | typeof ART.wichtig;
   von: number;
