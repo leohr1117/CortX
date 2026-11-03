@@ -83,6 +83,7 @@ function zeilenKnoten(): Record<string, NodeSpec> {
     }
     if (zeile.attribute) knoten.attrs = attrsVon(zeile.attribute);
     knoten.attrs = { ...knoten.attrs, quelle: { default: '' } };
+    if (!zeile.inhalt) knoten.atom = true;
     spec[zeile.name] = knoten;
   }
   return spec;

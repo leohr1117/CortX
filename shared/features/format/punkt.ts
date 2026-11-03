@@ -59,9 +59,16 @@ function zeilenEnde(text: string, zeile: ZeilenStueck): number {
   return zeile.bis;
 }
 
-export function punktTaste(text: string, start: number, ende: number, art: PunktArt): TextWahl | null {
-  if (start !== ende || !Number.isFinite(start)) return null;
-  const index = Math.max(0, Math.min(Math.floor(start), text.length));
+interface Ort {
+  zeile: ZeilenStueck;
+  inhaltVon: number;
+  inhaltBis: number;
+  kopf: boolean;
+  marker: string;
+  abgehakt: boolean | undefined;
+}
+
+function ortAn(text: string, index: number): Ort | null {
   const belege = leseDokument(text).belege;
   if (imCode(belege, index)) return null;
   const beleg = findePunkt(belege, index);
@@ -73,23 +80,38 @@ export function punktTaste(text: string, start: number, ende: number, art: Punkt
   const inhaltBis = zeilenEnde(text, zeile);
   const kopf = zeile.von === beleg.ganzVon;
   const inhaltVon = kopf ? Math.min(beleg.von, inhaltBis) : Math.min(zeile.von + marker.length, inhaltBis);
-  const leer = text.slice(inhaltVon, inhaltBis).trim() === '';
+  return { zeile, inhaltVon, inhaltBis, kopf, marker, abgehakt: beleg.abgehakt };
+}
+
+export function punktInhalt(text: string, index: number): { von: number; bis: number } | null {
+  if (!Number.isFinite(index)) return null;
+  const ort = ortAn(text, Math.max(0, Math.min(Math.floor(index), text.length)));
+  if (!ort) return null;
+  return { von: ort.inhaltVon, bis: ort.inhaltBis };
+}
+
+export function punktTaste(text: string, start: number, ende: number, art: PunktArt): TextWahl | null {
+  if (start !== ende || !Number.isFinite(start)) return null;
+  const index = Math.max(0, Math.min(Math.floor(start), text.length));
+  const ort = ortAn(text, index);
+  if (!ort) return null;
+  const leer = text.slice(ort.inhaltVon, ort.inhaltBis).trim() === '';
   if (art === 'zurueck') {
-    if (!leer || index !== inhaltVon) return null;
-    return ersetze(text, zeile.von, zeile.bis, '', zeile.von);
+    if (!leer || index !== ort.inhaltVon) return null;
+    return ersetze(text, ort.zeile.von, ort.zeile.bis, '', ort.zeile.von);
   }
   if (art === 'umbruch') {
-    const spalte = Math.max(inhaltVon, Math.min(index, inhaltBis));
-    const einsetzen = `\n${' '.repeat(marker.length)}`;
+    const spalte = Math.max(ort.inhaltVon, Math.min(index, ort.inhaltBis));
+    const einsetzen = `\n${' '.repeat(ort.marker.length)}`;
     return ersetze(text, spalte, spalte, einsetzen, spalte + einsetzen.length);
   }
-  if (leer && kopf) return ersetze(text, zeile.von, zeile.bis, '', zeile.von);
+  if (leer && ort.kopf) return ersetze(text, ort.zeile.von, ort.zeile.bis, '', ort.zeile.von);
   if (leer) {
-    const neu = naechsterMarker(marker, beleg.abgehakt);
-    return ersetze(text, zeile.von, inhaltBis, neu, zeile.von + neu.length);
+    const neu = naechsterMarker(ort.marker, ort.abgehakt);
+    return ersetze(text, ort.zeile.von, ort.inhaltBis, neu, ort.zeile.von + neu.length);
   }
-  const spalte = Math.max(inhaltVon, Math.min(index, inhaltBis));
-  const neu = naechsterMarker(marker, beleg.abgehakt);
+  const spalte = Math.max(ort.inhaltVon, Math.min(index, ort.inhaltBis));
+  const neu = naechsterMarker(ort.marker, ort.abgehakt);
   const einsetzen = `\n${neu}`;
   return ersetze(text, spalte, spalte, einsetzen, spalte + einsetzen.length);
 }

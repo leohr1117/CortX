@@ -259,4 +259,35 @@ describe('model commands', () => {
     })).toBe(true);
     expect(speichere(zurueck.doc)).toBe('abc');
   });
+
+  it('applies a block marker per line and clears it only when every line has it', () => {
+    expect(speichere(lauf(ART.liste, ausText('* one\ntwo')).doc)).toBe('* one\n- two');
+    expect(speichere(lauf(ART.liste, ausText('one\n\ntwo')).doc)).toBe('- one\n\n- two');
+    expect(speichere(lauf(ART.liste, ausText('* one\n+ two')).doc)).toBe('one\ntwo');
+    expect(speichere(lauf(ART.haken, ausText('[] one\ntwo')).doc)).toBe('[] one\n[] two');
+    expect(speichere(lauf(ART.haken, ausText('[] one\n[x] two')).doc)).toBe('one\ntwo');
+    expect(speichere(lauf(ART.ueberschrift, ausText('= one\ntwo')).doc)).toBe('= one\n= two');
+    let wichtig = lauf(ART.wichtig, ausText('one\ntwo'));
+    expect(speichere(wichtig.doc)).toBe('!!!! one\n!!!! two');
+    expect(aktiv(ART.wichtig, wichtig)).toBe(true);
+    wichtig = lauf(ART.wichtig, wichtig);
+    expect(speichere(wichtig.doc)).toBe('one\ntwo');
+    expect(aktiv(ART.wichtig, wichtig)).toBe(false);
+    expect(speichere(lauf(ART.wichtig, ausText('!!!! one\ntwo')).doc)).toBe('!!!! one\n!!!! two');
+  });
+
+  it('links each line and clears the link only when every line has it', () => {
+    let zustand = lauf(ART.link, ausText('one\ntwo'), 'https://a.test');
+    expect(speichere(zustand.doc)).toBe('[one](https://a.test)\n[two](https://a.test)');
+    zustand = lauf(ART.link, zustand, 'https://b.test');
+    expect(speichere(zustand.doc)).toBe('one\ntwo');
+    const gemischt = lauf(ART.link, ausText('[one](https://a.test)\ntwo'), 'https://b.test');
+    expect(speichere(gemischt.doc)).toBe('[one](https://a.test)\n[two](https://b.test)');
+  });
+
+  it('bolds the words of several list lines and leaves the markers', () => {
+    const zustand = lauf(ART.fett, ausText('- one\n- two'));
+    expect(speichere(zustand.doc)).toBe('- **one**\n- **two**');
+    expect(speichere(lauf(ART.fett, ausText('one\n\ntwo')).doc)).toBe('**one**\n\n**two**');
+  });
 });

@@ -46,11 +46,10 @@ function wirklicheMarks(zustand: EditorState): readonly Mark[] {
   return zustand.selection.$from.marks();
 }
 
-function vollstaendig(zustand: EditorState, typ: MarkType): boolean {
-  const { from, to } = zustand.selection;
+function vollIn(doc: Node, typ: MarkType, from: number, to: number): boolean {
   let gesehen = false;
   let fehlt = false;
-  zustand.doc.nodesBetween(from, to, (node, pos) => {
+  doc.nodesBetween(from, to, (node, pos) => {
     if (!node.isText || !node.text || fehlt) return;
     const start = Math.max(from, pos);
     const ende = Math.min(to, pos + node.nodeSize);
@@ -61,6 +60,11 @@ function vollstaendig(zustand: EditorState, typ: MarkType): boolean {
     if (!typ.isInSet(node.marks)) fehlt = true;
   });
   return gesehen && !fehlt;
+}
+
+function vollstaendig(zustand: EditorState, typ: MarkType): boolean {
+  const { from, to } = zustand.selection;
+  return vollIn(zustand.doc, typ, from, to);
 }
 
 function schneideLeer(doc: Node, from: number, to: number): Bereich {
@@ -129,20 +133,23 @@ function textZiel(schema: Schema, node: Node): { type: NodeType; attrs: { quelle
 }
 
 function schalteBlock(zustand: EditorState, id: FormatId): EditorState {
-  const eintrag = formatVon(id);
-  if (!eintrag.knoten) return zustand;
+  const name = formatVon(id).knoten;
+  if (!name) return zustand;
   const zeilen = zeilenDerAuswahl(zustand);
   if (zeilen.length === 0) return zustand;
-  const aus = zeilen.every((zeile) => istArt(zeile.node, id));
+  const hats = zeilen.map((zeile) => istArt(zeile.node, id));
+  const alle = hats.every(Boolean);
   const tr = zustand.tr;
-  for (const zeile of zeilen) {
-    if (aus) {
-      const ziel = textZiel(zustand.schema, zeile.node);
-      tr.setNodeMarkup(zeile.pos, ziel.type, ziel.attrs);
-      continue;
+  zeilen.forEach((zeile, i) => {
+    const an = hats[i] === true;
+    if (alle !== an || (!alle && zeile.node.textContent.length === 0)) return;
+    if (!alle) {
+      tr.setNodeMarkup(zeile.pos, knotenTyp(zustand.schema, name), blockAttrs(zeile.node, id));
+      return;
     }
-    tr.setNodeMarkup(zeile.pos, knotenTyp(zustand.schema, eintrag.knoten), blockAttrs(zeile.node, id));
-  }
+    const ziel = textZiel(zustand.schema, zeile.node);
+    tr.setNodeMarkup(zeile.pos, ziel.type, ziel.attrs);
+  });
   return wende(zustand, tr);
 }
 
@@ -261,10 +268,38 @@ function einzigesZiel(zustand: EditorState, typ: MarkType, name: string): string
   return gemischt ? null : ziel;
 }
 
+function schalteLinkZeilen(zustand: EditorState, ziel: string | undefined, typ: MarkType): EditorState | null {
+  const { from, to } = zustand.selection;
+  const schnitte: Bereich[] = [];
+  for (const zeile of zeilenDerAuswahl(zustand)) {
+    const start = Math.max(from, zeile.pos + 1);
+    const ende = Math.min(to, zeile.pos + zeile.node.nodeSize - 1);
+    if (start < ende) schnitte.push({ from: start, to: ende });
+  }
+  if (schnitte.length < 2) return null;
+  const hats = schnitte.map((schnitt) => vollIn(zustand.doc, typ, schnitt.from, schnitt.to));
+  const alle = hats.every(Boolean);
+  if (!alle && !ziel) return null;
+  const name = zielName();
+  const tr = zustand.tr;
+  schnitte.forEach((schnitt, i) => {
+    if (!alle && hats[i]) return;
+    const bereich = alle ? schnitt : schneideLeer(zustand.doc, schnitt.from, schnitt.to);
+    if (bereich.from >= bereich.to) return;
+    tr.removeMark(bereich.from, bereich.to, typ);
+    if (!alle && ziel) tr.addMark(bereich.from, bereich.to, typ.create({ [name]: ziel }));
+  });
+  return wende(zustand, tr);
+}
+
 function schalteLink(zustand: EditorState, ziel: string | undefined): EditorState {
   if (nurCodeblock(zustand)) return zustand;
   const typ = zustand.schema.marks[ART.link];
   if (!typ) return zustand;
+  if (!zustand.selection.empty && zeilenDerAuswahl(zustand).length > 1) {
+    const zeilen = schalteLinkZeilen(zustand, ziel, typ);
+    if (zeilen) return zeilen;
+  }
   const name = zielName();
   if (zustand.selection.empty) {
     const spanne = markenSpanne(zustand, typ);
@@ -294,7 +329,7 @@ function schalteLink(zustand: EditorState, ziel: string | undefined): EditorStat
 
 function schalteWichtig(zustand: EditorState): EditorState {
   if (nurCodeblock(zustand)) return zustand;
-  if (zustand.selection.empty) return schalteBlock(zustand, ART.wichtig);
+  if (zustand.selection.empty || zeilenDerAuswahl(zustand).length > 1) return schalteBlock(zustand, ART.wichtig);
   return schalteMarke(zustand, ART.wichtig);
 }
 
@@ -319,9 +354,9 @@ function istAktiv(id: FormatId, zustand: EditorState): boolean {
   }
   if (art === 'wichtig') {
     if (nurCodeblock(zustand)) return false;
-    if (zustand.selection.empty && zeilenDerAuswahl(zustand).every((zeile) => istArt(zeile.node, id)) && zeilenDerAuswahl(zustand).length > 0) {
-      return true;
-    }
+    const zeilen = zeilenDerAuswahl(zustand);
+    const block = zustand.selection.empty || zeilen.length > 1;
+    if (block && zeilen.length > 0 && zeilen.every((zeile) => istArt(zeile.node, id))) return true;
   }
   return markeAktiv(zustand, id);
 }

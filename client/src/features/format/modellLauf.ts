@@ -5,11 +5,16 @@ import '../../../../shared/features/format/modellbefehl.ts';
 
 const SCHRITT = 'modellZustand';
 
+export function setzeZustand(view: EditorView, zustand: EditorState): void {
+  if (zustand === view.state) return;
+  view.dispatch(view.state.tr.setMeta(SCHRITT, zustand));
+}
+
 export function wendeModell(view: EditorView, schalt: ModellSchalt | undefined): void {
   if (!schalt) return;
   const naechster = schalt.run(view.state);
   if (naechster === view.state) return;
-  view.dispatch(view.state.tr.setMeta(SCHRITT, naechster));
+  setzeZustand(view, naechster);
 }
 
 export function zustandNach(tr: Transaction): EditorState | null {
