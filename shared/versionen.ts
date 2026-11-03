@@ -6,6 +6,14 @@ interface Versionseintrag {
 
 export const VERSIONEN: readonly Versionseintrag[] = [
   {
+    version: '1.10.0',
+    datum: '2026-11-03',
+    zeilen: [
+      'A format on several selected lines applies to each line.',
+      'If every selected line already has it, the format comes off.',
+    ],
+  },
+  {
     version: '1.9.0',
     datum: '2026-11-03',
     zeilen: [
@@ -14,9 +22,9 @@ export const VERSIONEN: readonly Versionseintrag[] = [
     ],
   },
   {
-    version: '1.8.21',
+    version: '1.8.13',
     datum: '2026-11-03',
-    zeilen: ['1.8.13 to 1.8.21: Internal cleanup, nothing changes for you.'],
+    zeilen: ['Internal cleanup, nothing changes for you.'],
   },
   {
     version: '1.8.12',

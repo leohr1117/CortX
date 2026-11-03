@@ -1,12 +1,16 @@
 # Changelog
 
+## 1.10.0
+
+A format on several selected lines applies to each line. If every selected line already has it, the format comes off.
+
 ## 1.9.0
 
 Deleting one side of bold, italic, strikethrough, important, or code removes the other side too. The words in between stay.
 
-## 1.8.21
+## 1.8.13
 
-1.8.13 to 1.8.21: Internal cleanup, nothing changes for you.
+Internal cleanup, nothing changes for you.
 
 ## 1.8.12
 
