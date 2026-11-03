@@ -6,6 +6,15 @@ interface Versionseintrag {
 
 export const VERSIONEN: readonly Versionseintrag[] = [
   {
+    version: '1.11.0',
+    datum: '2026-11-03',
+    zeilen: [
+      'Enter in a list or task adds the next item of the same kind, and a new checkbox is unchecked.',
+      'Enter on an empty item ends the list. Shift+Enter breaks a line inside the item.',
+      'Backspace at the start of an empty item turns it into a normal line.',
+    ],
+  },
+  {
     version: '1.10.0',
     datum: '2026-11-03',
     zeilen: [

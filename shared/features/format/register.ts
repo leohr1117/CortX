@@ -374,6 +374,7 @@ export function stilAttribut(arten: readonly string[]): string | undefined {
 }
 
 export { inlineAn, loeschePaar };
+export { PUNKT_TASTEN, punktArt, punktTaste, type PunktArt } from './punkt.ts';
 
 export interface InlineStand {
   fett: boolean;

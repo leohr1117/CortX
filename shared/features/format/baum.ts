@@ -129,6 +129,7 @@ export interface Beleg {
   ganzVon: number;
   ganzBis: number;
   bisZeile?: number;
+  folgeBis?: number;
   listenLaenge?: number;
   innen?: Beleg[];
   marker: Array<[number, number]>;

@@ -30,6 +30,9 @@ export {
   formatVon,
   kombiniereStil,
   loeschePaar,
+  PUNKT_TASTEN,
+  punktArt,
+  punktTaste,
   leistenEintraege,
   nurMarker,
   stilAttribut,
@@ -37,6 +40,7 @@ export {
   vorschauTag,
   vorschauWidget,
   type FormatBefehl,
+  type PunktArt,
   type VorschauTag,
 } from './register.ts';
 export { sicherZiel } from './sicher.ts';

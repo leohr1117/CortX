@@ -16,6 +16,7 @@ import {
 } from '../../../../shared/features/format/index.ts';
 import { kuerzelAn } from './kuerzelSpeicher.ts';
 import { paarEingabe, paarFilter } from './paar.ts';
+import { bauePunktEingabe } from './punktEingabe.ts';
 import { schmuck } from './schmuck.ts';
 
 interface SpiegelHaken {
@@ -112,16 +113,18 @@ const thema = EditorView.theme(
 
 export function baueSpiegel(start: string, haken: SpiegelHaken): { erweiterungen: Extension[]; fach: Compartment } {
   const fach = new Compartment();
+  const punkt = bauePunktEingabe();
   let zuletzt = start;
   const erweiterungen: Extension[] = [
     history(),
     paarFilter(),
     paarEingabe,
+    punkt.eingabe,
     zeichneAuswahl(),
     EditorView.lineWrapping,
     thema,
     schmuck,
-    Prec.high(keymap.of(formatTasten(haken))),
+    Prec.high(keymap.of([...punkt.tasten, ...formatTasten(haken)])),
     keymap.of([...historyKeymap, ...defaultKeymap]),
     EditorState.transactionFilter.of((tr) => (tr.newDoc.length <= NOTE_TEXT_MAX ? tr : [])),
     fach.of(attribute(false)),

@@ -137,6 +137,36 @@ function laengeVon(beleg: Beleg): number {
   return beleg.von - beleg.ganzVon;
 }
 
+function zeileGehtWeiter(zeile: string, tiefe: number): boolean {
+  if (tiefe < 1 || zeile.length < tiefe) return false;
+  for (let i = 0; i < tiefe; i += 1) {
+    if (zeile[i] !== ' ') return false;
+  }
+  return true;
+}
+
+function haengeFort(
+  stuecke: readonly ZeilenStueck[],
+  index: number,
+  beleg: Beleg,
+  teile: LeseTeil[],
+  ziel: Beleg[],
+): number {
+  const tiefe = laengeVon(beleg);
+  let i = index;
+  let folge = beleg.bisZeile ?? beleg.ganzBis;
+  while (i < stuecke.length && zeileGehtWeiter(stuecke[i]!.zeile, tiefe)) {
+    const zeile = stuecke[i]!;
+    const inline = zeileInline(zeile, tiefe);
+    teile.push({ art: ART.text, text: '\n' }, ...inline.teile);
+    ziel.push(...inline.belege);
+    folge = zeile.bis;
+    i += 1;
+  }
+  if (i > index) beleg.folgeBis = folge;
+  return i;
+}
+
 export function leseDokument(text: string): Dokument {
   if (text.length === 0) return { bloecke: [], belege: [] };
   const stuecke = zeilenStuecke(text);
@@ -182,6 +212,7 @@ export function leseDokument(text: string): Dokument {
         punkte.push({ abgehakt: haken.abgehakt === true, teile: inline.teile });
         belege.push(haken, ...inline.belege);
         i += 1;
+        i = haengeFort(stuecke, i, haken, inline.teile, belege);
       }
       bloecke.push({ art: ART.haken, punkte });
       continue;
@@ -197,6 +228,7 @@ export function leseDokument(text: string): Dokument {
         punkte.push(inline.teile);
         belege.push(eintrag, ...inline.belege);
         i += 1;
+        if (!geordnet) i = haengeFort(stuecke, i, eintrag, inline.teile, belege);
       }
       const block: LeseListe = geordnet ? { art: ART.liste, punkte, geordnet: true } : { art: ART.liste, punkte };
       bloecke.push(block);
