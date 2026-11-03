@@ -91,7 +91,10 @@ function zeilenKnoten(): Record<string, NodeSpec> {
 function marken(): Record<string, MarkSpec> {
   const spec: Record<string, MarkSpec> = {};
   for (const format of inlineFormate()) {
-    spec[format.id] = format.marken ? { attrs: attrsVon(format.marken) } : {};
+    const mark: MarkSpec = {};
+    if (formatVon(format.id).einschliessend === false) mark.inclusive = false;
+    if (format.marken) mark.attrs = attrsVon(format.marken);
+    spec[format.id] = mark;
   }
   return spec;
 }

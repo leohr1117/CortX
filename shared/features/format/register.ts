@@ -24,6 +24,7 @@ import {
   schalteVerknuepfung,
   schalteWichtig,
 } from './befehl.ts';
+import type { ModellSchalt } from './modellbefehl.ts';
 import type { TextWahl } from './ueberschrift.ts';
 import { alsBefehl } from './zeilen.ts';
 import {
@@ -125,6 +126,8 @@ interface FormatEintrag {
   zeichen: readonly string[];
   reihenfolge: number;
   inline?: true;
+  einschliessend?: false;
+  knoten?: 'punkt' | 'ueberschrift' | 'wichtigZeile' | 'codeblock';
   marken?: Readonly<Record<string, AttributAngabe>>;
   syntax?: FormatSyntax;
   knopf?: FormatKnopf;
@@ -132,6 +135,7 @@ interface FormatEintrag {
   kuerzel?: FormatKuerzel;
   readonly run?: BefehlRun;
   readonly isActive?: BefehlAktiv;
+  readonly modell?: ModellSchalt;
 }
 
 function laufLink(text: string, start: number, ende: number, ziel = ''): TextWahl {
@@ -150,18 +154,18 @@ const WICHTIG_PFAD = ['M12 5v9', 'M12 19h.01'] as const;
 const LISTE_PFAD = ['M3 6h.01', 'M3 12h.01', 'M3 18h.01', 'M8 6h13', 'M8 12h13', 'M8 18h13'] as const;
 const HAKEN_PFAD = ['m3 7 2 2 4-4', 'm3 17 2 2 4-4', 'M13 6h8', 'M13 12h8', 'M13 18h8'] as const;
 
-const ZEICHEN: Record<FormatId, Pick<FormatEintrag, 'zeichen' | 'reihenfolge' | 'inline' | 'marken'>> = {
-  [ART.code]: { inline: true, zeichen: [CODE_INLINE], reihenfolge: 0 },
-  [ART.wichtig]: { inline: true, zeichen: [WICHTIG_INLINE, WICHTIG_ZEILE], reihenfolge: 1 },
+const ZEICHEN: Record<FormatId, Pick<FormatEintrag, 'zeichen' | 'reihenfolge' | 'inline' | 'einschliessend' | 'knoten' | 'marken'>> = {
+  [ART.code]: { inline: true, einschliessend: false, zeichen: [CODE_INLINE], reihenfolge: 0 },
+  [ART.wichtig]: { inline: true, knoten: 'wichtigZeile', zeichen: [WICHTIG_INLINE, WICHTIG_ZEILE], reihenfolge: 1 },
   strich: { inline: true, zeichen: [STREICH_MARKER], reihenfolge: 2 },
   [ART.fett]: { inline: true, zeichen: [FETT_MARKER, FETT_UNTER], reihenfolge: 3 },
   [ART.kursiv]: { inline: true, zeichen: [KURSIV_MARKER, KURSIV_UNTER], reihenfolge: 4 },
-  [ART.link]: { inline: true, zeichen: LINK_ZEICHEN, reihenfolge: 5, marken: { ziel: {} } },
-  [ART.ueberschrift]: { zeichen: KOPF_ZEICHEN, reihenfolge: 6 },
-  [ART.liste]: { zeichen: LISTE_ZEICHEN, reihenfolge: 7 },
-  [ART.haken]: { zeichen: HAKEN_ZEICHEN, reihenfolge: 8 },
-  [ART.codeblock]: { zeichen: [CODE_ZAUN, '~~~'], reihenfolge: 9 },
-  [ART.nummer]: { zeichen: ['1.'], reihenfolge: 10 },
+  [ART.link]: { inline: true, einschliessend: false, zeichen: LINK_ZEICHEN, reihenfolge: 5, marken: { ziel: {} } },
+  [ART.ueberschrift]: { knoten: 'ueberschrift', zeichen: KOPF_ZEICHEN, reihenfolge: 6 },
+  [ART.liste]: { knoten: 'punkt', zeichen: LISTE_ZEICHEN, reihenfolge: 7 },
+  [ART.haken]: { knoten: 'punkt', zeichen: HAKEN_ZEICHEN, reihenfolge: 8 },
+  [ART.codeblock]: { knoten: 'codeblock', zeichen: [CODE_ZAUN, '~~~'], reihenfolge: 9 },
+  [ART.nummer]: { knoten: 'punkt', zeichen: ['1.'], reihenfolge: 10 },
 };
 
 type RohEintrag = Omit<FormatEintrag, 'zeichen' | 'reihenfolge' | 'inline' | 'marken'>;
@@ -364,11 +368,7 @@ export function vorschauWidget(art: string): VorschauWidget | undefined {
 const MARKER_ZEICHEN = new Set(['*', '_', '~', '!', '`']);
 
 export function nurMarker(text: string): boolean {
-  if (text.length === 0) return false;
-  for (const zeichen of text) {
-    if (!MARKER_ZEICHEN.has(zeichen)) return false;
-  }
-  return true;
+  return text.length > 0 && [...text].every((zeichen) => MARKER_ZEICHEN.has(zeichen));
 }
 
 export function cursorInSchale(text: string, index: number): boolean {
