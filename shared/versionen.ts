@@ -6,6 +6,14 @@ export interface Versionseintrag {
 
 export const VERSIONEN: readonly Versionseintrag[] = [
   {
+    version: '1.8.12',
+    datum: '2026-11-03',
+    zeilen: [
+      'A topic lists each page on one line.',
+      'A long title ends in an ellipsis, and the day it was filed sits beside it.',
+    ],
+  },
+  {
     version: '1.8.11',
     datum: '2026-11-03',
     zeilen: [

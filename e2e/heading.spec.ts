@@ -86,26 +86,21 @@ test('edit marks a heading and reading shows it while a tag stays text', async (
 
     await expect(page.getByRole('heading', { name: 'Work', level: 1 })).toBeVisible();
     const notiz = page.locator('.notiz', { hasText: 'Ask Mara about the review' });
-    await expect(notiz.getByRole('heading', { level: 3 })).toHaveText('Ask Mara about the review');
-    await expect(notiz.locator('li')).toHaveText('send the numbers');
-    await expect(notiz.locator('strong')).toHaveText('numbers');
-    await expect(notiz.locator('.hakenlabel')).toHaveText(['confirm Thursday', 'share the agenda']);
-    await expect(notiz).toContainText('See <b>Mara</b> and keep #work as written.');
+    await expect(notiz.locator('.ti')).toHaveText('Ask Mara about the review');
+    await expect(notiz.locator('h3, li, strong, .haken')).toHaveCount(0);
+    await expect(notiz).not.toContainText('send the numbers');
     await expect(notiz).not.toContainText('= Ask');
-    await expect(notiz.locator('b, em, script')).toHaveCount(0);
     const schlicht = page.locator('.notiz', { hasText: 'Lunch with Jonas' });
-    await expect(schlicht.getByRole('heading', { level: 3 })).toHaveCount(0);
+    await expect(schlicht.locator('.ti')).toHaveText('Lunch with Jonas went well.');
+    await expect(schlicht.locator('h3')).toHaveCount(0);
     await page.screenshot({ path: `${BILDER}/${testInfo.project.name}-heading-topic.png` });
 
     await page.goto('/library/topic?name=Inbox');
     await expect(page.getByRole('heading', { name: 'Inbox', level: 1 })).toBeVisible();
     const eingang = page.locator('.notiz', { hasText: 'hallway scrap' });
-    await expect(eingang.getByRole('heading', { level: 3 })).toHaveText('Hold the hallway scrap');
-    await expect(eingang.locator('li')).toHaveText('spare key');
-    await expect(eingang.locator('strong')).toHaveText('key');
-    await expect(eingang.locator('.hakenlabel')).toHaveText('call the depot');
-    await expect(eingang).toContainText('Leave <em>markup</em> and #inbox as written.');
-    await expect(eingang.locator('em')).toHaveCount(0);
+    await expect(eingang.locator('.ti')).toHaveText('Hold the hallway scrap');
+    await expect(eingang.locator('h3, li, strong, .haken')).toHaveCount(0);
+    await expect(eingang).not.toContainText('spare key');
     await expect(eingang).not.toContainText('= Hold');
     await page.screenshot({ path: `${BILDER}/${testInfo.project.name}-heading-inbox.png` });
 
@@ -145,9 +140,9 @@ test('edit marks a heading and reading shows it while a tag stays text', async (
     await page.getByRole('button', { name: 'Back' }).click();
     await expect(page.getByRole('heading', { name: 'Work', level: 1 })).toBeVisible();
     const klar = page.locator('.notiz', { hasText: 'Ask Mara about the review' });
-    await expect(klar.getByRole('heading', { level: 3 })).toHaveCount(0);
-    await expect(klar).toContainText('Ask Mara about the review');
-    await expect(klar.locator('li')).toHaveText('send the numbers');
+    await expect(klar.locator('h3, li')).toHaveCount(0);
+    await expect(klar.locator('.ti')).toHaveText('Ask Mara about the review');
+    await expect(klar).not.toContainText('send the numbers');
     await page.screenshot({ path: `${BILDER}/${testInfo.project.name}-heading-plain.png` });
   } finally {
     stelleBestand(bestand);

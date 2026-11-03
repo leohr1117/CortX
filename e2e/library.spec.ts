@@ -113,18 +113,28 @@ test('library, topic, and empty states', async ({ page }, testInfo) => {
     await expect(page.getByRole('button', { name: 'Topic actions' })).toHaveCount(0);
     await page.getByRole('link', { name: 'Back to Library' }).click();
 
+    const maraZeit = versatz(0, 14, 32);
+    const freitagZeit = versatz(0, 9, 12);
+    const serverZeit = versatz(-1, 17, 48);
+    const jonasZeit = versatz(-1, 12, 55);
     setzeThema('Work', [
-      { text: MARA, created: versatz(0, 14, 32) },
-      { text: FREITAG, created: versatz(0, 9, 12) },
-      { text: SERVER, created: versatz(-1, 17, 48) },
-      { text: JONAS, created: versatz(-1, 12, 55) },
+      { text: MARA, created: maraZeit },
+      { text: FREITAG, created: freitagZeit },
+      { text: SERVER, created: serverZeit },
+      { text: JONAS, created: jonasZeit },
       { text: BUCH, created: oktober },
     ]);
     await page.goto(`/library/topic?name=${encodeURIComponent('Work')}`);
     await expect(page.getByRole('heading', { name: 'Work', level: 1 })).toBeVisible();
     await expect(page.getByRole('heading', { level: 2 })).toHaveText(['Today', 'Yesterday', tagesLabel(oktober, jetzt)]);
-    await expect(page.locator('.notiz p')).toHaveText([MARA, FREITAG, SERVER, JONAS, BUCH]);
-    await expect(page.locator('.zeit')).toHaveText(['14:32', '09:12', '17:48', '12:55', '08:20']);
+    await expect(page.locator('.notiz .ti')).toHaveText([MARA, FREITAG, SERVER, JONAS, BUCH]);
+    await expect(page.locator('.notiz .zeit')).toHaveText([
+      tagesLabel(maraZeit, jetzt),
+      tagesLabel(freitagZeit, jetzt),
+      tagesLabel(serverZeit, jetzt),
+      tagesLabel(jonasZeit, jetzt),
+      tagesLabel(oktober, jetzt),
+    ]);
     await expect(page.getByRole('button', { name: 'Note actions' })).toHaveCount(5);
     await expect(page.getByRole('button', { name: 'Topic actions' })).toBeVisible();
     await expect(page.getByRole('menu')).toHaveCount(0);

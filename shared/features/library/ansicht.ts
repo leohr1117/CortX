@@ -1,4 +1,5 @@
 import { INBOX_NAME } from '../../kern/grenzen.ts';
+import { seitentitel } from '../seiten/text.ts';
 import { gleicherName } from '../tags/index.ts';
 
 export interface BibliothekZeile {
@@ -37,6 +38,15 @@ export function tagesLabel(iso: string, jetzt: Date): string {
 }
 
 export const LEERE_SEITEN = '0 pages';
+export const UNBENANNTE_SEITE = 'Untitled';
+
+export function seitenzeile(text: string, created: string, jetzt: Date): { titel: string; datum: string } {
+  const titel = seitentitel(text);
+  return {
+    titel: titel.length > 0 ? titel : UNBENANNTE_SEITE,
+    datum: tagesLabel(created, jetzt),
+  };
+}
 
 export function letzteNotizZeile(iso: string, jetzt: Date): string {
   const label = tagesLabel(iso, jetzt);

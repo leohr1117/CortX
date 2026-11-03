@@ -58,15 +58,14 @@ test('a paragraph on the first line is the title in the list and the header', as
   await page.goto(`/library/topic?name=${encodeURIComponent(thema)}`);
   await expect(page.getByRole('heading', { name: thema, level: 1 })).toBeVisible();
   const karte = page.locator('.notiz', { hasText: 'corner market' });
-  await expect(karte).toContainText('Fresh');
-  await expect(karte).toContainText('bread from the corner market');
+  await expect(karte.locator('.ti')).toHaveText(sichtbar);
   await expect(karte).not.toContainText('**');
   await expect(karte).not.toContainText('# ');
-  await expect(karte.locator('h2.titel')).toHaveCount(0);
-  const seitenkarte = page.locator('.notiz', { hasText: 'Milk and tea' });
-  await expect(seitenkarte).toContainText('Liste');
-  await expect(seitenkarte.locator('h2.titel')).toHaveCount(0);
-  await expect(seitenkarte.locator('h2.abschnitt')).toHaveText('Dairy');
+  await expect(karte.locator('h2, li')).toHaveCount(0);
+  const seitenkarte = page.locator('.notiz', { hasText: 'Liste' });
+  await expect(seitenkarte.locator('.ti')).toHaveText('Liste');
+  await expect(seitenkarte).not.toContainText('Milk and tea');
+  await expect(seitenkarte).not.toContainText('Dairy');
   await ohneSeitlichenUeberlauf(page);
   await page.screenshot({ path: `${BILDER}/${testInfo.project.name}-titel-liste.png` });
 

@@ -4,9 +4,11 @@ import {
   bibliothekLeer,
   gruppiereNotizen,
   letzteNotizZeile,
+  seitenzeile,
   themaUnterzeile,
   tagesLabel,
   uhrzeit,
+  UNBENANNTE_SEITE,
   type BibliothekZeile,
 } from './index.ts';
 
@@ -35,6 +37,25 @@ describe('library view', () => {
     expect(letzteNotizZeile(iso(10, 31, 18, 0), JETZT)).toBe('Last note yesterday');
     expect(letzteNotizZeile(iso(10, 29, 12, 0), JETZT)).toBe('Last note 29 Oct');
     expect(letzteNotizZeile('nope', JETZT)).toBe('Last note');
+  });
+
+  it('shows the page title and the filing day on one list row', () => {
+    expect(seitenzeile('**Buy** milk\n\nmore about the shop', iso(11, 1, 14, 32), JETZT)).toEqual({
+      titel: 'Buy milk',
+      datum: 'Today',
+    });
+    expect(seitenzeile('= Legacy title\n\nBody', iso(10, 31, 17, 48), JETZT)).toEqual({
+      titel: 'Legacy title',
+      datum: 'Yesterday',
+    });
+    expect(seitenzeile('- send the **folio** numbers', iso(10, 28, 8, 20), JETZT).titel).toBe('send the folio numbers');
+    expect(seitenzeile('[] confirm the folio hold', iso(10, 28, 8, 20), JETZT).titel).toBe('confirm the folio hold');
+    expect(seitenzeile('[x] share the folio agenda', iso(10, 28, 8, 20, 2025), JETZT)).toEqual({
+      titel: 'share the folio agenda',
+      datum: '28 Oct 2025',
+    });
+    expect(seitenzeile('', 'nope', JETZT)).toEqual({ titel: UNBENANNTE_SEITE, datum: 'Unknown' });
+    expect(seitenzeile('\n  \r\n', iso(10, 28, 8, 20), JETZT).titel).toBe(UNBENANNTE_SEITE);
   });
 
   it('formats the clock in 24 hours', () => {

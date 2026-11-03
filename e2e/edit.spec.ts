@@ -58,20 +58,17 @@ test('a note opens for reading and continues as a writing surface', async ({ pag
     await page.goto('/library/topic?name=Work');
     await expect(page.getByRole('heading', { name: 'Work', level: 1, exact: true })).toBeVisible();
     const zeile = page.locator('.notiz', { hasText: 'Sprint summary' });
-    await expect(zeile.getByRole('heading', { level: 3 })).toHaveText('Sprint summary');
-    await expect(zeile.locator('li')).toHaveText('three bullets');
-    await expect(zeile.locator('strong')).toHaveText('bullets');
-    await expect(zeile.locator('.hakenlabel')).toHaveText('share the template');
-    await expect(zeile).toContainText('Start with the next round.');
+    await expect(zeile.locator('.ti')).toHaveText('Sprint summary');
+    await expect(zeile.locator('h3, li, strong, .haken, .lesetext')).toHaveCount(0);
+    await expect(zeile).not.toContainText('three bullets');
     await expect(zeile).not.toContainText('= Sprint');
-    await vollstaendig(zeile.locator('.lesetext'));
+    await expect(zeile.locator('.zeit')).toBeVisible();
     await page.screenshot({ path: `${BILDER}/${testInfo.project.name}-note-list.png` });
 
     await page.goto('/library/topic?name=Inbox');
     const eingang = page.locator('.notiz', { hasText: 'spare key' });
-    await expect(eingang).toContainText('Bring the spare key.');
-    await expect(eingang).toContainText('It hangs by the door.');
-    await vollstaendig(eingang.locator('.lesetext'));
+    await expect(eingang.locator('.ti')).toHaveText('Bring the spare key.');
+    await expect(eingang).not.toContainText('It hangs by the door.');
 
     await page.goto('/library');
     await page.getByRole('textbox', { name: 'Search notes' }).fill('template');

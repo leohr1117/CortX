@@ -635,8 +635,10 @@ svg.i.ok {
 }
 .notiz {
   display: flex;
-  gap: 4px;
-  padding: 12px 0 12px 16px;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 0 0 0 16px;
   position: relative;
 }
 .notiz + .notiz::before {
@@ -648,7 +650,23 @@ svg.i.ok {
   height: 1px;
   background: var(--trenner);
 }
-.notiz .tx { flex: 1; min-width: 0; padding-top: 2px; }
+.notiz .tx {
+  flex: 1;
+  min-width: 0;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.notiz .ti {
+  flex: 1;
+  min-width: 0;
+  font-size: 16px;
+  line-height: 22px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .notiz .tx p,
 .notiz .lesetext {
   font-size: 16px;
@@ -741,10 +759,11 @@ a.tx:focus-visible {
 .verzeichnis a { color: var(--haupt); }
 .notiz .tx { cursor: pointer; }
 .notiz .zeit {
+  flex: none;
   font-size: 13px;
   line-height: 18px;
   color: var(--leise);
-  margin-top: 4px;
+  white-space: nowrap;
 }
 .notiz .termin,
 .zeile .termin,
@@ -765,7 +784,6 @@ a.tx:focus-visible {
   height: 48px;
   color: var(--leise);
   flex: none;
-  margin-top: -8px;
 }
 .ib circle { fill: currentColor; stroke: none; }
 @media (min-width: 900px) {
@@ -920,7 +938,7 @@ input.feld::placeholder { color: var(--leise); }
 .notizblatt.schreiben .schreib { flex: 1 1 0px; min-height: 0; }
 .notizblatt.schreiben .ablage,
 .notizblatt.schreiben .feldfehler { flex: none; }
-.notiz .menue-anker { margin-top: -8px; }
+.notiz .menue-anker { margin-top: 0; }
 .notiz .menue-anker .ib { margin-top: 0; }
 @media (min-width: 900px) {
   .notizblatt .lesetext { font-size: 20px; line-height: 32px; }

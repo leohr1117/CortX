@@ -1,5 +1,6 @@
 import fs from 'node:fs';
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test } from '@playwright/test';
+import { tagesLabel } from '../shared/features/library/index.ts';
 import { erkenneTermin, terminText } from '../shared/features/termine/index.ts';
 import { meldeAn } from './anmelden.ts';
 import { erwarteQuelle, setzeQuelle } from './feld.ts';
@@ -22,12 +23,6 @@ function zeile(text: string, created: string): string {
   const label = terminText(termin, new Date());
   if (!/^\d{1,2} [A-Z][a-z]{2}(?: \d{4})? · \d{2}:\d{2}$/.test(label)) throw new Error(label);
   return label;
-}
-
-async function oeffneEdit(page: Page): Promise<void> {
-  await page.locator('.notiz').first().locator('a.tx').click();
-  await page.getByRole('button', { name: 'Edit' }).click();
-  await expect(page.getByRole('textbox', { name: 'Note' })).toBeVisible();
 }
 
 test.beforeAll(() => {
@@ -67,21 +62,21 @@ test('reading shows a date on a topic, in Inbox, and in search', async ({ page }
     await page.goto('/library/topic?name=Work');
     await expect(page.getByRole('heading', { name: 'Work', level: 1 })).toBeVisible();
     const notiz = page.locator('.notiz', { hasText: 'Review tomorrow' });
-    await expect(notiz.locator('.termin')).toHaveText(thema);
-    await expect(notiz.locator('.termin')).toHaveText(/^2 Nov(?: 2026)? · 15:00$/);
-    await expect(notiz.getByRole('heading', { level: 3 })).toHaveText('Review tomorrow at 3pm');
-    await expect(notiz.locator('li')).toHaveText('send the numbers');
-    await expect(notiz.locator('strong')).toHaveText('numbers');
-    await expect(notiz.locator('.hakenlabel')).toHaveText('confirm the room');
-    await expect(notiz.locator('.zeit')).toHaveText(/^\d{2}:\d{2}$/);
+    await expect(notiz.locator('.ti')).toHaveText('Review tomorrow at 3pm');
+    await expect(notiz.locator('.termin, h3, li, strong, .haken')).toHaveCount(0);
+    await expect(notiz.locator('.zeit')).toHaveText(tagesLabel(ERSTELLT, new Date()));
     await expect(notiz.locator('button', { hasText: /calendar|todoist/i })).toHaveCount(0);
     const schlicht = page.locator('.notiz', { hasText: 'Lunch with Jonas' });
-    await expect(schlicht.locator('.termin')).toHaveCount(0);
-    await expect(schlicht.locator('h3, li, strong, .haken')).toHaveCount(0);
-    await expect(schlicht.locator('.zeit')).toHaveText(/^\d{2}:\d{2}$/);
+    await expect(schlicht.locator('.ti')).toHaveText(OHNE);
+    await expect(schlicht.locator('.termin, h3, li, strong, .haken')).toHaveCount(0);
+    await expect(schlicht.locator('.zeit')).toHaveText(tagesLabel('2026-10-31T11:00:00.000Z', new Date()));
     await page.screenshot({ path: `${BILDER}/${testInfo.project.name}-date-topic.png` });
 
-    await oeffneEdit(page);
+    await notiz.locator('a.tx').click();
+    await expect(page.locator('.termin')).toHaveText(thema);
+    await expect(page.getByRole('heading', { level: 3 })).toHaveText('Review tomorrow at 3pm');
+    await page.getByRole('button', { name: 'Edit' }).click();
+    await expect(page.getByRole('textbox', { name: 'Note' })).toBeVisible();
     await erwarteQuelle(page, THEMA);
     await expect(page.locator('.termin')).toHaveCount(0);
     await page.goto('/');
@@ -91,10 +86,12 @@ test('reading shows a date on a topic, in Inbox, and in search', async ({ page }
     await page.goto('/library/topic?name=Inbox');
     await expect(page.getByRole('heading', { name: 'Inbox', level: 1 })).toBeVisible();
     const post = page.locator('.notiz', { hasText: 'spare key' });
-    await expect(post.locator('.termin')).toHaveText(eingang);
-    await expect(post.locator('.termin')).toHaveText(/^2 Nov(?: 2026)? · 15:00$/);
-    await expect(post).toContainText('Bring the spare key morgen 15 Uhr.');
+    await expect(post.locator('.ti')).toHaveText(EINGANG);
+    await expect(post.locator('.termin')).toHaveCount(0);
+    await expect(post.locator('.zeit')).toHaveText(tagesLabel(ERSTELLT, new Date()));
     await page.screenshot({ path: `${BILDER}/${testInfo.project.name}-date-inbox.png` });
+    await post.locator('a.tx').click();
+    await expect(page.locator('.termin')).toHaveText(eingang);
 
     await page.goto('/library');
     await page.getByRole('textbox', { name: 'Search notes' }).fill('lantern');

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 import { klickTipp, losTipp, merkTipp } from '../../ui/tipp.ts';
-import { gruppiereNotizen, LEERE_SEITEN, uhrzeit } from '../../../../shared/features/library/index.ts';
+import { gruppiereNotizen, LEERE_SEITEN, seitenzeile } from '../../../../shared/features/library/index.ts';
 import { INBOX_NAME } from '../../../../shared/kern/grenzen.ts';
 import { gleicherName } from '../../../../shared/features/tags/index.ts';
 import type { Thema } from '../../../../shared/kern/modell.ts';
@@ -29,8 +29,6 @@ import {
 } from '../topics/index.ts';
 import { aktionRueckgaengig, KARTE_TEXT, schliesseKarte, zeigeKarte } from '../../ui/karte.tsx';
 import { bibliothekNeu, ladeThema, LeseFehler, notizPfad, themaPfad } from './api.ts';
-import { LeseText } from '../format/index.ts';
-import { TerminZeile } from '../termine/index.ts';
 import { Kopf } from './Kopf.tsx';
 
 function meldung(fehler: unknown): string {
@@ -40,6 +38,7 @@ function meldung(fehler: unknown): string {
 
 function NotizZeile({
   notiz,
+  jetzt,
   offen,
   gesperrt,
   onOeffnen,
@@ -48,6 +47,7 @@ function NotizZeile({
   onDelete,
 }: {
   notiz: Notiz;
+  jetzt: Date;
   offen: boolean;
   gesperrt: boolean;
   onOeffnen: () => void;
@@ -55,12 +55,14 @@ function NotizZeile({
   onChange: () => void;
   onDelete: () => void;
 }) {
+  const zeile = seitenzeile(notiz.text, notiz.created, jetzt);
   return (
     <article className="notiz" id={`note-${notiz.id}`}>
       <Link className="tx" to={notizPfad(notiz.id)} onPointerDown={merkTipp} onPointerUp={losTipp} onClick={klickTipp}>
-        <LeseText text={notiz.text} />
-        <div className="zeit">{uhrzeit(notiz.created)}</div>
-        <TerminZeile text={notiz.text} created={notiz.created} />
+        <span className="ti">{zeile.titel}</span>
+        <time className="zeit" dateTime={notiz.created}>
+          {zeile.datum}
+        </time>
       </Link>
       <NotizKnopf
         id={notiz.id}
@@ -249,7 +251,8 @@ export function ThemaAnsicht() {
   }
 
   const inbox = gleicherName(titel, INBOX_NAME);
-  const gruppen = notizen ? gruppiereNotizen(notizen, new Date()) : [];
+  const jetzt = new Date();
+  const gruppen = notizen ? gruppiereNotizen(notizen, jetzt) : [];
   zurueckRef.current = notizZurueck;
 
   useEffect(() => {
@@ -300,6 +303,7 @@ export function ThemaAnsicht() {
                 <NotizZeile
                   key={notiz.id}
                   notiz={notiz}
+                  jetzt={jetzt}
                   offen={menueId === notiz.id}
                   gesperrt={beschaeftigt}
                   onOeffnen={() => {
