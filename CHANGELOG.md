@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.8.14
+
+Formatting looks and works the same.
+
 ## 1.8.13
 
 Housekeeping only. Notes, the format bar, and filing work the same.

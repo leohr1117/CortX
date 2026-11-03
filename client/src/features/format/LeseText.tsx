@@ -4,27 +4,33 @@ import {
   kombiniereStil,
   sicherZiel,
   leseBaum,
+  vorschauTag,
   type LeseBlock,
   type LeseHakenPunkt,
   type LeseLinkTeil,
   type LeseTeil,
+  type VorschauTag,
 } from '../../../../shared/features/format/index.ts';
 import { HakenIcon } from '../../ui/icons.tsx';
 
 function Markierung({ children }: { children: ReactNode }) {
   const hintergrund = kombiniereStil(['wichtig']).hintergrund;
   const style = hintergrund ? ({ [STIL_VAR]: hintergrund } as CSSProperties) : undefined;
+  const Tag = vorschauTag('wichtig') as VorschauTag;
   return (
-    <mark style={style}>
+    <Tag style={style}>
       <span className="sr-nur">Wichtig</span>
       {children}
-    </mark>
+    </Tag>
   );
 }
 
 function Schrift({ teil, verlinken }: { teil: LeseTeil; verlinken: boolean }) {
   if (teil.art === 'text') return teil.text;
-  if (teil.art === 'code') return <code>{teil.text}</code>;
+  if (teil.art === 'code') {
+    const Tag = vorschauTag('code') as VorschauTag;
+    return <Tag>{teil.text}</Tag>;
+  }
   if (teil.art === 'link') return <LinkTeil teil={teil} verlinken={verlinken} />;
   if (teil.art === 'wichtig') {
     if ('teile' in teil) {
@@ -36,7 +42,7 @@ function Schrift({ teil, verlinken }: { teil: LeseTeil; verlinken: boolean }) {
     }
     return <Markierung>{teil.text}</Markierung>;
   }
-  const Tag = teil.art === 'fett' ? 'strong' : teil.art === 'kursiv' ? 'em' : 's';
+  const Tag = (vorschauTag(teil.art) ?? 's') as VorschauTag;
   if ('text' in teil) return <Tag>{teil.text}</Tag>;
   return (
     <Tag>

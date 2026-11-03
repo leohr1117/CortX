@@ -1,4 +1,13 @@
-import { WICHTIG_ZEILE, inlineAn, kopfMarke, leseDokument, type Beleg } from '../../../../shared/features/format/index.ts';
+import {
+  WICHTIG_ZEILE,
+  hakenVon,
+  inlineAn,
+  kopfMarke,
+  leseDokument,
+  listenLaenge,
+  nummerLaenge,
+  type Beleg,
+} from '../../../../shared/features/format/index.ts';
 
 export interface Druck {
   fett: boolean;
@@ -20,11 +29,11 @@ function zeileAm(text: string, index: number): string {
 }
 
 function istListe(zeile: string): boolean {
-  return zeile.startsWith('- ') || zeile.startsWith('* ') || zeile.startsWith('+ ') || /^(\d{1,9})\. /.test(zeile);
+  return listenLaenge(zeile) > 0 || nummerLaenge(zeile) > 0;
 }
 
 function istHaken(zeile: string): boolean {
-  return zeile.startsWith('[]') || zeile.startsWith('[x]') || /^[-*+] \[( |x)\]/.test(zeile);
+  return hakenVon(zeile) !== null;
 }
 
 function innen(beleg: Beleg, start: number, ende: number): boolean {

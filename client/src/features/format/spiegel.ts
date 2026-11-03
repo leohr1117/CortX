@@ -8,14 +8,10 @@ import { Compartment, EditorState, Prec, type Extension, type Transaction } from
 import { drawSelection, EditorView, keymap, type KeyBinding } from '@codemirror/view';
 import { NOTE_TEXT_MAX } from '../../../../shared/kern/grenzen.ts';
 import {
-  schalteCode,
-  schalteFett,
-  schalteHaken,
-  schalteKursiv,
-  schalteListe,
-  schalteStrich,
-  schalteUeberschrift,
+  leistenEintraege,
+  schalteFormat,
   wandleKuerzel,
+  type FormatBefehl,
   type TextWahl,
 } from '../../../../shared/features/format/index.ts';
 import { kuerzelAn } from './kuerzelSpeicher.ts';
@@ -57,27 +53,28 @@ export function setzeWahl(view: EditorView, wahl: TextWahl): void {
 }
 
 function formatTasten(haken: SpiegelHaken): readonly KeyBinding[] {
-  const lauf = (fn: (text: string, start: number, ende: number) => TextWahl) => (view: EditorView) => {
+  const lauf = (id: FormatBefehl) => (view: EditorView) => {
     const sel = view.state.selection.main;
-    setzeWahl(view, fn(view.state.doc.toString(), sel.from, sel.to));
+    setzeWahl(view, schalteFormat(id, view.state.doc.toString(), sel.from, sel.to));
     return true;
   };
-  return [
-    { key: 'Mod-b', run: lauf(schalteFett) },
-    { key: 'Mod-i', run: lauf(schalteKursiv) },
-    { key: 'Mod-Shift-x', run: lauf(schalteStrich) },
-    { key: 'Mod-e', run: lauf(schalteCode) },
-    { key: 'Mod-Shift-h', run: lauf(schalteUeberschrift) },
-    { key: 'Mod-Shift-l', run: lauf(schalteListe) },
-    { key: 'Mod-Shift-u', run: lauf(schalteHaken) },
-    {
-      key: 'Mod-k',
-      run: () => {
-        haken.onLink();
-        return true;
-      },
-    },
-  ];
+  const tasten: KeyBinding[] = [];
+  for (const eintrag of leistenEintraege()) {
+    const taste = eintrag.knopf.taste;
+    if (!taste) continue;
+    if (eintrag.knopf.ziel) {
+      tasten.push({
+        key: taste,
+        run: () => {
+          haken.onLink();
+          return true;
+        },
+      });
+      continue;
+    }
+    tasten.push({ key: taste, run: lauf(eintrag.id) });
+  }
+  return tasten;
 }
 
 function zeichneAuswahl(): Extension {

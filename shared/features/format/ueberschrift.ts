@@ -1,4 +1,4 @@
-import { UEBERSCHRIFT_MARKER } from './zeile.ts';
+import { formatVon } from './register.ts';
 
 export interface TextWahl {
   text: string;
@@ -33,21 +33,28 @@ function ruecke(index: number, grenze: number, delta: number): number {
   return Math.max(grenze, index + delta);
 }
 
+function marker(): string {
+  const wert = formatVon('ueberschrift').syntax?.einsetzen;
+  if (!wert) throw new Error('missing syntax');
+  return wert;
+}
+
 export function zeileIstUeberschrift(text: string, index: number): boolean {
   const wahl = klemme(text, index, index);
   const { von, bis } = grenzen(text, wahl.start);
-  return kernVon(text, von, bis).startsWith(UEBERSCHRIFT_MARKER);
+  return kernVon(text, von, bis).startsWith(marker());
 }
 
 export function schalteUeberschrift(text: string, start: number, ende: number): TextWahl {
   const wahl = klemme(text, start, ende);
   const { von, bis } = grenzen(text, wahl.start);
   const kern = kernVon(text, von, bis);
-  const an = kern.startsWith(UEBERSCHRIFT_MARKER);
+  const zeichen = marker();
+  const an = kern.startsWith(zeichen);
   const neu = an
-    ? text.slice(0, von) + kern.slice(UEBERSCHRIFT_MARKER.length) + text.slice(von + kern.length)
-    : text.slice(0, von) + UEBERSCHRIFT_MARKER + text.slice(von);
-  const delta = an ? -UEBERSCHRIFT_MARKER.length : UEBERSCHRIFT_MARKER.length;
+    ? text.slice(0, von) + kern.slice(zeichen.length) + text.slice(von + kern.length)
+    : text.slice(0, von) + zeichen + text.slice(von);
+  const delta = an ? -zeichen.length : zeichen.length;
   return {
     text: neu,
     start: ruecke(wahl.start, von, delta),

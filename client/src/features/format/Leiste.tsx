@@ -1,6 +1,6 @@
-import type { ReactNode } from 'react';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { EditorView } from '@codemirror/view';
+import { leistenEintraege, type FormatBefehl } from '../../../../shared/features/format/index.ts';
 import {
   HINDERNIS,
   LAGE,
@@ -25,21 +25,6 @@ function LeistenIcon({ pfade }: { pfade: readonly string[] }) {
   );
 }
 
-const WICHTIG_PFAD = ['M12 5v9', 'M12 19h.01'] as const;
-const LISTE_PFAD = ['M3 6h.01', 'M3 12h.01', 'M3 18h.01', 'M8 6h13', 'M8 12h13', 'M8 18h13'] as const;
-const HAKEN_PFAD = ['m3 7 2 2 4-4', 'm3 17 2 2 4-4', 'M13 6h8', 'M13 12h8', 'M13 18h8'] as const;
-
-export type FormatBefehl =
-  | 'fett'
-  | 'kursiv'
-  | 'strich'
-  | 'code'
-  | 'ueberschrift'
-  | 'liste'
-  | 'haken'
-  | 'wichtig'
-  | 'link';
-
 const LEER: Druck = {
   fett: false,
   kursiv: false,
@@ -51,25 +36,6 @@ const LEER: Druck = {
   haken: false,
   wichtig: false,
 };
-
-function zeichenVon(befehl: FormatBefehl): ReactNode {
-  if (befehl === 'wichtig') return <LeistenIcon pfade={WICHTIG_PFAD} />;
-  if (befehl === 'liste') return <LeistenIcon pfade={LISTE_PFAD} />;
-  if (befehl === 'haken') return <LeistenIcon pfade={HAKEN_PFAD} />;
-  return null;
-}
-
-const KNOEPFE: ReadonlyArray<{ befehl: FormatBefehl; name: string; zeichen: string; klasse?: string }> = [
-  { befehl: 'fett', name: 'Bold', zeichen: 'B', klasse: 'fett' },
-  { befehl: 'kursiv', name: 'Italic', zeichen: 'I', klasse: 'kursiv' },
-  { befehl: 'strich', name: 'Strikethrough', zeichen: 'S', klasse: 'strich' },
-  { befehl: 'wichtig', name: 'Important', zeichen: '' },
-  { befehl: 'code', name: 'Code', zeichen: '</>' },
-  { befehl: 'ueberschrift', name: 'Heading', zeichen: 'H' },
-  { befehl: 'liste', name: 'Bulleted list', zeichen: '' },
-  { befehl: 'haken', name: 'Checklist', zeichen: '' },
-  { befehl: 'link', name: 'Link', zeichen: 'Link', klasse: 'breit' },
-];
 
 export function Leiste({
   view,
@@ -167,20 +133,21 @@ export function Leiste({
       aria-label="Format"
       style={stil}
     >
-      {KNOEPFE.map((knopf) => {
-        const an = knopf.befehl === 'link' ? false : druck[knopf.befehl];
+      {leistenEintraege().map((eintrag) => {
+        const knopf = eintrag.knopf;
+        const an = knopf.gedrueckt ? druck[eintrag.id] : false;
         return (
           <button
-            key={knopf.befehl}
+            key={eintrag.id}
             type="button"
             className={['schalt', knopf.klasse, an ? 'an' : ''].filter(Boolean).join(' ')}
-            aria-label={knopf.name}
-            title={knopf.name}
-            aria-pressed={knopf.befehl === 'link' ? undefined : an}
+            aria-label={knopf.beschriftung}
+            title={knopf.beschriftung}
+            aria-pressed={knopf.gedrueckt ? an : undefined}
             onPointerDown={(event) => event.preventDefault()}
-            onClick={() => onBefehl(knopf.befehl)}
+            onClick={() => onBefehl(eintrag.id)}
           >
-            {zeichenVon(knopf.befehl) ?? knopf.zeichen}
+            {knopf.pfade ? <LeistenIcon pfade={knopf.pfade} /> : knopf.zeichen}
           </button>
         );
       })}

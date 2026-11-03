@@ -2,18 +2,11 @@ import { type Ref, useLayoutEffect, useRef, useState } from 'react';
 import { EditorState, type Compartment, type Extension } from '@codemirror/state';
 import { EditorView, placeholder as platzhalter } from '@codemirror/view';
 import {
-  schalteCode,
-  schalteFett,
-  schalteHaken,
-  schalteKursiv,
-  schalteListe,
-  schalteStrich,
-  schalteUeberschrift,
-  schalteVerknuepfung,
-  schalteWichtig,
+  formatVon,
+  schalteFormat,
+  type FormatBefehl,
   type TextWahl,
 } from '../../../../shared/features/format/index.ts';
-import type { FormatBefehl } from './Leiste.tsx';
 import { Leiste } from './Leiste.tsx';
 import { LinkFeld } from './LinkFeld.tsx';
 import { baueSpiegel, setzeUngueltig, setzeWahl } from './spiegel.ts';
@@ -24,15 +17,7 @@ interface Bereich {
 }
 
 function wende(befehl: FormatBefehl, text: string, start: number, ende: number, ziel = ''): TextWahl {
-  if (befehl === 'fett') return schalteFett(text, start, ende);
-  if (befehl === 'kursiv') return schalteKursiv(text, start, ende);
-  if (befehl === 'strich') return schalteStrich(text, start, ende);
-  if (befehl === 'code') return schalteCode(text, start, ende);
-  if (befehl === 'liste') return schalteListe(text, start, ende);
-  if (befehl === 'haken') return schalteHaken(text, start, ende);
-  if (befehl === 'wichtig') return schalteWichtig(text, start, ende);
-  if (befehl === 'link') return schalteVerknuepfung(text, start, ende, ziel);
-  return schalteUeberschrift(text, start, ende);
+  return schalteFormat(befehl, text, start, ende, ziel);
 }
 
 function schreibeRef(ziel: Ref<EditorView | null> | undefined, wert: EditorView | null) {
@@ -154,7 +139,7 @@ export function Editor({
   function befehl(name: FormatBefehl) {
     const editor = viewRef.current;
     if (!editor) return;
-    if (name === 'link') {
+    if (formatVon(name).knopf?.ziel) {
       const sel = editor.state.selection.main;
       setLink({ start: sel.from, ende: sel.to });
       return;

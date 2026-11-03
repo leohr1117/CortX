@@ -23,10 +23,19 @@ export {
   type LeseWichtig,
   type LeseWichtigTeil,
 } from './lesen.ts';
-export { kopfMarke, UEBERSCHRIFT_MARKER, WICHTIG_ZEILE, type KopfMarke } from './zeile.ts';
+export {
+  hakenVon,
+  kopfMarke,
+  listenLaenge,
+  nummerLaenge,
+  UEBERSCHRIFT_MARKER,
+  WICHTIG_ZEILE,
+  type KopfMarke,
+} from './zeile.ts';
 export {
   schalteCode,
   schalteFett,
+  schalteFormat,
   schalteHaken,
   schalteKopf,
   schalteKursiv,
@@ -37,17 +46,29 @@ export {
 } from './befehl.ts';
 export { liegtInCode, wandleKuerzel } from './kuerzel.ts';
 export {
+  FORMAT_REGISTER,
   INLINE_REGISTER,
   STIL_REGISTER,
   STIL_VAR,
+  formatVon,
   inlineAn,
   kombiniereStil,
+  kuerzelEintraege,
+  leistenEintraege,
   nurMarker,
   schalteInline,
   stilAttribut,
+  vorschauSchichten,
+  vorschauTag,
+  vorschauWidget,
+  type FormatBefehl,
+  type FormatEintrag,
+  type FormatKnopf,
   type FormatStil,
   type InlineArt,
   type InlineStand,
+  type VorschauSchicht,
+  type VorschauTag,
 } from './register.ts';
 export { sicherZiel } from './sicher.ts';
 export { suchtext } from './suchtext.ts';

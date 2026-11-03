@@ -1,5 +1,13 @@
 export const UEBERSCHRIFT_MARKER = '= ';
 export const WICHTIG_INLINE = '!!';
+export const FETT_MARKER = '**';
+export const FETT_UNTER = '__';
+export const KURSIV_MARKER = '*';
+export const KURSIV_UNTER = '_';
+export const STREICH_MARKER = '~~';
+export const CODE_INLINE = '`';
+export const LISTEN_ZEICHEN = ['-', '*', '+'] as const;
+export const LISTEN_EINFUEGEN = `${LISTEN_ZEICHEN[0]} `;
 
 export interface KopfMarke {
   stufe: number;
@@ -44,7 +52,9 @@ export function hakenVon(zeile: string): HakenZeile | null {
 }
 
 export function listenLaenge(zeile: string): number {
-  if (zeile.startsWith('- ') || zeile.startsWith('* ') || zeile.startsWith('+ ')) return 2;
+  for (const zeichen of LISTEN_ZEICHEN) {
+    if (zeile.startsWith(`${zeichen} `)) return 2;
+  }
   return 0;
 }
 

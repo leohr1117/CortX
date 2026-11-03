@@ -1,5 +1,13 @@
 import type { Beleg, LeseTeil } from './baum.ts';
-import { WICHTIG_INLINE } from './zeile.ts';
+import {
+  CODE_INLINE,
+  FETT_MARKER,
+  FETT_UNTER,
+  KURSIV_MARKER,
+  KURSIV_UNTER,
+  STREICH_MARKER,
+  WICHTIG_INLINE,
+} from './zeile.ts';
 
 const ESCAPE = new Set(['\\', '`', '*', '_', '~', '[', ']', '!']);
 
@@ -29,17 +37,17 @@ function haengeText(teile: LeseTeil[], text: string): void {
 
 function sucheCode(zeile: string, i: number): Fund | null {
   let lang = 0;
-  while (zeile[i + lang] === '`') lang += 1;
+  while (zeile[i + lang] === CODE_INLINE) lang += 1;
   if (lang === 0) return null;
   const ab = i + lang;
   let j = ab;
   while (j < zeile.length) {
-    if (zeile[j] !== '`') {
+    if (zeile[j] !== CODE_INLINE) {
       j += 1;
       continue;
     }
     let z = 0;
-    while (zeile[j + z] === '`') z += 1;
+    while (zeile[j + z] === CODE_INLINE) z += 1;
     if (z === lang && j > ab) {
       return {
         art: 'code',
@@ -148,13 +156,13 @@ function suchePaar(zeile: string, i: number, marker: string, art: Fund['art']): 
 
 function versuch(zeile: string, i: number, inLink: boolean): Fund | 'sprung' | null {
   const zeichen = zeile[i];
-  if (zeichen === '`') return sucheCode(zeile, i);
+  if (zeichen === CODE_INLINE) return sucheCode(zeile, i);
   if (zeichen === '[' && zeile[i - 1] !== '!' && !inLink) return sucheLink(zeile, i);
-  if (zeile.startsWith('~~', i)) return suchePaar(zeile, i, '~~', 'streich');
-  if (zeile.startsWith('**', i)) return suchePaar(zeile, i, '**', 'fett');
-  if (zeile.startsWith('__', i)) return suchePaar(zeile, i, '__', 'fett');
-  if (zeichen === '*') return suchePaar(zeile, i, '*', 'kursiv');
-  if (zeichen === '_') return suchePaar(zeile, i, '_', 'kursiv');
+  if (zeile.startsWith(STREICH_MARKER, i)) return suchePaar(zeile, i, STREICH_MARKER, 'streich');
+  if (zeile.startsWith(FETT_MARKER, i)) return suchePaar(zeile, i, FETT_MARKER, 'fett');
+  if (zeile.startsWith(FETT_UNTER, i)) return suchePaar(zeile, i, FETT_UNTER, 'fett');
+  if (zeichen === KURSIV_MARKER) return suchePaar(zeile, i, KURSIV_MARKER, 'kursiv');
+  if (zeichen === KURSIV_UNTER) return suchePaar(zeile, i, KURSIV_UNTER, 'kursiv');
   return null;
 }
 
@@ -215,7 +223,7 @@ function wichtigPaare(zeile: string, vorher: string): Map<number, number> {
       i += 2;
       continue;
     }
-    if (zeile[i] === '`') {
+    if (zeile[i] === CODE_INLINE) {
       const code = sucheCode(zeile, i);
       if (code) {
         i = code.bis;

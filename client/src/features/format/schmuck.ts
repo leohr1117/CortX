@@ -7,27 +7,19 @@ import {
   type DecorationSet,
   type ViewUpdate,
 } from '@codemirror/view';
-import { leseDokument, nurMarker, stilAttribut, type Beleg } from '../../../../shared/features/format/index.ts';
+import {
+  STIL_REGISTER,
+  leseDokument,
+  nurMarker,
+  stilAttribut,
+  vorschauSchichten,
+  vorschauWidget,
+  type Beleg,
+} from '../../../../shared/features/format/index.ts';
 
-const FETT = 1;
-const KURSIV = 2;
-const STRICH = 4;
-const CODE = 8;
-const LINK = 16;
-const UEBER = 32;
-const BLOCK = 64;
-const WICHTIG = 128;
-
-const BITS: Partial<Record<Beleg['art'], number>> = {
-  fett: FETT,
-  kursiv: KURSIV,
-  streich: STRICH,
-  code: CODE,
-  link: LINK,
-  ueberschrift: UEBER,
-  codeblock: BLOCK,
-  wichtig: WICHTIG,
-};
+const SCHICHTEN = vorschauSchichten();
+const BIT = new Map(SCHICHTEN.map((schicht) => [schicht.art, schicht.bit]));
+const STIL_ART = new Set<string>(STIL_REGISTER.map((eintrag) => eintrag.art));
 
 const ZEILEN_BALKEN = Decoration.line({ class: 'cm-wichtig-zeile' });
 const MARKER_DIMM = Decoration.mark({ class: 'cm-wichtig-marker' });
@@ -99,21 +91,17 @@ interface Kachel {
 
 function artenAus(bit: number): string[] {
   const arten: string[] = [];
-  if (bit & CODE) arten.push('code');
-  if (bit & WICHTIG) arten.push('wichtig');
+  for (const schicht of SCHICHTEN) {
+    if ((bit & schicht.bit) !== 0 && STIL_ART.has(schicht.art)) arten.push(schicht.art);
+  }
   return arten;
 }
 
 function klasse(bit: number): string {
   const namen: string[] = [];
-  if (bit & FETT) namen.push('cm-fett');
-  if (bit & KURSIV) namen.push('cm-kursiv');
-  if (bit & STRICH) namen.push('cm-strich');
-  if (bit & CODE) namen.push('cm-code');
-  if (bit & LINK) namen.push('cm-link');
-  if (bit & UEBER) namen.push('cm-ueberschrift');
-  if (bit & BLOCK) namen.push('cm-codeblock');
-  if (bit & WICHTIG) namen.push('cm-wichtig');
+  for (const schicht of SCHICHTEN) {
+    if ((bit & schicht.bit) !== 0) namen.push(schicht.klasse);
+  }
   return namen.join(' ');
 }
 
@@ -137,9 +125,10 @@ function caretInBeleg(view: EditorView, beleg: Beleg): boolean {
 }
 
 function widgetFuer(beleg: Beleg): WidgetType | null {
-  if (beleg.art === 'liste') return new PunktWidget();
-  if (beleg.art === 'nummer') return new NummerWidget(beleg.zahl ?? '');
-  if (beleg.art === 'haken') return new HakenWidget(beleg.abgehakt === true);
+  const art = vorschauWidget(beleg.art);
+  if (art === 'punkt') return new PunktWidget();
+  if (art === 'nummer') return new NummerWidget(beleg.zahl ?? '');
+  if (art === 'haken') return new HakenWidget(beleg.abgehakt === true);
   return null;
 }
 
@@ -175,7 +164,7 @@ function baue(view: EditorView): DecorationSet {
       const widget = widgetFuer(beleg);
       if (widget && beleg.marker[0]?.[0] === von) kacheln.set(von, { von, bis: ende, widget });
     }
-    const bit = BITS[beleg.art] ?? 0;
+    const bit = BIT.get(beleg.art) ?? 0;
     if (bit === 0) continue;
     const ende = Math.min(beleg.bis, text.length);
     for (let i = Math.max(0, beleg.von); i < ende; i += 1) {
