@@ -136,6 +136,7 @@ interface FormatEintrag {
   readonly run?: BefehlRun;
   readonly isActive?: BefehlAktiv;
   readonly modell?: ModellSchalt;
+  readonly kasten?: { text: (text: string, index: number) => string; modell: (zustand: import('prosemirror-state').EditorState, pos: number) => import('prosemirror-state').EditorState };
 }
 
 function laufLink(text: string, start: number, ende: number, ziel = ''): TextWahl {
@@ -390,7 +391,6 @@ export type { FormatStil } from './stil.ts';
 
 export { inlineAn, loeschePaar };
 export { PUNKT_TASTEN, punktArt, punktTaste, type PunktArt } from './punkt.ts';
-
 export interface InlineStand {
   fett: boolean;
   kursiv: boolean;
