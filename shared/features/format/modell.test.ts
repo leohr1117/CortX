@@ -50,15 +50,18 @@ describe('format model', () => {
     expect(modell.nodes.ueberschrift?.create().attrs).toEqual({
       stufe: 0,
       zeichen: formatVon(ART.ueberschrift).zeichen[0],
+      quelle: '',
     });
     expect(modell.nodes.punkt?.create().attrs).toEqual({
       art: ART.liste,
       abgehakt: false,
       zeichen: formatVon(ART.liste).zeichen[0],
       einzug: 0,
+      quelle: '',
     });
     expect(modell.nodes.codeblock?.create().attrs).toEqual({
       zaun: formatVon(ART.codeblock).zeichen[0],
+      quelle: '',
     });
     expect(() => modell.marks.link?.create()).toThrow();
     expect(() => modell.nodes.punkt?.createChecked(null, modell.nodes.absatz?.create())).toThrow();
@@ -81,7 +84,7 @@ describe('format model', () => {
     ]);
     expect(doc.childCount).toBe(6);
     expect(doc.child(0).inlineContent).toBe(true);
-    expect(doc.child(3).attrs).toEqual({ art: 'haken', abgehakt: true, zeichen: '[]', einzug: 1 });
+    expect(doc.child(3).attrs).toEqual({ art: 'haken', abgehakt: true, zeichen: '[]', einzug: 1, quelle: '' });
     expect(doc.child(3).childCount).toBe(1);
     const leer = modell.node('doc', null, []);
     expect(leer.childCount).toBe(0);
