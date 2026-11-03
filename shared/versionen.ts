@@ -6,6 +6,14 @@ export interface Versionseintrag {
 
 export const VERSIONEN: readonly Versionseintrag[] = [
   {
+    version: '1.8.10',
+    datum: '2026-11-03',
+    zeilen: [
+      'Filing, deleting, and moving shows one short message above the keyboard.',
+      'Undo on that message puts the change back. It fades on its own, or when you dismiss it.',
+    ],
+  },
+  {
     version: '1.8.9',
     datum: '2026-11-03',
     zeilen: [

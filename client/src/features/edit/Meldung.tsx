@@ -41,23 +41,3 @@ export function vergissNotiz(): void {
     return;
   }
 }
-
-export function NotizToast({
-  fehler,
-  gesperrt,
-  onUndo,
-}: {
-  fehler: string | null;
-  gesperrt: boolean;
-  onUndo: () => void;
-}) {
-  return (
-    <div className="toast ruhe" role="status">
-      <span className="t">{fehler ?? 'Note deleted'}</span>
-      <span className="dot">·</span>
-      <button type="button" className="a" onClick={onUndo} disabled={gesperrt}>
-        Undo
-      </button>
-    </div>
-  );
-}

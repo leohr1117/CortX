@@ -1,37 +1,44 @@
-import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type PointerEvent } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type FocusEvent, type PointerEvent } from 'react';
 import { SchliessenIcon } from './icons.tsx';
+import {
+  KARTE_TEXT,
+  pausiereLauf,
+  setzeLaufFort,
+  starteLauf,
+  wischSchliesst,
+  type KarteAktion,
+  type KartenLauf,
+} from './kartenregister.ts';
 import { LAGE, LAGE_VAR, beobachteSicht, fixedFolgtSicht, hindernisOben, kartenHubPx, liesSicht } from './lage.ts';
 
-export const KARTE_DAUER_OHNE_MS = 5000;
-export const KARTE_DAUER_MIT_MS = 8000;
+export {
+  KARTE_DAUER_MIT_MS,
+  KARTE_DAUER_OHNE_MS,
+  KARTE_TEXT,
+  KARTE_TREFFER_PX,
+  KARTE_WISCHEN_PX,
+  aktionOeffnen,
+  aktionRueckgaengig,
+  karteDauer,
+  textHinzugefuegt,
+  textThemaWeg,
+  textThemaZusammen,
+  type KarteAktion,
+} from './kartenregister.ts';
+
 export const KARTE_ABSTAND_PX = LAGE.karteAbstandPx;
 export const KARTE_BREITE_PX = 480;
-export const KARTE_TREFFER_PX = 48;
-export const KARTE_WISCHEN_PX = 80;
-
-export const KARTE_TEXT = {
-  seiteGeloescht: 'Page deleted',
-  rueckgaengig: 'Undo',
-  schliessen: 'Close',
-} as const;
-
-export function karteDauer(hatAktion: boolean): number {
-  return hatAktion ? KARTE_DAUER_MIT_MS : KARTE_DAUER_OHNE_MS;
-}
-
-export interface KarteAktion {
-  text: string;
-  run: () => void;
-}
 
 interface Karte {
   id: number;
   text: string;
   aktion: KarteAktion | null;
+  schluessel: string | null;
 }
 
 let karte: Karte | null = null;
 let lauf = 0;
+const verworfen = new Set<string>();
 const hoerer = new Set<() => void>();
 
 function melde(): void {
@@ -47,26 +54,43 @@ function leseKarte(): Karte | null {
   return karte;
 }
 
-export function zeigeKarte(text: string, aktion?: KarteAktion): void {
+function zeile(text: string): string {
+  return text.replace(/\s+/g, ' ').trim();
+}
+
+export function zeigeKarte(text: string, aktion?: KarteAktion, schluessel?: string): void {
+  const textZeile = zeile(text);
+  if (textZeile.length === 0) return;
+  const key = schluessel ?? null;
+  if (key && verworfen.has(key)) return;
+  const label = aktion?.text ?? null;
+  if (karte && karte.text === textZeile && karte.schluessel === key && (karte.aktion?.text ?? null) === label) {
+    karte = { ...karte, aktion: aktion ?? null };
+    melde();
+    return;
+  }
   lauf += 1;
-  karte = { id: lauf, text, aktion: aktion ?? null };
+  karte = { id: lauf, text: textZeile, aktion: aktion ?? null, schluessel: key };
   melde();
 }
 
-export function schliesseKarte(): void {
+export function schliesseKarte(grund: 'weg' | 'aktion' = 'weg'): void {
   if (!karte) return;
+  if (grund === 'weg' && karte.schluessel) verworfen.add(karte.schluessel);
   karte = null;
   melde();
 }
 
 function KarteAnsicht({ eintrag }: { eintrag: Karte }) {
-  const rest = useRef(karteDauer(eintrag.aktion !== null));
-  const start = useRef(0);
+  const laufRef = useRef<KartenLauf>(starteLauf(eintrag.aktion !== null, Date.now()));
   const timer = useRef<number | null>(null);
-  const pausiert = useRef(false);
+  const grund = useRef({ zeiger: false, fokus: false });
   const finger = useRef<{ x: number; y: number } | null>(null);
+  const zug = useRef({ x: 0, y: 0 });
+  const gezogen = useRef(false);
+  const loslass = useRef<(() => void) | null>(null);
   const [hub, setHub] = useState(0);
-  const [zug, setZug] = useState({ x: 0, y: 0 });
+  const [versatz, setVersatz] = useState({ x: 0, y: 0 });
 
   function stoppe(): void {
     if (timer.current === null) return;
@@ -76,36 +100,39 @@ function KarteAnsicht({ eintrag }: { eintrag: Karte }) {
 
   function starte(): void {
     stoppe();
-    start.current = Date.now();
-    timer.current = window.setTimeout(() => schliesseKarte(), rest.current);
+    timer.current = window.setTimeout(() => schliesseKarte('weg'), laufRef.current.restMs);
   }
 
-  function pause(): void {
-    if (pausiert.current || timer.current === null) return;
-    pausiert.current = true;
-    rest.current = Math.max(0, rest.current - (Date.now() - start.current));
-    stoppe();
-  }
-
-  function weiter(): void {
-    if (!pausiert.current) return;
-    pausiert.current = false;
+  function halte(): void {
+    const jetzt = Date.now();
+    const aktiv = grund.current.zeiger || grund.current.fokus;
+    if (aktiv) {
+      if (!laufRef.current.pausiert) {
+        laufRef.current = pausiereLauf(laufRef.current, jetzt);
+        stoppe();
+      }
+      return;
+    }
+    if (!laufRef.current.pausiert) return;
+    laufRef.current = setzeLaufFort(laufRef.current, jetzt);
     starte();
   }
 
   useEffect(() => {
-    rest.current = karteDauer(eintrag.aktion !== null);
-    pausiert.current = false;
+    laufRef.current = starteLauf(eintrag.aktion !== null, Date.now());
+    grund.current = { zeiger: false, fokus: false };
     starte();
-    function esc(event: KeyboardEvent): void {
-      if (event.key === 'Escape') schliesseKarte();
-    }
+    const esc = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      schliesseKarte('weg');
+    };
     window.addEventListener('keydown', esc);
     return () => {
       stoppe();
+      loslass.current?.();
       window.removeEventListener('keydown', esc);
     };
-  }, [eintrag.id, eintrag.aktion]);
+  }, [eintrag.id]);
 
   useLayoutEffect(() => {
     return beobachteSicht(() => {
@@ -117,58 +144,88 @@ function KarteAnsicht({ eintrag }: { eintrag: Karte }) {
 
   function beiStart(event: PointerEvent<HTMLDivElement>): void {
     if (event.pointerType === 'mouse' && event.button !== 0) return;
+    loslass.current?.();
     finger.current = { x: event.clientX, y: event.clientY };
+    zug.current = { x: 0, y: 0 };
+    gezogen.current = false;
+    const beweg = (ev: globalThis.PointerEvent) => {
+      if (!finger.current) return;
+      const dx = ev.clientX - finger.current.x;
+      const dy = ev.clientY - finger.current.y;
+      const naechster = Math.abs(dx) >= Math.abs(dy) ? { x: dx, y: 0 } : { x: 0, y: Math.max(0, dy) };
+      if (Math.abs(dx) > 8 || Math.abs(dy) > 8) gezogen.current = true;
+      zug.current = naechster;
+      setVersatz(naechster);
+    };
+    const ende = () => {
+      window.removeEventListener('pointermove', beweg);
+      window.removeEventListener('pointerup', ende);
+      window.removeEventListener('pointercancel', ende);
+      if (loslass.current === ende) loslass.current = null;
+      if (wischSchliesst(zug.current.x, zug.current.y)) schliesseKarte('weg');
+      zug.current = { x: 0, y: 0 };
+      finger.current = null;
+      setVersatz({ x: 0, y: 0 });
+    };
+    loslass.current = ende;
+    window.addEventListener('pointermove', beweg);
+    window.addEventListener('pointerup', ende);
+    window.addEventListener('pointercancel', ende);
   }
 
-  function beiBeweg(event: PointerEvent<HTMLDivElement>): void {
-    if (!finger.current) return;
-    const dx = event.clientX - finger.current.x;
-    const dy = event.clientY - finger.current.y;
-    if (Math.abs(dx) >= Math.abs(dy)) setZug({ x: dx, y: 0 });
-    else setZug({ x: 0, y: Math.max(0, dy) });
+  function beiFokus(): void {
+    grund.current.fokus = true;
+    halte();
   }
 
-  function beiEnde(): void {
-    if (Math.abs(zug.x) >= KARTE_WISCHEN_PX || zug.y >= KARTE_WISCHEN_PX) schliesseKarte();
-    setZug({ x: 0, y: 0 });
-    finger.current = null;
+  function beiBlur(event: FocusEvent<HTMLDivElement>): void {
+    const nach = event.relatedTarget;
+    if (nach instanceof Node && event.currentTarget.contains(nach)) return;
+    grund.current.fokus = false;
+    halte();
   }
 
-  const schieben = `translateX(calc(-50% + ${zug.x}px)) translateY(${zug.y}px)`;
+  function beiEnter(): void {
+    grund.current.zeiger = true;
+    halte();
+  }
+
+  function beiLeave(): void {
+    grund.current.zeiger = false;
+    halte();
+  }
+
+  function fuehreAus(): void {
+    if (gezogen.current) return;
+    const laufAktion = eintrag.aktion;
+    schliesseKarte('aktion');
+    laufAktion?.run();
+  }
+
+  const schieben = `translateX(calc(-50% + ${versatz.x}px)) translateY(${versatz.y}px)`;
 
   return (
     <div
       className="karte-ort"
       style={{ [LAGE_VAR.karteHub as string]: hub > 0 ? `${hub}px` : undefined, transform: schieben }}
-      onPointerDown={beiStart}
-      onPointerMove={beiBeweg}
-      onPointerUp={beiEnde}
-      onPointerCancel={beiEnde}
     >
       <div
         className="karte"
         role="status"
         aria-live="polite"
-        onPointerEnter={pause}
-        onPointerLeave={weiter}
-        onFocus={pause}
-        onBlur={weiter}
+        onPointerDown={beiStart}
+        onPointerEnter={beiEnter}
+        onPointerLeave={beiLeave}
+        onFocus={beiFokus}
+        onBlur={beiBlur}
       >
         <span className="t">{eintrag.text}</span>
         {eintrag.aktion ? (
-          <button
-            type="button"
-            className="a"
-            onClick={() => {
-              const laufAktion = eintrag.aktion;
-              schliesseKarte();
-              laufAktion?.run();
-            }}
-          >
+          <button type="button" className="a" onClick={fuehreAus}>
             {eintrag.aktion.text}
           </button>
         ) : null}
-        <button type="button" className="x" aria-label={KARTE_TEXT.schliessen} onClick={() => schliesseKarte()}>
+        <button type="button" className="x" aria-label={KARTE_TEXT.schliessen} onClick={() => schliesseKarte('weg')}>
           <SchliessenIcon />
         </button>
       </div>

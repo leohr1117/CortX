@@ -1,6 +1,5 @@
 export { benenneUm, fuehreZusammen, ladeThemen, loescheThema, macheRueckgaengig, PflegeFehler } from './api.ts';
 export {
-  PflegeToast,
   liesGemerktePflege,
   liesPflegeMeldung,
   merkePflege,

@@ -1,6 +1,7 @@
 export const HINDERNIS = {
   leiste: '.format-leiste.mobil',
-  fuss: 'footer.fuss',
+  fuss: 'footer.fuss .btn',
+  hinweis: '.toast.hinweis',
 } as const;
 
 export const LAGE = {

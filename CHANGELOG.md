@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.8.10
+
+Filing, deleting, and moving shows one short message above the keyboard. Undo on that message puts the change back. The message fades on its own, or when you dismiss it.
+
 ## 1.8.9
 
 Words that are both important and code show the gold highlight and the code font. The order of those two formats does not change the highlight.

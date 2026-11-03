@@ -5,7 +5,8 @@ import { EBENEN, PFAD_TRENNER, pfadText, seitentitel, type SeiteKurz } from '../
 import { caretEbene, ersetzeSegment, ersetzeTag, planeAblage, tagAnCaret, vorschlaege } from '../../../../shared/features/tags/index.ts';
 import { NOTE_TEXT_MAX } from '../../../../shared/kern/grenzen.ts';
 import type { Thema } from '../../../../shared/kern/modell.ts';
-import { BibliothekIcon, WolkeAusIcon } from '../../ui/icons.tsx';
+import { aktionRueckgaengig, KARTE_TEXT, schliesseKarte, textHinzugefuegt, zeigeKarte } from '../../ui/karte.tsx';
+import { BibliothekIcon } from '../../ui/icons.tsx';
 import { Editor } from '../format/index.ts';
 import { legeInWarteschlange, liesEntwurf, schreibEntwurf, spuele } from '../offline/index.ts';
 import { ApiFehler, ladeSeiten, ladeThemen, legeNotizAb, macheRueckgaengig } from './api.ts';
@@ -17,8 +18,7 @@ import { leeresAnhaengen, ZielText } from './Ziel.tsx';
 
 type Meldung =
   | { art: 'abgelegt'; id: number; ziel: string; undo: string; text: string }
-  | { art: 'offline'; clientId: string }
-  | { art: 'fehler'; text: string };
+  | { art: 'offline'; clientId: string };
 
 const LEER_AKTION: TagAktionen = {
   ablegen: () => undefined,
@@ -35,6 +35,7 @@ export function CaptureAnsicht() {
   const [themen, setThemen] = useState<Thema[]>([]);
   const [seiten, setSeiten] = useState<SeiteKurz[]>([]);
   const [meldung, setMeldung] = useState<Meldung | null>(null);
+  const [fehler, setFehler] = useState<string | null>(null);
   const [speichert, setSpeichert] = useState(false);
   const [bereit, setBereit] = useState(false);
   const [zu, setZu] = useState<string | null>(null);
@@ -72,7 +73,7 @@ export function CaptureAnsicht() {
     echo.current = null;
     beruehrt.current = true;
     setText(wert);
-    setMeldung((alt) => (alt?.art === 'fehler' ? null : alt));
+    setFehler(null);
   }
 
   useEffect(() => {
@@ -211,47 +212,67 @@ export function CaptureAnsicht() {
     if (katalog) setSeiten(katalog);
   }
 
-  async function rueckgaengig() {
-    if (meldung?.art !== 'abgelegt' || meldung.undo.length === 0 || sperre.current) return;
-    const gemerkt = meldung.text;
-    const token = meldung.undo;
+  async function rueckMit(token: string, gemerkt: string) {
+    if (token.length === 0 || sperre.current) return;
     sperre.current = true;
     try {
       const text = textNachAblageRueck(await macheRueckgaengig(token), gemerkt);
       if (text === null) {
-        setMeldung({ art: 'fehler', text: 'Could not undo.' });
+        setMeldung(null);
+        zeigeKarte(KARTE_TEXT.nichtRueckgaengig);
         return;
       }
       setMeldung(null);
+      setFehler(null);
+      await schreibEntwurf(text);
       setzeAussen(text, caretNachAblageRueck(text));
       await katalogNeu();
       sichtRef.current?.focus();
     } catch (grund: unknown) {
-      setMeldung({ art: 'fehler', text: grund instanceof ApiFehler ? grund.message : 'Could not undo.' });
+      setMeldung(null);
+      zeigeKarte(grund instanceof ApiFehler ? grund.message : KARTE_TEXT.nichtRueckgaengig);
     } finally {
       sperre.current = false;
     }
   }
+
+  useEffect(() => {
+    if (!meldung) return;
+    if (meldung.art === 'offline') {
+      zeigeKarte(KARTE_TEXT.offline, undefined, `offline:${meldung.clientId}`);
+      return;
+    }
+    const token = meldung.undo;
+    const gemerkt = meldung.text;
+    zeigeKarte(
+      textHinzugefuegt(meldung.ziel),
+      token.length > 0 ? aktionRueckgaengig(() => void rueckMit(token, gemerkt)) : undefined,
+      token.length > 0 ? token : `note:${meldung.id}`,
+    );
+  }, [meldung]);
 
   async function ablegen() {
     const roh = sichtRef.current?.state.doc.toString() ?? text;
     const zielPlan = planeAblage(roh, themen, seiten);
     if (sperre.current || roh.trim().length === 0) return;
     if (zielPlan?.ungueltig) {
-      setMeldung({ art: 'fehler', text: zielPlan.hinweis ?? 'Could not file the note.' });
+      setFehler(zielPlan.hinweis ?? 'Could not file the note.');
       return;
     }
     if (zielPlan && leeresAnhaengen(zielPlan)) {
-      setMeldung({ art: 'fehler', text: 'Write something to add.' });
+      setFehler('Write something to add.');
       return;
     }
     if (roh.length > NOTE_TEXT_MAX) {
-      setMeldung({ art: 'fehler', text: 'Could not file the note.' });
+      setFehler('Could not file the note.');
       return;
     }
+    const vorher = meldung;
     sperre.current = true;
     setSpeichert(true);
+    setFehler(null);
     setMeldung(null);
+    schliesseKarte('aktion');
     try {
       const ergebnis = await legeInWarteschlange(roh, navigator.onLine, (eintrag) =>
         legeNotizAb(eintrag.text, eintrag.clientId),
@@ -259,7 +280,8 @@ export function CaptureAnsicht() {
       beruehrt.current = true;
       if (ergebnis.art === 'abgelehnt') {
         setzeAussen(roh, roh.length);
-        setMeldung({ art: 'fehler', text: ergebnis.grund ?? 'Could not file the note.' });
+        setFehler(ergebnis.grund ?? 'Could not file the note.');
+        if (vorher) setMeldung(vorher);
         sichtRef.current?.focus();
         return;
       }
@@ -280,7 +302,8 @@ export function CaptureAnsicht() {
       }
       sichtRef.current?.focus();
     } catch {
-      setMeldung({ art: 'fehler', text: 'Could not file the note.' });
+      setFehler('Could not file the note.');
+      if (vorher) setMeldung(vorher);
     } finally {
       sperre.current = false;
       setSpeichert(false);
@@ -341,7 +364,15 @@ export function CaptureAnsicht() {
         ) : null}
       </main>
       <footer className="fuss">
-        <div className="ziel">{plan ? <ZielText plan={plan} /> : null}</div>
+        <div className="ziel">
+          {fehler ? (
+            <span className="feldfehler" role="alert">
+              {fehler}
+            </span>
+          ) : plan ? (
+            <ZielText plan={plan} />
+          ) : null}
+        </div>
         <div className="kbd" aria-hidden="true">
           <span className="win">Ctrl</span>
           <i className="win">+</i>
@@ -358,32 +389,6 @@ export function CaptureAnsicht() {
           File
         </button>
       </footer>
-      {meldung?.art === 'abgelegt' ? (
-        <div className="toast" role="status">
-          <span className="t">
-            Added to <b>{meldung.ziel}</b>
-          </span>
-          {meldung.undo.length > 0 ? (
-            <>
-              <span className="dot">·</span>
-              <button type="button" className="a" onClick={() => void rueckgaengig()}>
-                Undo
-              </button>
-            </>
-          ) : null}
-        </div>
-      ) : null}
-      {meldung?.art === 'offline' ? (
-        <div className="toast ohne" role="status">
-          <WolkeAusIcon />
-          <span className="t">Filed offline · syncs later</span>
-        </div>
-      ) : null}
-      {meldung?.art === 'fehler' ? (
-        <div className="toast ohne" role="status">
-          <span className="t">{meldung.text}</span>
-        </div>
-      ) : null}
     </div>
   );
 }

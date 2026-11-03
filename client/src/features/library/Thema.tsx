@@ -12,7 +12,6 @@ import {
   merkeNotiz,
   NotizFehler,
   NotizKnopf,
-  NotizToast,
   stelleNotizHer,
   ThemenWahl,
   vergissNotiz,
@@ -28,7 +27,7 @@ import {
   Umbenennen,
   Zusammen,
 } from '../topics/index.ts';
-import { KARTE_TEXT, zeigeKarte } from '../../ui/karte.tsx';
+import { aktionRueckgaengig, KARTE_TEXT, schliesseKarte, zeigeKarte } from '../../ui/karte.tsx';
 import { bibliothekNeu, ladeThema, LeseFehler, notizPfad, themaPfad } from './api.ts';
 import { LeseText } from '../format/index.ts';
 import { TerminZeile } from '../termine/index.ts';
@@ -93,7 +92,6 @@ export function ThemaAnsicht() {
   const [undoFehler, setUndoFehler] = useState<string | null>(null);
   const sperre = useRef(false);
   const zurueckRef = useRef<() => Promise<void>>(async () => {});
-  const letzteRef = useRef(false);
 
   useEffect(() => {
     if (!name) return;
@@ -180,28 +178,19 @@ export function ThemaAnsicht() {
     if (!notizMeldung || sperre.current) return;
     sperre.current = true;
     setBeschaeftigt(true);
-    setUndoFehler(null);
     try {
       await stelleNotizHer(notizMeldung.token);
       vergissNotiz();
       setNotizMeldung(null);
+      setUndoFehler(null);
+      schliesseKarte('aktion');
       const ansicht = await ladeThema(name);
       setTitel(ansicht.topic);
       setNotizen(ansicht.notes);
       setFehler(null);
       bibliothekNeu();
     } catch (grund: unknown) {
-      const text = grund instanceof NotizFehler ? grund.message : 'Could not undo.';
-      if (letzteRef.current) {
-        zeigeKarte(text, {
-          text: KARTE_TEXT.rueckgaengig,
-          run: () => {
-            void zurueckRef.current();
-          },
-        });
-      } else {
-        setUndoFehler(text);
-      }
+      setUndoFehler(grund instanceof NotizFehler ? grund.message : KARTE_TEXT.nichtRueckgaengig);
     } finally {
       sperre.current = false;
       setBeschaeftigt(false);
@@ -261,19 +250,18 @@ export function ThemaAnsicht() {
 
   const inbox = gleicherName(titel, INBOX_NAME);
   const gruppen = notizen ? gruppiereNotizen(notizen, new Date()) : [];
-  const letzteSeite = notizen !== null && notizen.length === 0 && notizMeldung !== null;
-  letzteRef.current = letzteSeite;
   zurueckRef.current = notizZurueck;
 
   useEffect(() => {
-    if (!letzteSeite || !notizMeldung) return;
-    zeigeKarte(KARTE_TEXT.seiteGeloescht, {
-      text: KARTE_TEXT.rueckgaengig,
-      run: () => {
-        void zurueckRef.current();
-      },
-    });
-  }, [letzteSeite, notizMeldung]);
+    if (!notizMeldung || notizen === null) return;
+    const text = undoFehler ?? (notizen.length === 0 ? KARTE_TEXT.seiteGeloescht : KARTE_TEXT.notizGeloescht);
+    zeigeKarte(text, aktionRueckgaengig(() => void zurueckRef.current()), notizMeldung.token);
+  }, [notizMeldung, notizen, undoFehler]);
+
+  useEffect(() => {
+    if (!aktionFehler || dialog === 'merge') return;
+    zeigeKarte(aktionFehler);
+  }, [aktionFehler, dialog]);
   const aktion =
     notizen && !inbox ? (
       <ThemenKnopf
@@ -333,11 +321,6 @@ export function ThemaAnsicht() {
           </section>
         ))}
       </main>
-      {aktionFehler && dialog !== 'merge' ? (
-        <div className="toast ruhe ohne" role="status">
-          <span className="t">{aktionFehler}</span>
-        </div>
-      ) : null}
       {dialog === 'rename' || dialog === 'merge' ? <div className="scrim" onClick={schliesse} /> : null}
       {dialog === 'rename' ? (
         <Umbenennen name={titel} themen={themen} onClose={schliesse} onSaved={umbenannt} />
@@ -352,9 +335,6 @@ export function ThemaAnsicht() {
           onClose={schliesse}
           onWahl={(ziel) => void zusammen(ziel)}
         />
-      ) : null}
-      {notizMeldung && notizen !== null && notizen.length > 0 ? (
-        <NotizToast fehler={undoFehler} gesperrt={beschaeftigt} onUndo={() => void notizZurueck()} />
       ) : null}
       {wechselId !== null ? (
         <ThemenWahl

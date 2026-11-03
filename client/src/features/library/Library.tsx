@@ -7,12 +7,12 @@ import {
   type BibliothekZeile,
 } from '../../../../shared/features/library/index.ts';
 import { HashIcon, PosteingangIcon, WeiterIcon } from '../../ui/icons.tsx';
+import { aktionRueckgaengig, textThemaWeg, textThemaZusammen, zeigeKarte } from '../../ui/karte.tsx';
 import {
   liesGemerktePflege,
   liesPflegeMeldung,
   macheRueckgaengig,
   PflegeFehler,
-  PflegeToast,
   vergissPflege,
   type PflegeMeldung,
 } from '../topics/index.ts';
@@ -94,9 +94,18 @@ export function LibraryAnsicht() {
     return () => window.removeEventListener(BIBLIOTHEK_NEU, neu);
   }, []);
 
+  const rueckRef = useRef(rueckgaengig);
+  rueckRef.current = rueckgaengig;
+  const meldungRef = useRef(meldung);
+  meldungRef.current = meldung;
+  const token = meldung?.token ?? null;
+
   useEffect(() => {
-    setUndoFehler(null);
-  }, [meldung?.token]);
+    const aktuell = meldungRef.current;
+    if (!aktuell || aktuell.token !== token) return;
+    const text = undoFehler ?? (aktuell.art === 'deleted' ? textThemaWeg(aktuell.name) : textThemaZusammen(aktuell.name, aktuell.into ?? ''));
+    zeigeKarte(text, aktionRueckgaengig(() => void rueckRef.current()), aktuell.token);
+  }, [token, undoFehler]);
 
   useEffect(() => {
     const text = frage.trim();
@@ -192,9 +201,6 @@ export function LibraryAnsicht() {
           </>
         ) : null}
       </main>
-      {meldung ? (
-        <PflegeToast meldung={meldung} fehler={undoFehler} gesperrt={machtRueck} onUndo={() => void rueckgaengig()} />
-      ) : null}
     </div>
   );
 }

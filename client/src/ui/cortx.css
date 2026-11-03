@@ -290,6 +290,8 @@ html[data-os="mac"] .kbd .mac { display: inline-flex; }
   border: 1px solid var(--rand-ruhig);
   border-radius: 8px;
   font-size: 15px;
+  touch-action: none;
+  user-select: none;
   animation: karte-auf 160ms ease-out;
 }
 .karte .t {
@@ -298,6 +300,7 @@ html[data-os="mac"] .kbd .mac { display: inline-flex; }
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  color: var(--haupt);
 }
 .karte .a {
   height: 48px;
@@ -866,6 +869,7 @@ input.feld::placeholder { color: var(--leise); }
   line-height: 18px;
   color: var(--gefahr);
 }
+.ziel .feldfehler { margin: 0; }
 .toast.ruhe { bottom: max(34px, env(safe-area-inset-bottom)); }
 @media (min-width: 900px) {
   .blatt .bf .btn { width: auto; min-width: 120px; }

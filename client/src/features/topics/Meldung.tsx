@@ -1,5 +1,3 @@
-import { zitier } from '../../../../shared/features/topics/index.ts';
-
 export interface PflegeMeldung {
   art: 'deleted' | 'merged';
   name: string;
@@ -50,36 +48,4 @@ export function vergissPflege(): void {
   } catch {
     return;
   }
-}
-
-export function PflegeToast({
-  meldung,
-  fehler,
-  gesperrt,
-  onUndo,
-}: {
-  meldung: PflegeMeldung;
-  fehler: string | null;
-  gesperrt: boolean;
-  onUndo: () => void;
-}) {
-  return (
-    <div className="toast ruhe" role="status">
-      <span className="t">
-        {fehler ? (
-          fehler
-        ) : meldung.art === 'deleted' ? (
-          <>{zitier(meldung.name)} deleted</>
-        ) : (
-          <>
-            {zitier(meldung.name)} merged into <b>{meldung.into}</b>
-          </>
-        )}
-      </span>
-      <span className="dot">·</span>
-      <button type="button" className="a" onClick={onUndo} disabled={gesperrt}>
-        Undo
-      </button>
-    </div>
-  );
 }
