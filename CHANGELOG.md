@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.8.13
+
+Housekeeping only. Notes, the format bar, and filing work the same.
+
 ## 1.8.12
 
 A topic lists each page on one line. A long title ends in an ellipsis, and the day it was filed sits beside it.
