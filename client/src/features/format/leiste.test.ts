@@ -1,74 +1,74 @@
 import { describe, expect, it } from 'vitest';
 import {
-  schalteFett,
-  schalteHaken,
-  schalteListe,
-  schalteWichtig,
+  ART,
+  leistenEintraege,
+  type FormatBefehl,
 } from '../../../../shared/features/format/index.ts';
-import { leseDruck, type Druck } from './druck.ts';
 
-const AUS: Druck = {
-  fett: false,
-  kursiv: false,
-  strich: false,
-  code: false,
-  link: false,
-  ueberschrift: false,
-  liste: false,
-  haken: false,
-  wichtig: false,
-};
+function befehl(id: FormatBefehl) {
+  const eintrag = leistenEintraege().find((kandidat) => kandidat.id === id);
+  if (!eintrag) throw new Error('unknown command');
+  return eintrag;
+}
 
-function an(text: string, start: number, ende = start): Druck {
-  return leseDruck(text, start, ende);
+function leuchtet(id: FormatBefehl, text: string, start: number, ende = start): boolean {
+  return befehl(id).isActive(text, start, ende);
 }
 
 describe('format bar state', () => {
   it('lights a button only while the caret or the selection sits inside that format', () => {
-    expect(an('', 0)).toEqual(AUS);
-    expect(an('**bold**', 2).fett).toBe(true);
-    expect(an('**bold**', 0).fett).toBe(false);
-    expect(an('**bold**', 6).fett).toBe(true);
-    expect(an('**bold**', 8).fett).toBe(false);
-    expect(an('**bold**', 2, 4).fett).toBe(true);
-    expect(an('**bold**', 0, 4).fett).toBe(false);
-    expect(an('*x*', 1).kursiv).toBe(true);
-    expect(an('_x_', 1).kursiv).toBe(true);
-    expect(an('~~x~~', 2).strich).toBe(true);
-    expect(an('`x`', 1).code).toBe(true);
+    for (const eintrag of leistenEintraege()) {
+      expect(eintrag.isActive('', 0, 0)).toBe(false);
+    }
+    expect(leuchtet(ART.fett, '**bold**', 2)).toBe(true);
+    expect(leuchtet(ART.fett, '**bold**', 0)).toBe(false);
+    expect(leuchtet(ART.fett, '**bold**', 6)).toBe(true);
+    expect(leuchtet(ART.fett, '**bold**', 8)).toBe(false);
+    expect(leuchtet(ART.fett, '**bold**', 2, 4)).toBe(true);
+    expect(leuchtet(ART.fett, '**bold**', 0, 4)).toBe(false);
+    expect(leuchtet(ART.kursiv, '*x*', 1)).toBe(true);
+    expect(leuchtet(ART.kursiv, '_x_', 1)).toBe(true);
+    expect(leuchtet('strich', '~~x~~', 2)).toBe(true);
+    expect(leuchtet(ART.code, '`x`', 1)).toBe(true);
     const zaun = '```\n**x**\n```';
-    expect(an(zaun, 4)).toMatchObject({ code: true, fett: false });
-    expect(an('[a](https://a.test)', 1).link).toBe(true);
-    expect(an('[a](https://a.test)', 0, 3).link).toBe(false);
-    expect(an('= Title', 2).ueberschrift).toBe(true);
-    expect(an('# Title', 2).ueberschrift).toBe(true);
-    expect(an('#tag', 2).ueberschrift).toBe(false);
-    expect(an('- a', 2).liste).toBe(true);
-    expect(an('* a', 2).liste).toBe(true);
-    expect(an('+ a', 2).liste).toBe(true);
-    expect(an('12. a', 4).liste).toBe(true);
-    expect(an('1.a', 2).liste).toBe(false);
-    expect(an('[] a', 3).haken).toBe(true);
-    expect(an('[x] a', 4).haken).toBe(true);
-    expect(an('- [ ] a', 6)).toMatchObject({ haken: true, liste: true });
-    expect(an('* [x] a', 6).haken).toBe(true);
-    expect(an('+ [ ] a', 6).haken).toBe(true);
-    expect(an('!!a!!', 2).wichtig).toBe(true);
-    expect(an('!!!! a', 6).wichtig).toBe(true);
-    expect(an('= Title\nplain', 0, 14).ueberschrift).toBe(true);
-    expect(an('plain\n= Title', 0, 14).ueberschrift).toBe(false);
+    expect(leuchtet(ART.code, zaun, 4)).toBe(true);
+    expect(leuchtet(ART.fett, zaun, 4)).toBe(false);
+    expect(leuchtet(ART.link, '[a](https://a.test)', 1)).toBe(true);
+    expect(leuchtet(ART.link, '[a](https://a.test)', 0, 3)).toBe(false);
+    expect(leuchtet(ART.ueberschrift, '= Title', 2)).toBe(true);
+    expect(leuchtet(ART.ueberschrift, '# Title', 2)).toBe(true);
+    expect(leuchtet(ART.ueberschrift, '#tag', 2)).toBe(false);
+    expect(leuchtet(ART.liste, '- a', 2)).toBe(true);
+    expect(leuchtet(ART.liste, '* a', 2)).toBe(true);
+    expect(leuchtet(ART.liste, '+ a', 2)).toBe(true);
+    expect(leuchtet(ART.liste, '12. a', 4)).toBe(true);
+    expect(leuchtet(ART.liste, '1.a', 2)).toBe(false);
+    expect(leuchtet(ART.haken, '[] a', 3)).toBe(true);
+    expect(leuchtet(ART.haken, '[x] a', 4)).toBe(true);
+    expect(leuchtet(ART.haken, '- [ ] a', 6)).toBe(true);
+    expect(leuchtet(ART.liste, '- [ ] a', 6)).toBe(true);
+    expect(leuchtet(ART.haken, '* [x] a', 6)).toBe(true);
+    expect(leuchtet(ART.haken, '+ [ ] a', 6)).toBe(true);
+    expect(leuchtet(ART.wichtig, '!!a!!', 2)).toBe(true);
+    expect(leuchtet(ART.wichtig, '!!!! a', 6)).toBe(true);
+    expect(leuchtet(ART.ueberschrift, '= Title\nplain', 0, 14)).toBe(true);
+    expect(leuchtet(ART.ueberschrift, 'plain\n= Title', 0, 14)).toBe(false);
   });
 
   it('follows the command the writing surface just applied', () => {
-    const fett = schalteFett('Anna', 0, 4);
-    expect(leseDruck(fett.text, fett.start, fett.ende).fett).toBe(true);
-    const weg = schalteFett(fett.text, fett.start, fett.ende);
-    expect(leseDruck(weg.text, weg.start, weg.ende).fett).toBe(false);
-    const zeile = schalteWichtig('Milk', 4, 4);
-    expect(leseDruck(zeile.text, zeile.start, zeile.ende).wichtig).toBe(true);
-    const liste = schalteListe('milk', 0, 4);
-    expect(leseDruck(liste.text, liste.start, liste.ende).liste).toBe(true);
-    const haken = schalteHaken('call', 0, 4);
-    expect(leseDruck(haken.text, haken.start, haken.ende).haken).toBe(true);
+    const fett = befehl(ART.fett);
+    const fettAn = fett.run('Anna', 0, 4);
+    expect(fett.isActive(fettAn.text, fettAn.start, fettAn.ende)).toBe(true);
+    const fettWeg = fett.run(fettAn.text, fettAn.start, fettAn.ende);
+    expect(fett.isActive(fettWeg.text, fettWeg.start, fettWeg.ende)).toBe(false);
+    const wichtig = befehl(ART.wichtig);
+    const zeile = wichtig.run('Milk', 4, 4);
+    expect(wichtig.isActive(zeile.text, zeile.start, zeile.ende)).toBe(true);
+    const liste = befehl(ART.liste);
+    const listeAn = liste.run('milk', 0, 4);
+    expect(liste.isActive(listeAn.text, listeAn.start, listeAn.ende)).toBe(true);
+    const haken = befehl(ART.haken);
+    const hakenAn = haken.run('call', 0, 4);
+    expect(haken.isActive(hakenAn.text, hakenAn.start, hakenAn.ende)).toBe(true);
   });
 });

@@ -6,6 +6,11 @@ export interface Versionseintrag {
 
 export const VERSIONEN: readonly Versionseintrag[] = [
   {
+    version: '1.8.18',
+    datum: '2026-11-03',
+    zeilen: ['Formatting looks and works the same.'],
+  },
+  {
     version: '1.8.17',
     datum: '2026-11-03',
     zeilen: ['Housekeeping only. CortX looks and works the same.'],
