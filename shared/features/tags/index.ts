@@ -13,3 +13,4 @@ export {
   vorschlaege,
   type VorschlagListe,
 } from '../seiten/pfad.ts';
+export { setzeVorschlag, zielAmCursor, type ZielAmCursor } from '../seiten/zielvorschlag.ts';

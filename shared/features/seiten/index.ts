@@ -13,3 +13,4 @@ export {
   type SeiteKurz,
 } from './pfad.ts';
 export { EBENEN, PFAD_TRENNER } from './register.ts';
+export { setzeVorschlag, zielAmCursor, type ZielAmCursor } from './zielvorschlag.ts';

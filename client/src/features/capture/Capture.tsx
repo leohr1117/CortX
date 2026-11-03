@@ -2,8 +2,8 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { TEXTE } from '../../../../shared/kern/texte.ts';
 import { Link } from 'react-router';
 import type { EditorView } from '@codemirror/view';
-import { EBENEN, PFAD_TRENNER, pfadText, seitentitel, type SeiteKurz } from '../../../../shared/features/seiten/index.ts';
-import { caretEbene, ersetzeSegment, ersetzeTag, planeAblage, tagAnCaret, vorschlaege } from '../../../../shared/features/tags/index.ts';
+import { pfadText, seitentitel, type SeiteKurz } from '../../../../shared/features/seiten/index.ts';
+import { planeAblage, setzeVorschlag, zielAmCursor } from '../../../../shared/features/tags/index.ts';
 import { NOTE_TEXT_MAX } from '../../../../shared/kern/grenzen.ts';
 import type { Thema } from '../../../../shared/kern/modell.ts';
 import { aktionRueckgaengig, KARTE_TEXT, schliesseKarte, textHinzugefuegt, zeigeKarte } from '../../ui/karte.tsx';
@@ -147,17 +147,15 @@ export function CaptureAnsicht() {
     };
   }, []);
 
-  const tag = tagAnCaret(text, caret);
-  const relativ = tag ? caret - tag.start - 1 : 0;
-  const lage = tag ? caretEbene(tag.name, relativ) : null;
-  const schluessel = tag ? `${tag.start}:${tag.name}` : '';
-  const liste = tag && lage && lage.ebene < EBENEN.length && zu !== schluessel ? vorschlaege(tag.name, themen, seiten, relativ) : null;
+  const ziel = zielAmCursor(text, caret, themen, seiten, zu);
+  const liste = ziel?.liste ?? null;
+  const schluessel = ziel?.schluessel ?? '';
   const offen = liste !== null && (liste.treffer.length > 0 || liste.neu);
   const aktiv = wahlFuer === schluessel ? wahl : (liste?.gewaehlt ?? 0);
   const plan = text.trim().length === 0 ? null : planeAblage(text, themen, seiten);
   const leer = text.trim().length === 0;
   const gesperrt = leer || speichert || plan?.ungueltig === true;
-  const pos = useMenuePlatz(offen, tag?.start ?? -1, text, sichtRef);
+  const pos = useMenuePlatz(offen, ziel?.tag.start ?? -1, text, sichtRef);
 
   useLayoutEffect(() => {
     const editor = sichtRef.current;
@@ -182,14 +180,15 @@ export function CaptureAnsicht() {
   }, [text]);
 
   function waehle(index: number) {
-    if (!tag || !liste) return;
+    if (!ziel?.tag || !liste) return;
     beruehrt.current = true;
     const editor = sichtRef.current;
     if (index < liste.treffer.length) {
       const einsetzen = liste.treffer[index]?.einsetzen;
       if (!einsetzen) return;
-      const neu = tag.name.includes(PFAD_TRENNER) ? ersetzeSegment(text, tag, einsetzen, relativ) : ersetzeTag(text, tag, einsetzen);
-      setZu(`${tag.start}:${neu.text.slice(tag.start + 1, neu.caret)}`);
+      const neu = setzeVorschlag(text, caret, einsetzen);
+      if (!neu) return;
+      setZu(`${ziel.tag.start}:${neu.text.slice(ziel.tag.start + 1, neu.caret)}`);
       if (!editor) {
         setzeAussen(neu.text, neu.caret);
         return;
@@ -327,7 +326,7 @@ export function CaptureAnsicht() {
       setWahl(Math.min(letzte, aktiv + 1));
     },
     zu: () => {
-      if (tag) setZu(schluessel);
+      if (ziel) setZu(schluessel);
     },
     waehlen: () => waehle(aktiv),
     gesperrt: () => false,
@@ -355,7 +354,7 @@ export function CaptureAnsicht() {
           <Vorschlag
             liste={liste}
             aktiv={aktiv}
-            fragment={lage?.fragment ?? ''}
+            fragment={ziel?.fragment ?? ''}
             top={pos.top}
             left={pos.left}
             maxHeight={pos.maxHoehe}
