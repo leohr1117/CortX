@@ -1,6 +1,7 @@
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
+import { TEXTE } from '../../../../shared/kern/texte.ts';
 import { LeseText } from './LeseText.tsx';
 
 const TEXT = [
@@ -54,6 +55,29 @@ describe('reading view', () => {
     expect(seite).not.toContain('javascript:');
     expect(seite).not.toContain('<li>task</li>');
     expect(seite).not.toContain('<li>open</li>');
+    expect(seite).not.toContain('role="checkbox"');
+  });
+
+  it('turns a checkbox into a control only when the reading view can save it', () => {
+    const suche = html('[] open\n[x] done', false);
+    expect(suche).not.toContain('role="checkbox"');
+    expect(suche).toContain('aria-hidden="true"');
+    const lesen = renderToStaticMarkup(
+      createElement(LeseText, {
+        text: '```\n[] a\n```\n[] open\n[x] done\nkeep',
+        verlinken: true,
+        onKasten: () => undefined,
+      }),
+    );
+    expect(lesen.match(/role="checkbox"/g)).toHaveLength(2);
+    expect(lesen).toContain('aria-checked="false"');
+    expect(lesen).toContain('aria-checked="true"');
+    expect(lesen).toContain(`aria-label="${TEXTE.kasten}"`);
+    expect(lesen).toContain('tabindex="0"');
+    expect(lesen).toContain('class="haken"');
+    expect(lesen).toContain('class="haken zu"');
+    expect(lesen).toContain('>keep<');
+    expect(lesen).toContain('[] a');
   });
 
   it('keeps link labels as text until linking is on', () => {

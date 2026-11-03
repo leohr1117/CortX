@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { ablageZeile, planeNotizText, textMeldung } from '../../../../shared/features/edit/index.ts';
+import { schalteKasten } from '../../../../shared/features/format/index.ts';
 import { abschnittNamen, pfadText, seitentitel } from '../../../../shared/features/seiten/index.ts';
 import type { Notiz } from '../../../../shared/kern/modell.ts';
 import { TEXTE } from '../../../../shared/kern/texte.ts';
@@ -190,6 +191,15 @@ export function NotizSeite() {
   }
   sichereRef.current = sichere;
 
+  function beiKasten(stelle: number) {
+    const neu = schalteKasten(feldRef.current, stelle);
+    if (neu === feldRef.current) return;
+    feldRef.current = neu;
+    setFeld(neu);
+    setFehler(null);
+    setHinweis(null);
+  }
+
   async function zeigeLesen() {
     const aus = await sichere(true);
     if (aus === 'leer' || aus === 'fehler' || !da.current) return;
@@ -274,7 +284,7 @@ export function NotizSeite() {
                 ))}
               </nav>
             ) : null}
-            <LeseText text={feld} verlinken />
+            <LeseText text={feld} verlinken onKasten={beiKasten} />
             <TerminZeile text={feld} created={notiz.created} />
           </>
         ) : null}

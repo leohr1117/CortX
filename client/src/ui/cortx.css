@@ -773,6 +773,16 @@ a.tx:focus-visible {
   color: inherit;
   stroke-width: 2.4;
 }
+.lesetext .haken[role='checkbox'] {
+  cursor: pointer;
+}
+.lesetext .haken[role='checkbox']:focus {
+  outline: none;
+}
+.lesetext .haken[role='checkbox']:focus-visible {
+  outline: 2px solid var(--fokus);
+  outline-offset: 2px;
+}
 .lesetext strong { font-weight: 600; }
 .lesetext h3,
 .lesetext h2.titel,

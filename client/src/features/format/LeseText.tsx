@@ -1,9 +1,10 @@
-import type { CSSProperties, ReactNode } from 'react';
+import { useRef, type CSSProperties, type KeyboardEvent, type MouseEvent, type ReactNode, type TouchEvent } from 'react';
 import {
   ART,
   EBENE,
   STIL_VAR,
   kombiniereStil,
+  leseDokument,
   sicherZiel,
   leseBaum,
   vorschauTag,
@@ -68,18 +69,86 @@ function LinkTeil({ teil, verlinken }: { teil: LeseLinkTeil; verlinken: boolean 
   );
 }
 
-function Kasten({ abgehakt }: { abgehakt: boolean }) {
+function KastenSchalter({
+  abgehakt,
+  stelle,
+  onKasten,
+}: {
+  abgehakt: boolean;
+  stelle: number;
+  onKasten: (stelle: number) => void;
+}) {
+  const finger = useRef(false);
+  function schalten() {
+    onKasten(stelle);
+  }
+  function beiKlick(event: MouseEvent<HTMLSpanElement>) {
+    if (finger.current) {
+      finger.current = false;
+      event.preventDefault();
+      return;
+    }
+    schalten();
+  }
+  function beiFinger(event: TouchEvent<HTMLSpanElement>) {
+    finger.current = true;
+    event.preventDefault();
+    schalten();
+  }
+  function beiTaste(event: KeyboardEvent<HTMLSpanElement>) {
+    if (event.repeat || (event.key !== ' ' && event.key !== 'Spacebar')) return;
+    event.preventDefault();
+    schalten();
+  }
   return (
-    <span className={abgehakt ? 'haken zu' : 'haken'} aria-hidden="true">
+    <span
+      className={abgehakt ? 'haken zu' : 'haken'}
+      role="checkbox"
+      aria-checked={abgehakt}
+      aria-label={TEXTE.kasten}
+      tabIndex={0}
+      onClick={beiKlick}
+      onTouchEnd={beiFinger}
+      onKeyDown={beiTaste}
+    >
       {abgehakt ? <HakenIcon /> : null}
     </span>
   );
 }
 
-function Haken({ punkte, verlinken }: { punkte: readonly LeseHakenPunkt[]; verlinken: boolean }) {
+function Kasten({
+  abgehakt,
+  stelle,
+  onKasten,
+}: {
+  abgehakt: boolean;
+  stelle: number | null;
+  onKasten?: (stelle: number) => void;
+}) {
+  if (stelle === null || !onKasten) {
+    return (
+      <span className={abgehakt ? 'haken zu' : 'haken'} aria-hidden="true">
+        {abgehakt ? <HakenIcon /> : null}
+      </span>
+    );
+  }
+  return <KastenSchalter abgehakt={abgehakt} stelle={stelle} onKasten={onKasten} />;
+}
+
+function Haken({
+  punkte,
+  verlinken,
+  stelleVon,
+  onKasten,
+}: {
+  punkte: readonly LeseHakenPunkt[];
+  verlinken: boolean;
+  stelleVon: () => number | null;
+  onKasten?: (stelle: number) => void;
+}) {
   return punkte.map((punkt, index) => (
     <div className="hakenzeile" key={index}>
-      <Kasten abgehakt={punkt.abgehakt} />
+      <Kasten abgehakt={punkt.abgehakt} stelle={stelleVon()} onKasten={onKasten} />
       <span className="hakenlabel">
         <Teile teile={punkt.teile} verlinken={verlinken} />
       </span>
@@ -91,10 +160,14 @@ function Block({
   block,
   verlinken,
   abschnitt,
+  stelleVon,
+  onKasten,
 }: {
   block: LeseBlock;
   verlinken: boolean;
   abschnitt: number | null;
+  stelleVon: () => number | null;
+  onKasten?: (stelle: number) => void;
 }) {
   if (block.art === ART.ueberschrift) {
     const inhalt = <Teile teile={block.teile} verlinken={verlinken} />;
@@ -129,7 +202,9 @@ function Block({
       </div>
     );
   }
-  if (block.art === ART.haken) return <Haken punkte={block.punkte} verlinken={verlinken} />;
+  if (block.art === ART.haken) {
+    return <Haken punkte={block.punkte} verlinken={verlinken} stelleVon={stelleVon} onKasten={onKasten} />;
+  }
   if (block.art === ART.codeblock) {
     return (
       <pre>
@@ -148,14 +223,47 @@ function Block({
   );
 }
 
-export function LeseText({ text, verlinken = false }: { text: string; verlinken?: boolean }) {
+function hakenStellen(text: string): number[] {
+  const aus: number[] = [];
+  for (const beleg of leseDokument(text).belege) {
+    if (beleg.art === ART.haken) aus.push(beleg.ganzVon);
+  }
+  return aus;
+}
+
+export function LeseText({
+  text,
+  verlinken = false,
+  onKasten,
+}: {
+  text: string;
+  verlinken?: boolean;
+  onKasten?: (stelle: number) => void;
+}) {
   const baum = leseBaum(text);
+  const stellen = onKasten ? hakenStellen(text) : [];
+  const cursor = { n: 0 };
+  const stelleVon = () => {
+    if (!onKasten || cursor.n >= stellen.length) return null;
+    const stelle = stellen[cursor.n] ?? null;
+    cursor.n += 1;
+    return stelle;
+  };
   let nummer = 0;
   return (
     <div className="lesetext">
       {baum.map((block, index) => {
         const abschnitt = block.art === ART.ueberschrift && block.stufe === EBENE.abschnitt ? nummer++ : null;
-        return <Block key={index} block={block} verlinken={verlinken} abschnitt={abschnitt} />;
+        return (
+          <Block
+            key={index}
+            block={block}
+            verlinken={verlinken}
+            abschnitt={abschnitt}
+            stelleVon={stelleVon}
+            onKasten={onKasten}
+          />
+        );
       })}
     </div>
   );

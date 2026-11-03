@@ -106,6 +106,7 @@ export const TEXTE = {
   ueberschrift: 'Heading',
   liste: 'Bulleted list',
   haken: 'Checklist',
+  kasten: 'Task',
   neuesThema: 'New topic',
   neueSeite: 'New page',
   neuerAbschnitt: 'New section',
