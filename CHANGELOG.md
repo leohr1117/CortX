@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.8.11
+
+You can close the update message. It stays closed after a reload.
+
 ## 1.8.10
 
 Filing, deleting, and moving shows one short message above the keyboard. Undo on that message puts the change back. The message fades on its own, or when you dismiss it.

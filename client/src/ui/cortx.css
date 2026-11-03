@@ -1032,6 +1032,20 @@ input.feld::placeholder { color: var(--leise); }
 .toast.hinweis {
   position: fixed;
   z-index: 30;
+  padding-right: 0;
+}
+.toast.hinweis .x {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  color: var(--haupt);
+  border-radius: 8px;
+  flex: none;
+}
+.toast.hinweis .x:focus-visible {
+  outline: 2px solid var(--fokus);
+  outline-offset: -2px;
 }
 .toast.hinweis .t {
   flex: 1 1 auto;

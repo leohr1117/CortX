@@ -20,6 +20,11 @@ export interface VersionsAenderung {
   seen?: string;
 }
 
+export const HINWEIS_TEXT = {
+  aktualisiert: 'CortX was updated',
+  neuigkeiten: "What's new",
+} as const;
+
 const NUMMER = /^\d+\.\d+\.\d+$/;
 
 export function istVersionsnummer(text: string): boolean {

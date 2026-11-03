@@ -1,5 +1,6 @@
 export {
   entscheideUpdateHinweis,
+  HINWEIS_TEXT,
   hoehereVersion,
   istVersionsnummer,
   neuereVersionen,

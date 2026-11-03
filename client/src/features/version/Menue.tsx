@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router';
-import { entscheideUpdateHinweis } from '../../../../shared/features/version/index.ts';
+import { entscheideUpdateHinweis, HINWEIS_TEXT } from '../../../../shared/features/version/index.ts';
 import { AKTUELLE_VERSION } from '../../../../shared/versionen.ts';
 import { PunkteIcon } from '../../ui/icons.tsx';
 import { KuerzelSchalter } from '../format/index.ts';
@@ -72,7 +72,7 @@ export function BibliothekMenue() {
           </div>
           <div className="tr" role="separator" />
           <Link className="m" role="menuitem" to="/library/whats-new" onClick={() => setOffen(false)}>
-            What's new
+            {HINWEIS_TEXT.neuigkeiten}
           </Link>
         </div>
       ) : null}

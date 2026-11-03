@@ -1,5 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
+import { HINWEIS_TEXT } from '../shared/features/version/index.ts';
 import { AKTUELLE_VERSION } from '../shared/versionen.ts';
+import { KARTE_TEXT } from '../client/src/ui/kartenregister.ts';
 import { meldeAn } from './anmelden.ts';
 import { entferneVersionsstand } from './schau.ts';
 
@@ -45,7 +47,7 @@ test('an update shows one snackbar, and the dot stays until What\'s new was seen
     await expect(page.getByRole('heading', { name: 'Library', level: 1 })).toBeVisible();
     const hinweis = page.locator('[data-update-hinweis]');
     await expect(hinweis).toHaveCount(1);
-    await expect(hinweis.locator('.t')).toHaveText('CortX was updated');
+    await expect(hinweis.locator('.t')).toHaveText(HINWEIS_TEXT.aktualisiert);
     await expect(hinweis).not.toContainText(/\d+\.\d+\.\d+/);
     await expect(hinweis).toHaveAttribute('data-dauer', '10000');
     await expect(page.getByRole('dialog')).toHaveCount(0);
@@ -58,13 +60,13 @@ test('an update shows one snackbar, and the dot stays until What\'s new was seen
     await page.waitForTimeout(11_000);
     await expect(hinweis).toBeVisible();
     await page.mouse.move(2, 2);
-    await hinweis.getByRole('button', { name: "What's new" }).focus();
+    await hinweis.getByRole('button', { name: HINWEIS_TEXT.neuigkeiten }).focus();
     await page.waitForTimeout(11_000);
     await expect(hinweis).toBeVisible();
 
-    await hinweis.getByRole('button', { name: "What's new" }).click();
+    await hinweis.getByRole('button', { name: HINWEIS_TEXT.neuigkeiten }).click();
     await expect(page).toHaveURL(/\/library\/whats-new$/);
-    await expect(page.getByRole('heading', { name: "What's new", level: 1 })).toBeVisible();
+    await expect(page.getByRole('heading', { name: HINWEIS_TEXT.neuigkeiten, level: 1 })).toBeVisible();
     await expect(page.locator('[data-update-hinweis]')).toHaveCount(0);
     const text = await page.locator('[data-versionen]').innerText();
     expect(text.indexOf(AKTUELLE_VERSION)).toBeGreaterThanOrEqual(0);
@@ -83,7 +85,7 @@ test('an update shows one snackbar, and the dot stays until What\'s new was seen
     await expect(page.locator('[data-neu-punkt]')).toHaveCount(0);
     await page.getByRole('button', { name: 'Library menu' }).click();
     await expect(page.locator('[data-version]')).toHaveText(`Version ${AKTUELLE_VERSION}`);
-    await expect(page.getByRole('menuitem', { name: "What's new" })).toBeVisible();
+    await expect(page.getByRole('menuitem', { name: HINWEIS_TEXT.neuigkeiten })).toBeVisible();
     await ohneSeitlichenUeberlauf(page);
     await page.screenshot({ path: `${BILDER}/${testInfo.project.name}-version-menu.png` });
 
@@ -91,6 +93,37 @@ test('an update shows one snackbar, and the dot stays until What\'s new was seen
     await expect(page.getByRole('heading', { name: 'Library', level: 1 })).toBeVisible();
     await expect(page.locator('[data-update-hinweis]')).toHaveCount(0);
     await expect(page.locator('[data-neu-punkt]')).toHaveCount(0);
+  } finally {
+    await page.request.patch('/api/version', {
+      data: { notified: AKTUELLE_VERSION, seen: AKTUELLE_VERSION },
+    });
+  }
+});
+
+test('closing the update banner keeps it hidden after reload', async ({ page }) => {
+  await meldeAn(page);
+  const gesetzt = await page.request.patch('/api/version', {
+    data: { notified: '1.0.0', seen: '1.0.0' },
+  });
+  expect(gesetzt.ok()).toBeTruthy();
+  try {
+    await page.goto('/library');
+    await expect(page.getByRole('heading', { name: 'Library', level: 1 })).toBeVisible();
+    const hinweis = page.locator('[data-update-hinweis]');
+    await expect(hinweis).toHaveCount(1);
+    const kreuz = hinweis.getByRole('button', { name: KARTE_TEXT.schliessen });
+    const flaeche = await kreuz.boundingBox();
+    expect(flaeche?.width ?? 0).toBeGreaterThanOrEqual(48);
+    expect(flaeche?.height ?? 0).toBeGreaterThanOrEqual(48);
+    await ohneSeitlichenUeberlauf(page);
+    await kreuz.click();
+    await expect(hinweis).toHaveCount(0);
+    await expect.poll(async () => stand(page)).toMatchObject({ notified: AKTUELLE_VERSION, seen: '1.0.0' });
+    await expect(page.locator('[data-neu-punkt]')).toBeVisible();
+    await page.reload();
+    await expect(page.getByRole('heading', { name: 'Library', level: 1 })).toBeVisible();
+    await expect(page.locator('[data-update-hinweis]')).toHaveCount(0);
+    await expect(page.locator('[data-neu-punkt]')).toBeVisible();
   } finally {
     await page.request.patch('/api/version', {
       data: { notified: AKTUELLE_VERSION, seen: AKTUELLE_VERSION },

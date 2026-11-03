@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { HINWEIS_TEXT } from '../../../../shared/features/version/index.ts';
 import { AKTUELLE_VERSION, VERSIONEN } from '../../../../shared/versionen.ts';
 import { Kopf } from '../library/Kopf.tsx';
 import { ladeStand, merkeStand } from './api.ts';
@@ -32,7 +33,7 @@ export function NeuSeite() {
 
   return (
     <div className="app">
-      <Kopf titel="What's new" zurueck="/library" zurueckLabel="Back to Library" />
+      <Kopf titel={HINWEIS_TEXT.neuigkeiten} zurueck="/library" zurueckLabel="Back to Library" />
       <main className="inhalt rolle">
         <div className="versionen" data-versionen="">
           {VERSIONEN.map((eintrag) => (

@@ -2,9 +2,12 @@ import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 import {
   entscheideUpdateHinweis,
+  HINWEIS_TEXT,
   type VersionsAenderung,
 } from '../../../../shared/features/version/index.ts';
 import { AKTUELLE_VERSION } from '../../../../shared/versionen.ts';
+import { SchliessenIcon } from '../../ui/icons.tsx';
+import { KARTE_TEXT } from '../../ui/kartenregister.ts';
 import { ladeStand, merkeStand } from './api.ts';
 
 const DAUER_MS = 10_000;
@@ -18,7 +21,7 @@ function schreibe(teil: { benachrichtigt?: string; gesehen?: string }): Versions
   return koerper;
 }
 
-function Snackbar({ onAktion, onEnde }: { onAktion: () => void; onEnde: () => void }) {
+function Snackbar({ onAktion, onEnde, onZu }: { onAktion: () => void; onEnde: () => void; onZu: () => void }) {
   const ende = useRef(onEnde);
   ende.current = onEnde;
 
@@ -90,12 +93,15 @@ function Snackbar({ onAktion, onEnde }: { onAktion: () => void; onEnde: () => vo
 
   return (
     <div className="toast hinweis" id={WURZEL} role="status" data-update-hinweis="" data-dauer={DAUER_MS}>
-      <span className="t">CortX was updated</span>
+      <span className="t">{HINWEIS_TEXT.aktualisiert}</span>
       <span className="dot" aria-hidden="true">
         ·
       </span>
       <button type="button" className="a" onClick={onAktion}>
-        What's new
+        {HINWEIS_TEXT.neuigkeiten}
+      </button>
+      <button type="button" className="x" aria-label={KARTE_TEXT.schliessen} onClick={onZu}>
+        <SchliessenIcon />
       </button>
     </div>
   );
@@ -129,10 +135,16 @@ export function UpdateHinweis() {
     if (pathname === NEU_PFAD) setZeigen(false);
   }, [pathname]);
 
+  function zu(): void {
+    setZeigen(false);
+    void merkeStand(schreibe({ benachrichtigt: AKTUELLE_VERSION }));
+  }
+
   if (!zeigen || pathname === NEU_PFAD) return null;
   return (
     <Snackbar
       onEnde={() => setZeigen(false)}
+      onZu={zu}
       onAktion={() => {
         setZeigen(false);
         void navigiere(NEU_PFAD);

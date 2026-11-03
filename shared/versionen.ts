@@ -6,6 +6,14 @@ export interface Versionseintrag {
 
 export const VERSIONEN: readonly Versionseintrag[] = [
   {
+    version: '1.8.11',
+    datum: '2026-11-03',
+    zeilen: [
+      'You can close the update message.',
+      'It stays closed after a reload.',
+    ],
+  },
+  {
     version: '1.8.10',
     datum: '2026-11-03',
     zeilen: [
