@@ -3,28 +3,16 @@ import {
   baueEintrag,
   istDauerhaft,
   naechsteSeq,
-  ohneEintrag,
   reihenfolge,
-  reiheEin,
 } from './warteschlange.ts';
 
 describe('offline queue', () => {
-  it('keeps one entry per client id and leaves the earlier text', () => {
-    const erste = baueEintrag('Buy milk', 'a', 1, '2026-01-01T00:00:00.000Z');
-    const queue = reiheEin([], erste);
-    const nochmal = reiheEin(queue, baueEintrag('Other', 'a', 2, '2026-01-01T00:00:01.000Z'));
-    expect(nochmal).toHaveLength(1);
-    expect(nochmal[0]?.text).toBe('Buy milk');
-    expect(queue).toHaveLength(1);
-  });
-
-  it('sends the queue in order and drops a confirmed note', () => {
+  it('sends the queue in order', () => {
     const a = baueEintrag('one', 'a', 2, 't');
     const b = baueEintrag('two', 'b', 1, 't');
-    const queue = reiheEin(reiheEin([], a), b);
+    const queue = [a, b];
     expect(reihenfolge(queue).map((eintrag) => eintrag.clientId)).toEqual(['b', 'a']);
     expect(naechsteSeq(queue)).toBe(3);
-    expect(ohneEintrag(queue, 'b').map((eintrag) => eintrag.clientId)).toEqual(['a']);
     expect(naechsteSeq([])).toBe(1);
   });
 

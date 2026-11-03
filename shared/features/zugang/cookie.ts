@@ -1,6 +1,6 @@
 import { COOKIE_NAME } from './grenzen.ts';
 
-export function setzeCookie(name: string, wert: string, sicher: boolean, maxAge: number): string {
+function setzeCookie(name: string, wert: string, sicher: boolean, maxAge: number): string {
   const teile = [`${name}=${wert}`, 'HttpOnly', 'SameSite=Lax', 'Path=/', `Max-Age=${maxAge}`];
   if (sicher) teile.push('Secure');
   return teile.join('; ');
@@ -16,7 +16,7 @@ export function istSicher(protoHeader: string | undefined, protocol: string): bo
   return protocol === 'https';
 }
 
-export function liesCookie(kopf: string | undefined, name: string): string | null {
+function liesCookie(kopf: string | undefined, name: string): string | null {
   if (!kopf) return null;
   for (const stueck of kopf.split(';')) {
     const gleich = stueck.trim().indexOf('=');
@@ -29,7 +29,7 @@ export function liesCookie(kopf: string | undefined, name: string): string | nul
   return null;
 }
 
-export function gueltigesToken(wert: string | null): wert is string {
+function gueltigesToken(wert: string | null): wert is string {
   return !!wert && wert.length >= 32 && wert.length <= 200 && /^[A-Za-z0-9_-]+$/.test(wert);
 }
 

@@ -1,4 +1,4 @@
-export interface Fehlversuch {
+interface Fehlversuch {
   ip: string;
   at: number;
 }

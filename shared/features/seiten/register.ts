@@ -8,12 +8,12 @@ export type PfadEbene = (typeof EBENEN)[number];
 const NAME = /^[\p{L}\p{N}][\p{L}\p{N}_'-]*/u;
 const NAMENSZEICHEN = /[\p{L}\p{N}_'-]/u;
 
-export interface ZielZeile {
+interface ZielZeile {
   pfad: string;
   rest: string;
 }
 
-export interface RohTeil {
+interface RohTeil {
   pfad: string | null;
   text: string;
 }
@@ -49,7 +49,7 @@ export function liesPfadName(rest: string): string | null {
   return name;
 }
 
-export function liesZielzeile(zeile: string): ZielZeile | null {
+function liesZielzeile(zeile: string): ZielZeile | null {
   if (!zeile.startsWith(PFAD_PRAEFIX)) return null;
   const name = liesPfadName(zeile.slice(PFAD_PRAEFIX.length));
   if (!name) return null;

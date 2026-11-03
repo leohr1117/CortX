@@ -71,7 +71,7 @@ async function schreibWert(schluessel: string, text: string): Promise<void> {
   }
 }
 
-export function liesEntwurfOffen(): Promise<string> {
+function liesEntwurfOffen(): Promise<string> {
   return liesWert(ENTWURF_ID);
 }
 

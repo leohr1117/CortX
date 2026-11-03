@@ -12,12 +12,10 @@ import {
   aktivWichtig,
 } from './aktiv.ts';
 import {
-  hatInlineWichtig,
   inlineAn,
   schalteCode,
   schalteFett,
   schalteHaken,
-  schalteInline,
   schalteKopf,
   schalteKursiv,
   schalteListe,
@@ -63,7 +61,7 @@ export type FormatBefehl =
   | typeof ART.haken
   | typeof ART.link;
 
-export type FormatId = FormatBefehl | typeof ART.codeblock | typeof ART.nummer;
+type FormatId = FormatBefehl | typeof ART.codeblock | typeof ART.nummer;
 
 export type VorschauTag = 'strong' | 'em' | 's' | 'code' | 'mark';
 export const WIDGET = {
@@ -77,13 +75,13 @@ export const KUERZEL_ART = {
   zeile: 'zeile',
 } as const;
 
-export type VorschauWidget = (typeof WIDGET)[keyof typeof WIDGET];
+type VorschauWidget = (typeof WIDGET)[keyof typeof WIDGET];
 
 interface SyntaxPaar extends InlineEintrag {
   folge: number;
 }
 
-export interface FormatKnopf {
+interface FormatKnopf {
   zeichen: string;
   beschriftung: string;
   klasse?: string;
@@ -93,7 +91,7 @@ export interface FormatKnopf {
   taste?: string;
 }
 
-export interface FormatSyntax {
+interface FormatSyntax {
   paare?: readonly SyntaxPaar[];
   einsetzen?: string;
   zeile?: string;
@@ -101,7 +99,7 @@ export interface FormatSyntax {
   geruest?: string;
 }
 
-export interface FormatVorschau {
+interface FormatVorschau {
   art: string;
   klasse?: string;
   rang?: number;
@@ -109,14 +107,14 @@ export interface FormatVorschau {
   widget?: VorschauWidget;
 }
 
-export type FormatKuerzel =
+type FormatKuerzel =
   | { art: typeof KUERZEL_ART.wort; ende: string }
   | { art: typeof KUERZEL_ART.zeile; genau: string; ersatz: string };
 
 export type BefehlRun = (text: string, start: number, ende: number, ziel?: string) => TextWahl;
 export type BefehlAktiv = (text: string, start: number, ende: number) => boolean;
 
-export interface FormatEintrag {
+interface FormatEintrag {
   id: FormatId;
   syntax?: FormatSyntax;
   knopf?: FormatKnopf;
@@ -138,7 +136,7 @@ const WICHTIG_PFAD = ['M12 5v9', 'M12 19h.01'] as const;
 const LISTE_PFAD = ['M3 6h.01', 'M3 12h.01', 'M3 18h.01', 'M8 6h13', 'M8 12h13', 'M8 18h13'] as const;
 const HAKEN_PFAD = ['m3 7 2 2 4-4', 'm3 17 2 2 4-4', 'M13 6h8', 'M13 12h8', 'M13 18h8'] as const;
 
-export const FORMAT_REGISTER: readonly FormatEintrag[] = [
+const FORMAT_REGISTER: readonly FormatEintrag[] = [
   {
     id: ART.fett,
     syntax: {
@@ -247,7 +245,7 @@ export function formatVon(id: FormatId): FormatEintrag {
   return fund;
 }
 
-export type LeistenEintrag = FormatEintrag & {
+type LeistenEintrag = FormatEintrag & {
   id: FormatBefehl;
   knopf: FormatKnopf;
   run: BefehlRun;
@@ -270,7 +268,7 @@ export function kuerzelEintraege(): readonly FormatEintrag[] {
   return [...zeile, ...wort];
 }
 
-export interface VorschauSchicht {
+interface VorschauSchicht {
   art: string;
   klasse: string;
   bit: number;
@@ -300,7 +298,7 @@ export function vorschauWidget(art: string): VorschauWidget | undefined {
   return undefined;
 }
 
-export const MARKER_ZEICHEN = new Set(['*', '_', '~', '!', '`']);
+const MARKER_ZEICHEN = new Set(['*', '_', '~', '!', '`']);
 
 export function nurMarker(text: string): boolean {
   if (text.length === 0) return false;
@@ -373,7 +371,7 @@ export function stilAttribut(arten: readonly string[]): string | undefined {
   return `${STIL_VAR}:${hintergrund}`;
 }
 
-export { hatInlineWichtig, inlineAn, schalteInline };
+export { inlineAn };
 
 export interface InlineStand {
   fett: boolean;

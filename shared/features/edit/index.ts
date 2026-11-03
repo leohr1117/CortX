@@ -1,1 +1,1 @@
-export { ablageZeile, planeNotizText, textGeaendert, textMeldung, type TextGrund, type TextPlan } from './text.ts';
+export { ablageZeile, planeNotizText, textGeaendert, textMeldung } from './text.ts';

@@ -22,7 +22,7 @@ export const LAGE_VAR = {
   karteHub: '--karte-hub',
 } as const;
 
-export interface Sichtmasse {
+interface Sichtmasse {
   innenHoehe: number;
   sichtHoehe: number;
   sichtVersatz: number;
@@ -38,7 +38,7 @@ export function liesSicht(): Sichtmasse {
   };
 }
 
-export function tastaturPx(sicht: Sichtmasse): number {
+function tastaturPx(sicht: Sichtmasse): number {
   return Math.max(0, sicht.innenHoehe - sicht.sichtVersatz - sicht.sichtHoehe);
 }
 
@@ -54,7 +54,7 @@ export function layoutHubPx(sicht: Sichtmasse, sicherUnten: number, barHoehe: nu
   return boden + Math.max(0, Math.round(barHoehe));
 }
 
-export interface ListenPlatz {
+interface ListenPlatz {
   top: number;
   maxHoehe: number;
 }

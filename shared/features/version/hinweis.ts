@@ -1,11 +1,11 @@
 import { TEXTE } from '../../kern/texte.ts';
 
-export interface Versionsstand {
+interface Versionsstand {
   benachrichtigt: string | null;
   gesehen: string | null;
 }
 
-export interface HinweisEntscheid {
+interface HinweisEntscheid {
   snackbar: boolean;
   badge: boolean;
   schreiben: { benachrichtigt: string; gesehen?: string } | { gesehen: string; benachrichtigt?: string } | null;
@@ -43,16 +43,6 @@ export function versionKleiner(links: string, rechts: string): boolean {
     if (linksTeil !== rechtsTeil) return linksTeil < rechtsTeil;
   }
   return false;
-}
-
-export function hoehereVersion(links: string | null, rechts: string | null): string | null {
-  if (!links || !istVersionsnummer(links)) return rechts && istVersionsnummer(rechts) ? rechts : null;
-  if (!rechts || !istVersionsnummer(rechts)) return links;
-  return versionKleiner(links, rechts) ? rechts : links;
-}
-
-export function neuereVersionen<T extends { version: string }>(liste: readonly T[], gesehen: string | null): T[] {
-  return liste.filter((eintrag) => gesehen === null || !istVersionsnummer(gesehen) || versionKleiner(gesehen, eintrag.version));
 }
 
 export function entscheideUpdateHinweis(stand: Versionsstand, aktuell: string, frisch: boolean): HinweisEntscheid {

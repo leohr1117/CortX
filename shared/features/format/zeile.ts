@@ -7,10 +7,10 @@ export const KURSIV_MARKER = '*';
 export const KURSIV_UNTER = '_';
 export const STREICH_MARKER = '~~';
 export const CODE_INLINE = '`';
-export const LISTEN_ZEICHEN = ['-', '*', '+'] as const;
+const LISTEN_ZEICHEN = ['-', '*', '+'] as const;
 export const LISTEN_EINFUEGEN = `${LISTEN_ZEICHEN[0]} `;
 
-export interface KopfMarke {
+interface KopfMarke {
   stufe: number;
   laenge: number;
 }
@@ -37,7 +37,7 @@ export function ohneWagen(zeile: string): string {
   return zeile.endsWith('\r') ? zeile.slice(0, -1) : zeile;
 }
 
-export interface HakenZeile {
+interface HakenZeile {
   abgehakt: boolean;
   rest: string;
   laenge: number;

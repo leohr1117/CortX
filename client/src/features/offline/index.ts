@@ -9,4 +9,4 @@ export {
   schreibEntwurf,
   schreibNotizEntwurf,
 } from './speicher.ts';
-export { legeInWarteschlange, spuele, type LokalErgebnis, type SyncStand } from './sync.ts';
+export { legeInWarteschlange, spuele } from './sync.ts';

@@ -1,4 +1,4 @@
-export const BERLIN = 'Europe/Berlin';
+const BERLIN = 'Europe/Berlin';
 
 export interface KalenderTag {
   jahr: number;
@@ -6,7 +6,7 @@ export interface KalenderTag {
   tag: number;
 }
 
-export function gueltigerTag(tag: KalenderTag): boolean {
+function gueltigerTag(tag: KalenderTag): boolean {
   if (tag.monat < 1 || tag.monat > 12 || tag.tag < 1) return false;
   const probe = new Date(Date.UTC(tag.jahr, tag.monat - 1, tag.tag));
   return probe.getUTCFullYear() === tag.jahr && probe.getUTCMonth() === tag.monat - 1 && probe.getUTCDate() === tag.tag;
@@ -35,7 +35,7 @@ export function wochentag(tag: KalenderTag): number {
   return new Date(Date.UTC(tag.jahr, tag.monat - 1, tag.tag)).getUTCDay();
 }
 
-export function vorher(a: KalenderTag, b: KalenderTag): boolean {
+function vorher(a: KalenderTag, b: KalenderTag): boolean {
   if (a.jahr !== b.jahr) return a.jahr < b.jahr;
   if (a.monat !== b.monat) return a.monat < b.monat;
   return a.tag < b.tag;

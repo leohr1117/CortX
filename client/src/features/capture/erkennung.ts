@@ -31,7 +31,7 @@ export interface TagAktionen {
   gesperrt: () => boolean;
 }
 
-export interface TagHinweis {
+interface TagHinweis {
   offen: boolean;
   aktiv: number;
 }
@@ -48,7 +48,7 @@ const hinweisFeld = StateField.define<TagHinweis>({
   },
 });
 
-export type AktionsRef = { readonly current: TagAktionen };
+type AktionsRef = { readonly current: TagAktionen };
 
 function male(view: EditorView): DecorationSet {
   const marken = tagMarken(view.state.doc.toString(), view.state.selection.main.head);

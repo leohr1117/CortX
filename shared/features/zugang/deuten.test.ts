@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { STRIDE_COOKIE } from './grenzen.ts';
-import { deuteAnmeldung, deuteNachpruefung, materialAus } from './deuten.ts';
+import { deuteAnmeldung, deuteNachpruefung } from './deuten.ts';
 
 const BEREIT = { modus: 'bereit', benutzername: 'Ada', rolle: 'inhaber', admin: false };
 const COOKIE = `${STRIDE_COOKIE}=abc-def; HttpOnly; Path=/; SameSite=Lax; Max-Age=2592000`;
@@ -12,7 +12,6 @@ describe('stride sign-in response', () => {
       kontoId: 'Ada',
       material: `${STRIDE_COOKIE}=abc-def`,
     });
-    expect(materialAus(`${COOKIE}, andere=nein; Path=/`)).toBe(`${STRIDE_COOKIE}=abc-def`);
   });
 
   it('does not treat an old account wrapper or a foreign cookie as a sign-in', () => {

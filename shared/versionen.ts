@@ -1,10 +1,15 @@
-export interface Versionseintrag {
+interface Versionseintrag {
   version: string;
   datum: string;
   zeilen: readonly string[];
 }
 
 export const VERSIONEN: readonly Versionseintrag[] = [
+  {
+    version: '1.8.21',
+    datum: '2026-11-03',
+    zeilen: ['Housekeeping only. CortX looks and works the same.'],
+  },
   {
     version: '1.8.20',
     datum: '2026-11-03',

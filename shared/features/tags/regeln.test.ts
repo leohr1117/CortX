@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { INBOX_NAME } from '../../kern/grenzen.ts';
 import type { Thema } from '../../kern/modell.ts';
 import { planeAblage, vorschlaege } from '../seiten/index.ts';
-import { entferneTag, ersetzeTag, findeTags, tagAnCaret } from './regeln.ts';
+import { ersetzeTag, findeTags, tagAnCaret } from './regeln.ts';
 
 const themen: Thema[] = [
   { name: 'Work', count: 14 },
@@ -95,13 +95,6 @@ describe('tag rules', () => {
 
   it('allows a note that is only a tag', () => {
     expect(planeAblage('#Home', themen)?.ziele[0]).toMatchObject({ text: '', topicName: 'Home', source: 'tag' });
-  });
-
-  it('cleans the gap left by the removed tag', () => {
-    const tag = findeTags('say #work, please')[0];
-    expect(tag).toBeDefined();
-    expect(entferneTag('say #work, please', tag!)).toBe('say, please');
-    expect(entferneTag('hello\n#work\nnext', findeTags('hello\n#work\nnext')[0]!)).toBe('hello\nnext');
   });
 
   it('lists matching topics, counts, and a new-topic row while typing', () => {

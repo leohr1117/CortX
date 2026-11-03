@@ -51,7 +51,7 @@ export async function ladeThemen(): Promise<Thema[]> {
   return daten.topics;
 }
 
-export interface AblageAntwort extends Notiz {
+interface AblageAntwort extends Notiz {
   ziel: string;
   undo: string;
 }

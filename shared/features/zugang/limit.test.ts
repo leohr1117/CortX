@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { FEHLER_FENSTER_MS, FEHLER_GLOBAL, FEHLER_JE_IP } from './grenzen.ts';
-import { limitGrund, type Fehlversuch } from './limit.ts';
+import { limitGrund } from './limit.ts';
 
 const JETZT = Date.parse('2026-11-01T12:00:00.000Z');
 
-function versuch(ip: string, vorMs: number): Fehlversuch {
+function versuch(ip: string, vorMs: number) {
   return { ip, at: JETZT - vorMs };
 }
 

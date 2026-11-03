@@ -12,12 +12,12 @@ export interface SeiteKurz {
   abschnitte: string[];
 }
 
-export interface PfadTeil {
+interface PfadTeil {
   name: string;
   neu: boolean;
 }
 
-export interface AblageZiel {
+interface AblageZiel {
   text: string;
   topicName: string;
   source: 'tag' | 'manual';
@@ -36,7 +36,7 @@ export interface AblagePlan {
   hinweis: string | null;
 }
 
-export interface VorschlagEintrag {
+interface VorschlagEintrag {
   name: string;
   einsetzen: string;
   zahl: string | null;

@@ -1,6 +1,6 @@
 import { DESKTOP_AB } from '../../../shared/kern/grenzen.ts';
 
-export function istMac(): boolean {
+function istMac(): boolean {
   const nav = navigator as Navigator & { userAgentData?: { platform?: string } };
   const plattform = nav.userAgentData?.platform ?? navigator.platform ?? '';
   return /mac/i.test(plattform);

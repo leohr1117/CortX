@@ -19,37 +19,37 @@ export const EBENE = {
   abschnitt: 2,
 } as const;
 
-export interface LeseTextTeil {
+interface LeseTextTeil {
   art: typeof ART.text;
   text: string;
 }
 
-export interface LeseFettTeil {
+interface LeseFettTeil {
   art: typeof ART.fett;
   text: string;
 }
 
-export interface LeseKursivTeil {
+interface LeseKursivTeil {
   art: typeof ART.kursiv;
   text: string;
 }
 
-export interface LeseStreichTeil {
+interface LeseStreichTeil {
   art: typeof ART.streich;
   text: string;
 }
 
-export interface LeseWichtigTeil {
+interface LeseWichtigTeil {
   art: typeof ART.wichtig;
   text: string;
 }
 
-export interface LeseVerschachtelt {
+interface LeseVerschachtelt {
   art: typeof ART.fett | typeof ART.kursiv | typeof ART.streich | typeof ART.wichtig;
   teile: LeseTeil[];
 }
 
-export interface LeseCodeTeil {
+interface LeseCodeTeil {
   art: typeof ART.code;
   text: string;
 }
@@ -70,7 +70,7 @@ export type LeseTeil =
   | LeseCodeTeil
   | LeseLinkTeil;
 
-export interface LeseAbsatz {
+interface LeseAbsatz {
   art: typeof ART.absatz;
   zeilen: LeseTeil[][];
 }
@@ -86,23 +86,23 @@ export interface LeseHakenPunkt {
   teile: LeseTeil[];
 }
 
-export interface LeseHaken {
+interface LeseHaken {
   art: typeof ART.haken;
   punkte: LeseHakenPunkt[];
 }
 
-export interface LeseUeberschrift {
+interface LeseUeberschrift {
   art: typeof ART.ueberschrift;
   teile: LeseTeil[];
   stufe?: number;
 }
 
-export interface LeseWichtig {
+interface LeseWichtig {
   art: typeof ART.wichtig;
   teile: LeseTeil[];
 }
 
-export interface LeseCodeBlock {
+interface LeseCodeBlock {
   art: typeof ART.codeblock;
   text: string;
 }

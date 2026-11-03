@@ -4,13 +4,13 @@ const BEWEGUNG_PX = 10;
 const SCROLL_PX = 2;
 const WIEDERHOLUNG_MS = 500;
 
-export interface TippStart {
+interface TippStart {
   x: number;
   y: number;
   scroll: number;
 }
 
-export interface TippJetzt {
+interface TippJetzt {
   x: number;
   y: number;
   scroll: number;

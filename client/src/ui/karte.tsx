@@ -12,22 +12,12 @@ import {
 import { LAGE, LAGE_VAR, beobachteSicht, fixedFolgtSicht, hindernisOben, kartenHubPx, liesSicht } from './lage.ts';
 
 export {
-  KARTE_DAUER_MIT_MS,
-  KARTE_DAUER_OHNE_MS,
   KARTE_TEXT,
-  KARTE_TREFFER_PX,
-  KARTE_WISCHEN_PX,
-  aktionOeffnen,
   aktionRueckgaengig,
-  karteDauer,
   textHinzugefuegt,
   textThemaWeg,
   textThemaZusammen,
-  type KarteAktion,
 } from './kartenregister.ts';
-
-export const KARTE_ABSTAND_PX = LAGE.karteAbstandPx;
-export const KARTE_BREITE_PX = 480;
 
 interface Karte {
   id: number;

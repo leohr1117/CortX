@@ -3,9 +3,9 @@ import { TEXTE } from '../../kern/texte.ts';
 export const SUCH_MAX = 200;
 export const SUCH_LIMIT = 50;
 
-export type SuchGrund = 'leer' | 'lang';
+type SuchGrund = 'leer' | 'lang';
 
-export type SuchPlan = { ok: true; ausdruck: string } | { ok: false; grund: SuchGrund };
+type SuchPlan = { ok: true; ausdruck: string } | { ok: false; grund: SuchGrund };
 
 export function suchMeldung(grund: SuchGrund): string {
   if (grund === 'lang') return TEXTE.sucheLang;

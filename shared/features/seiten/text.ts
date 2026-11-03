@@ -45,12 +45,12 @@ export function seitentitel(text: string): string {
   return '';
 }
 
-export interface AbschnittStelle {
+interface AbschnittStelle {
   titel: string;
   inhaltBis: number;
 }
 
-export function abschnittStellen(text: string): AbschnittStelle[] {
+function abschnittStellen(text: string): AbschnittStelle[] {
   const dok = leseDokument(text);
   const koepfe: AbschnittStelle[] = [];
   let sucheAb = 0;

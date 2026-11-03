@@ -13,7 +13,7 @@ export class LeseFehler extends Error {
   }
 }
 
-export interface ThemaAnsicht {
+interface ThemaAnsicht {
   topic: string;
   notes: Notiz[];
 }

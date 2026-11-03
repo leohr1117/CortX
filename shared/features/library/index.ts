@@ -11,5 +11,4 @@ export {
   UNBENANNTE_SEITE,
   type Bibliothek,
   type BibliothekZeile,
-  type NotizGruppe,
 } from './ansicht.ts';

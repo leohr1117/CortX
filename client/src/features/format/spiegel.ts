@@ -17,7 +17,7 @@ import {
 import { kuerzelAn } from './kuerzelSpeicher.ts';
 import { schmuck } from './schmuck.ts';
 
-export interface SpiegelHaken {
+interface SpiegelHaken {
   onText: (text: string) => void;
   onAuswahl: () => void;
   onLink: () => void;
@@ -53,7 +53,7 @@ export function wendeRuf(
   return 'text';
 }
 
-export function setzeWahl(view: EditorView, wahl: TextWahl): void {
+function setzeWahl(view: EditorView, wahl: TextWahl): void {
   const start = Math.max(0, Math.min(wahl.start, wahl.text.length));
   const ende = Math.max(0, Math.min(wahl.ende, wahl.text.length));
   view.dispatch({

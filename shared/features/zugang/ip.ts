@@ -1,4 +1,4 @@
-export interface IpKopf {
+interface IpKopf {
   cf: string | null;
   forwarded: string | null;
 }

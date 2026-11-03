@@ -14,15 +14,15 @@ export type PflegeGrund =
   | 'unknown'
   | 'self';
 
-export type UmbenennPlan =
+type UmbenennPlan =
   | { ok: true; aktuell: string; name: string; geaendert: boolean }
   | { ok: false; grund: Exclude<PflegeGrund, 'unknown' | 'self'> };
 
-export type ZusammenPlan =
+type ZusammenPlan =
   | { ok: true; quelle: string; ziel: string }
   | { ok: false; grund: Exclude<PflegeGrund, 'empty' | 'duplicate'> };
 
-export type LoeschPlan = { ok: true; name: string } | { ok: false; grund: 'missing' | 'locked' };
+type LoeschPlan = { ok: true; name: string } | { ok: false; grund: 'missing' | 'locked' };
 
 function fund(namen: readonly string[], roh: string): string | null {
   const name = roh.trim();

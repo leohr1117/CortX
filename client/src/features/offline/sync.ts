@@ -16,20 +16,20 @@ import {
   type WarteschlangeEintrag,
 } from './warteschlange.ts';
 
-export interface SyncTreffer {
+interface SyncTreffer {
   clientId: string;
   notiz: DateiNotiz;
   text: string;
 }
 
-export interface SyncStand {
+interface SyncStand {
   erledigt: SyncTreffer[];
   rest: WarteschlangeEintrag[];
   dauerhaft: boolean;
   grund: string | null;
 }
 
-export type LokalErgebnis =
+type LokalErgebnis =
   | { art: 'abgelegt'; clientId: string; notiz: DateiNotiz }
   | { art: 'offline'; clientId: string }
   | { art: 'abgelehnt'; clientId: string; grund: string | null };

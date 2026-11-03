@@ -12,18 +12,18 @@ export class PflegeFehler extends Error {
   }
 }
 
-export interface Umbenannt {
+interface Umbenannt {
   topic: string;
 }
 
-export interface Vereint {
+interface Vereint {
   token: string;
   from: string;
   into: string;
   count: number;
 }
 
-export interface Geloescht {
+interface Geloescht {
   token: string;
   topic: string;
   count: number;

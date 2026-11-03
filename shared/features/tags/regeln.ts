@@ -35,21 +35,6 @@ export function tagAnCaret(text: string, caret: number): TagFund | null {
   return null;
 }
 
-export function entferneTag(text: string, tag: TagFund): string {
-  let davor = text.slice(0, tag.start);
-  let danach = text.slice(tag.end);
-  if (/^[.,;:!?)]/u.test(danach) && /\s$/u.test(davor)) {
-    davor = davor.slice(0, -1);
-  } else if (/\s$/u.test(davor) && /^\s/u.test(danach)) {
-    danach = danach.slice(1);
-  } else if (davor.length === 0 && /^\s/u.test(danach)) {
-    danach = danach.slice(1);
-  } else if (danach.length === 0 && /\s$/u.test(davor)) {
-    davor = davor.slice(0, -1);
-  }
-  return davor + danach;
-}
-
 export function ersetzeTag(text: string, tag: TagFund, name: string): { text: string; caret: number } {
   return {
     text: `${text.slice(0, tag.start)}#${name}${text.slice(tag.end)}`,

@@ -1,6 +1,6 @@
 import { KONTO_ID_MAX, STRIDE_COOKIE } from './grenzen.ts';
 
-export type AnmeldungDeutung =
+type AnmeldungDeutung =
   | { art: 'ok'; kontoId: string; material: string }
   | { art: 'eingabe' }
   | { art: 'abgelehnt' }
@@ -8,7 +8,7 @@ export type AnmeldungDeutung =
   | { art: 'nicht_erreichbar' }
   | { art: 'unbekannt' };
 
-export type NachpruefungDeutung =
+type NachpruefungDeutung =
   | { art: 'ok'; kontoId: string | null }
   | { art: 'abgelehnt' }
   | { art: 'limit' }
@@ -40,7 +40,7 @@ function nameVon(body: unknown): string | null {
   return text(obj.benutzername);
 }
 
-export function materialAus(setCookie: string | null): string | null {
+function materialAus(setCookie: string | null): string | null {
   if (!setCookie) return null;
   for (const stueck of setCookie.split(',')) {
     const paar = stueck.split(';')[0]?.trim() ?? '';

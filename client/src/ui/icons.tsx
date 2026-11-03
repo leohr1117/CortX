@@ -83,14 +83,6 @@ export function HakenIcon() {
   );
 }
 
-export function AbwaertsIcon() {
-  return (
-    <svg className="i ab-pf" viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M6 9l6 6 6-6" />
-    </svg>
-  );
-}
-
 export function StiftIcon() {
   return (
     <svg className="i" viewBox="0 0 24 24" aria-hidden="true">
@@ -127,12 +119,3 @@ export function PapierkorbIcon() {
   );
 }
 
-export function WolkeAusIcon() {
-  return (
-    <svg className="i ic" viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M3 3l18 18" />
-      <path d="M8.5 7.2A5 5 0 0116.6 10H17a4 4 0 012.6 7" />
-      <path d="M15.5 18H7a4 4 0 01-1.2-7.8" />
-    </svg>
-  );
-}

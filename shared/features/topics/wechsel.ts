@@ -3,7 +3,7 @@ import type { Thema } from '../../kern/modell.ts';
 import { gleicherName } from '../tags/index.ts';
 import { themaName } from './name.ts';
 
-export function ordneWechsel(themen: readonly Thema[]): Thema[] {
+function ordneWechsel(themen: readonly Thema[]): Thema[] {
   return [...themen].sort((a, b) => {
     const aInbox = gleicherName(a.name, INBOX_NAME) ? 0 : 1;
     const bInbox = gleicherName(b.name, INBOX_NAME) ? 0 : 1;

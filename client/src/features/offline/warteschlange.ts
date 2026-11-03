@@ -13,18 +13,6 @@ export function naechsteSeq(queue: readonly WarteschlangeEintrag[]): number {
   return queue.reduce((max, eintrag) => Math.max(max, eintrag.seq), 0) + 1;
 }
 
-export function reiheEin(
-  queue: readonly WarteschlangeEintrag[],
-  eintrag: WarteschlangeEintrag,
-): WarteschlangeEintrag[] {
-  if (queue.some((alt) => alt.clientId === eintrag.clientId)) return [...queue];
-  return [...queue, eintrag];
-}
-
-export function ohneEintrag(queue: readonly WarteschlangeEintrag[], clientId: string): WarteschlangeEintrag[] {
-  return queue.filter((alt) => alt.clientId !== clientId);
-}
-
 export function reihenfolge(queue: readonly WarteschlangeEintrag[]): WarteschlangeEintrag[] {
   return [...queue].sort((a, b) => a.seq - b.seq || a.clientId.localeCompare(b.clientId));
 }

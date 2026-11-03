@@ -1,12 +1,12 @@
 import { findeTags, tagAnCaret, type TagFund } from '../../../../shared/features/tags/index.ts';
 
-export interface TagMarke {
+interface TagMarke {
   start: number;
   end: number;
   hier: boolean;
 }
 
-export function markenAus(funde: readonly TagFund[], aktiv: TagFund | null, laenge: number): TagMarke[] {
+function markenAus(funde: readonly TagFund[], aktiv: TagFund | null, laenge: number): TagMarke[] {
   const sortiert = [...funde].sort((a, b) => a.start - b.start || a.end - b.end);
   const aus: TagMarke[] = [];
   let bis = 0;

@@ -314,7 +314,7 @@ export function schalteKopf(text: string, start: number, ende: number): TextWahl
   return schalteUeberschrift(text, start, ende);
 }
 
-export type BefehlErgebnis = { art: 'ziel' } | { art: 'text'; wahl: TextWahl };
+type BefehlErgebnis = { art: 'ziel' } | { art: 'text'; wahl: TextWahl };
 
 export function rufBefehl(
   id: FormatBefehl,
@@ -329,8 +329,3 @@ export function rufBefehl(
   return { art: 'text', wahl: befehl.run(text, start, ende, ziel ?? '') };
 }
 
-export function schalteFormat(id: FormatBefehl, text: string, start: number, ende: number, ziel = ''): TextWahl {
-  const ergebnis = rufBefehl(id, text, start, ende, ziel);
-  if (ergebnis.art !== 'text') throw new Error('unknown command');
-  return ergebnis.wahl;
-}

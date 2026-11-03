@@ -15,28 +15,12 @@ import {
 
 export type {
   Beleg,
-  BelegArt,
-  Dokument,
-  LeseAbsatz,
   LeseBlock,
-  LeseCodeBlock,
-  LeseCodeTeil,
-  LeseFettTeil,
-  LeseHaken,
   LeseHakenPunkt,
-  LeseKursivTeil,
   LeseLinkTeil,
-  LeseListe,
-  LeseStreichTeil,
   LeseTeil,
-  LeseTextTeil,
-  LeseUeberschrift,
-  LeseVerschachtelt,
-  LeseWichtig,
-  LeseWichtigTeil,
 } from './baum.ts';
 export { ART, EBENE } from './baum.ts';
-export { UEBERSCHRIFT_MARKER, WICHTIG_ZEILE } from './zeile.ts';
 
 function struktur(
   art: BelegArt,

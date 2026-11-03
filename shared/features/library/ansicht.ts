@@ -14,7 +14,7 @@ export interface Bibliothek {
   topics: BibliothekZeile[];
 }
 
-export interface NotizGruppe<T> {
+interface NotizGruppe<T> {
   label: string;
   notizen: T[];
 }

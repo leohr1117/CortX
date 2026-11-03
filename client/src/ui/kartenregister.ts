@@ -1,10 +1,9 @@
 import { satzHinzugefuegt, satzThemaWeg, satzThemaZusammen, TEXTE } from '../../../shared/kern/texte.ts';
 import { zitier } from '../../../shared/features/topics/index.ts';
 
-export const KARTE_DAUER_OHNE_MS = 5000;
-export const KARTE_DAUER_MIT_MS = 8000;
-export const KARTE_WISCHEN_PX = 80;
-export const KARTE_TREFFER_PX = 48;
+const KARTE_DAUER_OHNE_MS = 5000;
+const KARTE_DAUER_MIT_MS = 8000;
+const KARTE_WISCHEN_PX = 80;
 
 export const KARTE_TEXT = {
   rueckgaengig: TEXTE.rueckgaengig,
@@ -16,14 +15,14 @@ export const KARTE_TEXT = {
   nichtRueckgaengig: TEXTE.nichtRueck,
 } as const;
 
-export type KarteAktionText = (typeof KARTE_TEXT)['rueckgaengig'] | (typeof KARTE_TEXT)['oeffnen'];
+type KarteAktionText = (typeof KARTE_TEXT)['rueckgaengig'] | (typeof KARTE_TEXT)['oeffnen'];
 
 export interface KarteAktion {
   text: KarteAktionText;
   run: () => void;
 }
 
-export function karteDauer(hatAktion: boolean): number {
+function karteDauer(hatAktion: boolean): number {
   return hatAktion ? KARTE_DAUER_MIT_MS : KARTE_DAUER_OHNE_MS;
 }
 
@@ -41,10 +40,6 @@ export function textThemaZusammen(name: string, into: string): string {
 
 export function aktionRueckgaengig(run: () => void): KarteAktion {
   return { text: KARTE_TEXT.rueckgaengig, run };
-}
-
-export function aktionOeffnen(run: () => void): KarteAktion {
-  return { text: KARTE_TEXT.oeffnen, run };
 }
 
 export interface KartenLauf {

@@ -2,7 +2,7 @@ import type { SuchTreffer } from '../../../../shared/features/suche/index.ts';
 import { TEXTE, anfrageFehl } from '../../../../shared/kern/texte.ts';
 import { meldeAblauf } from '../zugang/index.ts';
 
-export class SuchFehler extends Error {
+class SuchFehler extends Error {
   readonly status: number | null;
 
   constructor(status: number | null) {

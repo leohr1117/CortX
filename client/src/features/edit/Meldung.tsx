@@ -9,7 +9,7 @@ function text(wert: unknown): wert is string {
   return typeof wert === 'string' && wert.length > 0;
 }
 
-export function liesNotizMeldung(roh: unknown): NotizMeldung | null {
+function liesNotizMeldung(roh: unknown): NotizMeldung | null {
   if (!roh || typeof roh !== 'object') return null;
   const wert = roh as { token?: unknown; topic?: unknown };
   if (!text(wert.token) || !text(wert.topic)) return null;

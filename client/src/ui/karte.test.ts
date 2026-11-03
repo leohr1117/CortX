@@ -6,27 +6,14 @@ import {
   wischSchliesst,
 } from './kartenregister.ts';
 import {
-  KARTE_DAUER_MIT_MS,
-  KARTE_DAUER_OHNE_MS,
   KARTE_TEXT,
-  KARTE_TREFFER_PX,
-  KARTE_WISCHEN_PX,
-  aktionOeffnen,
   aktionRueckgaengig,
-  karteDauer,
   textHinzugefuegt,
   textThemaWeg,
   textThemaZusammen,
 } from './karte.tsx';
 
 describe('karte', () => {
-  it('keeps the durations in one place', () => {
-    expect(karteDauer(false)).toBe(KARTE_DAUER_OHNE_MS);
-    expect(karteDauer(false)).toBe(5000);
-    expect(karteDauer(true)).toBe(KARTE_DAUER_MIT_MS);
-    expect(karteDauer(true)).toBe(8000);
-  });
-
   it('keeps the card texts in one place', () => {
     expect(textHinzugefuegt('Inbox')).toBe('Added to Inbox');
     expect(textThemaWeg('Work')).toBe('\u201CWork\u201D deleted');
@@ -37,9 +24,6 @@ describe('karte', () => {
     expect(KARTE_TEXT.rueckgaengig).toBe('Undo');
     expect(KARTE_TEXT.oeffnen).toBe('Open');
     expect(aktionRueckgaengig(() => undefined).text).toBe('Undo');
-    expect(aktionOeffnen(() => undefined).text).toBe('Open');
-    expect(KARTE_TREFFER_PX).toBe(48);
-    expect(KARTE_WISCHEN_PX).toBe(80);
   });
 
   it('pauses the remaining time and continues it afterwards', () => {

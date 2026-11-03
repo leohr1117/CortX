@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import {
-  FORMAT_REGISTER,
   INLINE_REGISTER,
   formatVon,
   kuerzelEintraege,
@@ -62,6 +61,5 @@ describe('format register', () => {
     expect(vorschauWidget('liste')).toBe('punkt');
     expect(vorschauWidget('nummer')).toBe('nummer');
     expect(vorschauWidget('haken')).toBe('haken');
-    expect(FORMAT_REGISTER.some((eintrag) => eintrag.id === 'link' && eintrag.knopf?.ziel === true)).toBe(true);
   });
 });

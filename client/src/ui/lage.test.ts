@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { kartenHubPx, layoutHubPx, leisteBodenPx, listenPlatz, ueberlappPx, type Sichtmasse } from './lage.ts';
+import { kartenHubPx, layoutHubPx, leisteBodenPx, listenPlatz, ueberlappPx } from './lage.ts';
 
-function sicht(innenHoehe: number, sichtHoehe: number, sichtVersatz = 0): Sichtmasse {
+function sicht(innenHoehe: number, sichtHoehe: number, sichtVersatz = 0) {
   return { innenHoehe, sichtHoehe, sichtVersatz };
 }
 

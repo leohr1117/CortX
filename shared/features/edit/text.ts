@@ -3,9 +3,9 @@ import { tagesLabel, uhrzeit } from '../library/index.ts';
 import { NOTE_TEXT_MAX } from '../../kern/grenzen.ts';
 import type { NoteSource } from '../../kern/modell.ts';
 
-export type TextGrund = 'empty' | 'long';
+type TextGrund = 'empty' | 'long';
 
-export type TextPlan = { ok: true; text: string } | { ok: false; grund: TextGrund };
+type TextPlan = { ok: true; text: string } | { ok: false; grund: TextGrund };
 
 export function planeNotizText(roh: string): TextPlan {
   const text = roh.trimStart();

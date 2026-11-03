@@ -1,4 +1,4 @@
-export { benenneUm, fuehreZusammen, ladeThemen, loescheThema, macheRueckgaengig, PflegeFehler } from './api.ts';
+export { fuehreZusammen, ladeThemen, loescheThema, macheRueckgaengig, PflegeFehler } from './api.ts';
 export {
   liesGemerktePflege,
   liesPflegeMeldung,
