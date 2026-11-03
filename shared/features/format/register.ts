@@ -63,7 +63,11 @@ export type FormatBefehl =
   | typeof ART.haken
   | typeof ART.link;
 
-type FormatId = FormatBefehl | typeof ART.codeblock | typeof ART.nummer;
+export type FormatId = FormatBefehl | typeof ART.codeblock | typeof ART.nummer;
+
+interface AttributAngabe {
+  standard?: string | number | boolean;
+}
 
 export type VorschauTag = 'strong' | 'em' | 's' | 'code' | 'mark';
 export const WIDGET = {
@@ -118,6 +122,10 @@ export type BefehlAktiv = (text: string, start: number, ende: number) => boolean
 
 interface FormatEintrag {
   id: FormatId;
+  zeichen: readonly string[];
+  reihenfolge: number;
+  inline?: true;
+  marken?: Readonly<Record<string, AttributAngabe>>;
   syntax?: FormatSyntax;
   knopf?: FormatKnopf;
   vorschau?: FormatVorschau;
@@ -130,15 +138,35 @@ function laufLink(text: string, start: number, ende: number, ziel = ''): TextWah
   return schalteVerknuepfung(text, start, ende, ziel);
 }
 
-const HAKEN_EINFUEGEN = '[] ';
+const HAKEN_ZEICHEN = ['[]', '[x]'] as const;
+const HAKEN_EINFUEGEN = `${HAKEN_ZEICHEN[0]} `;
 const HAKEN_KUERZEL = '[ ]';
 const CODE_ZAUN = '```';
-const LINK_GERUEST = '[{text}]({ziel})';
+const LINK_ZEICHEN = ['[', '](', ')'] as const;
+const LINK_GERUEST = `${LINK_ZEICHEN[0]}{text}${LINK_ZEICHEN[1]}{ziel}${LINK_ZEICHEN[2]}`;
+const LISTE_ZEICHEN = ['-', '*', '+'] as const;
+const KOPF_ZEICHEN = ['=', '#'] as const;
 const WICHTIG_PFAD = ['M12 5v9', 'M12 19h.01'] as const;
 const LISTE_PFAD = ['M3 6h.01', 'M3 12h.01', 'M3 18h.01', 'M8 6h13', 'M8 12h13', 'M8 18h13'] as const;
 const HAKEN_PFAD = ['m3 7 2 2 4-4', 'm3 17 2 2 4-4', 'M13 6h8', 'M13 12h8', 'M13 18h8'] as const;
 
-const FORMAT_REGISTER: readonly FormatEintrag[] = [
+const ZEICHEN: Record<FormatId, Pick<FormatEintrag, 'zeichen' | 'reihenfolge' | 'inline' | 'marken'>> = {
+  [ART.code]: { inline: true, zeichen: [CODE_INLINE], reihenfolge: 0 },
+  [ART.wichtig]: { inline: true, zeichen: [WICHTIG_INLINE, WICHTIG_ZEILE], reihenfolge: 1 },
+  strich: { inline: true, zeichen: [STREICH_MARKER], reihenfolge: 2 },
+  [ART.fett]: { inline: true, zeichen: [FETT_MARKER, FETT_UNTER], reihenfolge: 3 },
+  [ART.kursiv]: { inline: true, zeichen: [KURSIV_MARKER, KURSIV_UNTER], reihenfolge: 4 },
+  [ART.link]: { inline: true, zeichen: LINK_ZEICHEN, reihenfolge: 5, marken: { ziel: {} } },
+  [ART.ueberschrift]: { zeichen: KOPF_ZEICHEN, reihenfolge: 6 },
+  [ART.liste]: { zeichen: LISTE_ZEICHEN, reihenfolge: 7 },
+  [ART.haken]: { zeichen: HAKEN_ZEICHEN, reihenfolge: 8 },
+  [ART.codeblock]: { zeichen: [CODE_ZAUN, '~~~'], reihenfolge: 9 },
+  [ART.nummer]: { zeichen: ['1.'], reihenfolge: 10 },
+};
+
+type RohEintrag = Omit<FormatEintrag, 'zeichen' | 'reihenfolge' | 'inline' | 'marken'>;
+
+const FORMAT_ROH: readonly RohEintrag[] = [
   {
     id: ART.fett,
     syntax: {
@@ -236,10 +264,43 @@ const FORMAT_REGISTER: readonly FormatEintrag[] = [
   },
 ];
 
+const FORMAT_REGISTER: readonly FormatEintrag[] = baueRegister(FORMAT_ROH);
+
+function baueRegister(roh: readonly RohEintrag[]): readonly FormatEintrag[] {
+  const ids = new Set<FormatId>();
+  const reihen = new Set<number>();
+  const aus = roh.map((eintrag) => {
+    if (ids.has(eintrag.id)) throw new Error('duplicate format');
+    ids.add(eintrag.id);
+    const angabe = ZEICHEN[eintrag.id];
+    if (angabe.zeichen.length === 0) throw new Error('missing character');
+    if (reihen.has(angabe.reihenfolge)) throw new Error('duplicate order');
+    reihen.add(angabe.reihenfolge);
+    return Object.assign(eintrag, angabe);
+  });
+  for (const id of Object.keys(ZEICHEN) as FormatId[]) {
+    if (!ids.has(id)) throw new Error('missing format');
+  }
+  return aus;
+}
+
 export const INLINE_REGISTER: readonly InlineEintrag[] = FORMAT_REGISTER.flatMap((eintrag) => eintrag.syntax?.paare ?? [])
   .slice()
   .sort((a, b) => a.folge - b.folge)
   .map(({ art, marker, knopf }) => ({ art, marker, knopf }));
+
+export interface InlineFormat {
+  id: FormatId;
+  zeichen: readonly string[];
+  reihenfolge: number;
+  marken?: Readonly<Record<string, { standard?: string | number | boolean }>>;
+}
+
+export function inlineFormate(): readonly InlineFormat[] {
+  return FORMAT_REGISTER.filter((eintrag) => eintrag.inline)
+    .map(({ id, zeichen, reihenfolge, marken }) => ({ id, zeichen, reihenfolge, marken }))
+    .sort((a, b) => a.reihenfolge - b.reihenfolge);
+}
 
 export function formatVon(id: FormatId): FormatEintrag {
   const fund = FORMAT_REGISTER.find((eintrag) => eintrag.id === id);
@@ -324,54 +385,8 @@ export function klemme(text: string, start: number, ende: number): { start: numb
   return von <= bis ? { start: von, ende: bis } : { start: bis, ende: von };
 }
 
-export const STIL_VAR = '--stil-hintergrund';
-
-export interface FormatStil {
-  schrift?: string;
-  hintergrund?: string;
-  farbe?: string;
-}
-
-interface StilEintrag {
-  art: typeof ART.code | typeof ART.wichtig;
-  stil: FormatStil;
-}
-
-const STIL_FELDER = ['schrift', 'hintergrund', 'farbe'] as const;
-
-export const STIL_REGISTER: readonly StilEintrag[] = [
-  {
-    art: ART.code,
-    stil: {
-      schrift: 'ui-monospace, "Cascadia Mono", Consolas, monospace',
-      hintergrund: 'var(--flaeche-2)',
-    },
-  },
-  {
-    art: ART.wichtig,
-    stil: { hintergrund: '#f3e2a8', farbe: '#1a1a1a' },
-  },
-];
-
-export function kombiniereStil(arten: readonly string[]): FormatStil {
-  const dabei = new Set(arten);
-  const ergebnis: FormatStil = {};
-  for (const eintrag of STIL_REGISTER) {
-    if (!dabei.has(eintrag.art)) continue;
-    for (const feld of STIL_FELDER) {
-      const wert = eintrag.stil[feld];
-      if (wert !== undefined) ergebnis[feld] = wert;
-    }
-  }
-  return ergebnis;
-}
-
-export function stilAttribut(arten: readonly string[]): string | undefined {
-  if (!arten.includes(ART.code) || !arten.includes(ART.wichtig)) return undefined;
-  const hintergrund = kombiniereStil(arten).hintergrund;
-  if (!hintergrund) return undefined;
-  return `${STIL_VAR}:${hintergrund}`;
-}
+export { STIL_REGISTER, STIL_VAR, kombiniereStil, stilAttribut } from './stil.ts';
+export type { FormatStil } from './stil.ts';
 
 export { inlineAn, loeschePaar };
 export { PUNKT_TASTEN, punktArt, punktTaste, type PunktArt } from './punkt.ts';
