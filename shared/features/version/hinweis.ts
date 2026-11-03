@@ -1,3 +1,5 @@
+import { TEXTE } from '../../kern/texte.ts';
+
 export interface Versionsstand {
   benachrichtigt: string | null;
   gesehen: string | null;
@@ -21,8 +23,8 @@ export interface VersionsAenderung {
 }
 
 export const HINWEIS_TEXT = {
-  aktualisiert: 'CortX was updated',
-  neuigkeiten: "What's new",
+  aktualisiert: TEXTE.aktualisiert,
+  neuigkeiten: TEXTE.neuigkeiten,
 } as const;
 
 const NUMMER = /^\d+\.\d+\.\d+$/;

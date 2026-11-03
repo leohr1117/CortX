@@ -1,11 +1,12 @@
 import type { SuchTreffer } from '../../../../shared/features/suche/index.ts';
+import { TEXTE, anfrageFehl } from '../../../../shared/kern/texte.ts';
 import { meldeAblauf } from '../zugang/index.ts';
 
 export class SuchFehler extends Error {
   readonly status: number | null;
 
   constructor(status: number | null) {
-    super(status === null ? 'The network request failed.' : `Request failed (${status}).`);
+    super(status === null ? TEXTE.netzFehl : anfrageFehl(status));
     this.name = 'SuchFehler';
     this.status = status;
   }

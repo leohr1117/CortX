@@ -3,16 +3,17 @@ import type { DatabaseSync } from 'node:sqlite';
 import { z } from 'zod';
 import { planeNotizText, textMeldung } from '../../../shared/features/edit/index.ts';
 import { NOTE_TEXT_MAX } from '../../../shared/kern/grenzen.ts';
+import { TEXTE } from '../../../shared/kern/texte.ts';
 import type { Notiz } from '../../../shared/kern/modell.ts';
 import { AppFehler } from '../../kern/fehler.ts';
 import { transaktion } from '../../kern/db.ts';
 import { alsNotiz, liesNotizNachId, type NotizZeile } from './lesen.ts';
 
-const NICHTS = 'Nothing to undo.';
-const GEHT_NICHT = 'Could not undo.';
-const SPEICHERN = 'Could not save the note.';
-const LOESCHEN = 'Could not delete the note.';
-const KONFLIKT = 'This page changed. Reload it and try again.';
+const NICHTS = TEXTE.nichtsRueck;
+const GEHT_NICHT = TEXTE.nichtRueck;
+const SPEICHERN = TEXTE.speichernNotiz;
+const LOESCHEN = TEXTE.loeschenNotiz;
+const KONFLIKT = TEXTE.seiteKonflikt;
 
 const korrekturSchema = z
   .object({
@@ -146,13 +147,13 @@ export function speichereText(db: DatabaseSync, id: number, roh: string, version
     const plan = planeNotizText(roh);
     if (!plan.ok) throw new AppFehler(400, textMeldung(plan.grund));
     const notiz = liesNotizNachId(db, id, kontoId);
-    if (!notiz) throw new AppFehler(404, 'Note not found.');
+    if (!notiz) throw new AppFehler(404, TEXTE.notizFehlt);
     if (notiz.text !== plan.text) {
       const geschrieben = db
         .prepare('UPDATE "note" SET text = ?, version = version + 1 WHERE id = ? AND account_id = ? AND version = ?')
         .run(plan.text, id, kontoId, version);
       if (Number(geschrieben.changes) !== 1) {
-        if (!liesNotizNachId(db, id, kontoId)) throw new AppFehler(404, 'Note not found.');
+        if (!liesNotizNachId(db, id, kontoId)) throw new AppFehler(404, TEXTE.notizFehlt);
         throw new AppFehler(409, KONFLIKT);
       }
     }
@@ -165,7 +166,7 @@ export function speichereText(db: DatabaseSync, id: number, roh: string, version
 export function loescheNotiz(db: DatabaseSync, id: number, kontoId: string): { token: string } {
   return transaktion(db, () => {
     const notiz = liesNotizNachId(db, id, kontoId);
-    if (!notiz) throw new AppFehler(404, 'Note not found.');
+    if (!notiz) throw new AppFehler(404, TEXTE.notizFehlt);
     const bild = schnapp(db, notiz);
     db.prepare('DELETE FROM "note_revision" WHERE note_id = ?').run(id);
     db.prepare('DELETE FROM "correction" WHERE note_id = ?').run(id);

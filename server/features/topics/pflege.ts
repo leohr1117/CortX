@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import type { DatabaseSync } from 'node:sqlite';
 import { z } from 'zod';
 import { INBOX_NAME, TOPIC_NAME_MAX } from '../../../shared/kern/grenzen.ts';
+import { TEXTE } from '../../../shared/kern/texte.ts';
 import {
   pflegeMeldung,
   planeLoeschen,
@@ -12,9 +13,9 @@ import {
 import { transaktion } from '../../kern/db.ts';
 import { AppFehler } from '../../kern/fehler.ts';
 
-const NICHTS = 'Nothing to undo.';
-const SCHON_DA = 'That topic already exists again.';
-const GEHT_NICHT = 'Could not undo.';
+const NICHTS = TEXTE.nichtsRueck;
+const SCHON_DA = TEXTE.schonWieder;
+const GEHT_NICHT = TEXTE.nichtRueck;
 
 const korrekturSchema = z
   .object({
@@ -127,7 +128,7 @@ function wendeVerschiebung(
   for (const korrektur of bild.corrections) loeschKorrektur.run(korrektur.id);
   db.prepare('UPDATE "note" SET topic_id = ? WHERE topic_id = ?').run(zielId, quelle.id);
   const weg = db.prepare('DELETE FROM "topic" WHERE id = ?').run(quelle.id);
-  if (Number(weg.changes) !== 1) throw new AppFehler(500, 'Could not update the topic.');
+  if (Number(weg.changes) !== 1) throw new AppFehler(500, TEXTE.aktualisierenThema);
   const token = randomUUID();
   db.prepare('DELETE FROM "topic_undo" WHERE account_id = ?').run(kontoId);
   db.prepare('INSERT INTO "topic_undo" (token, payload, created, account_id) VALUES (?, ?, ?, ?)').run(
@@ -188,7 +189,7 @@ export function loescheThema(
     const quelle = liesThema(db, plan.name, kontoId);
     const inbox = liesThema(db, INBOX_NAME, kontoId);
     if (!quelle) wirf('missing');
-    if (!inbox) throw new AppFehler(500, 'Could not delete the topic.');
+    if (!inbox) throw new AppFehler(500, TEXTE.loeschenThema);
     const ergebnis = wendeVerschiebung(db, quelle, inbox.id, kontoId);
     return { token: ergebnis.token, topic: quelle.name, count: ergebnis.count };
   });

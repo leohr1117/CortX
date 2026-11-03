@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { TEXTE } from '../../../../shared/kern/texte.ts';
 import { createPortal } from 'react-dom';
 import { SchliessenIcon } from '../../ui/icons.tsx';
 
 export function LinkFeld({ onClose, onFertig }: { onClose: () => void; onFertig: (ziel: string) => void }) {
-  const [wert, setWert] = useState('https://');
+  const [wert, setWert] = useState<string>(TEXTE.linkAnfang);
   const [fehler, setFehler] = useState<string | null>(null);
   const feld = useRef<HTMLInputElement>(null);
 
@@ -27,8 +28,8 @@ export function LinkFeld({ onClose, onFertig }: { onClose: () => void; onFertig:
   function senden(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const ziel = wert.trim();
-    if (ziel.length === 0 || ziel === 'https://') {
-      setFehler('Enter a link.');
+    if (ziel.length === 0 || ziel === TEXTE.linkAnfang) {
+      setFehler(TEXTE.linkEingeben);
       return;
     }
     onFertig(ziel);
@@ -40,15 +41,15 @@ export function LinkFeld({ onClose, onFertig }: { onClose: () => void; onFertig:
       <section className="blatt" role="dialog" aria-modal="true" aria-labelledby="link-titel">
         <div className="griff" aria-hidden="true" />
         <div className="bk">
-          <h2 id="link-titel">Link</h2>
-          <button type="button" className="ib" aria-label="Close" onClick={onClose}>
+          <h2 id="link-titel">{TEXTE.link}</h2>
+          <button type="button" className="ib" aria-label={TEXTE.schliessen} onClick={onClose}>
             <SchliessenIcon />
           </button>
         </div>
         <form noValidate onSubmit={senden}>
           <div className="bi">
             <label className="lab" htmlFor="link-ziel">
-              Address
+              {TEXTE.adresse}
             </label>
             <input
               ref={feld}
@@ -75,7 +76,7 @@ export function LinkFeld({ onClose, onFertig }: { onClose: () => void; onFertig:
           </div>
           <div className="bf">
             <button type="submit" className="btn">
-              Add link
+              {TEXTE.linkHinzufuegen}
             </button>
           </div>
         </form>

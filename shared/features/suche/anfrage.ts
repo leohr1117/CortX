@@ -1,3 +1,5 @@
+import { TEXTE } from '../../kern/texte.ts';
+
 export const SUCH_MAX = 200;
 export const SUCH_LIMIT = 50;
 
@@ -6,8 +8,8 @@ export type SuchGrund = 'leer' | 'lang';
 export type SuchPlan = { ok: true; ausdruck: string } | { ok: false; grund: SuchGrund };
 
 export function suchMeldung(grund: SuchGrund): string {
-  if (grund === 'lang') return 'The search is too long.';
-  return 'The search is missing or invalid.';
+  if (grund === 'lang') return TEXTE.sucheLang;
+  return TEXTE.sucheUngueltig;
 }
 
 export function planeSuche(roh: string): SuchPlan {

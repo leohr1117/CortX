@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { TEXTE } from '../../../../shared/kern/texte.ts';
 import { kuerzelAn, setzeKuerzel } from './kuerzelSpeicher.ts';
 
 export function KuerzelSchalter() {
@@ -20,8 +21,8 @@ export function KuerzelSchalter() {
         setAn(neu);
       }}
     >
-      <span className="mt">Convert shortcuts while typing</span>
-      <span className="ne">{an ? 'On' : 'Off'}</span>
+      <span className="mt">{TEXTE.kuerzel}</span>
+      <span className="ne">{an ? TEXTE.an : TEXTE.aus}</span>
     </button>
   );
 }

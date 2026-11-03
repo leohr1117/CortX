@@ -1,10 +1,11 @@
 import type { VersionsAenderung, VersionsAntwort } from '../../../../shared/features/version/index.ts';
+import { anfrageFehl } from '../../../../shared/kern/texte.ts';
 import { meldeAblauf } from '../zugang/Sitzung.tsx';
 
 async function liesJson(antwort: Response): Promise<VersionsAntwort> {
   if (!antwort.ok) {
     meldeAblauf(antwort.status);
-    throw new Error(`Request failed (${antwort.status}).`);
+    throw new Error(anfrageFehl(antwort.status));
   }
   return (await antwort.json()) as VersionsAntwort;
 }

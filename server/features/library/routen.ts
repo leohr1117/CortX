@@ -3,12 +3,13 @@ import type { DatabaseSync } from 'node:sqlite';
 import { z } from 'zod';
 import { themaName } from '../../../shared/features/topics/index.ts';
 import { TOPIC_NAME_MAX } from '../../../shared/kern/grenzen.ts';
+import { TEXTE } from '../../../shared/kern/texte.ts';
 import { AppFehler } from '../../kern/fehler.ts';
 import { verlangeKonto } from '../zugang/index.ts';
 import { liesBibliothek, liesThemaAnsicht } from './lesen.ts';
 
-const THEMA_UNGUELTIG = 'The topic name is missing or invalid.';
-const NICHT_GEFUNDEN = 'Topic not found.';
+const THEMA_UNGUELTIG = TEXTE.themaUngueltig;
+const NICHT_GEFUNDEN = TEXTE.themaFehlt;
 
 const themaQuery = z
   .object({

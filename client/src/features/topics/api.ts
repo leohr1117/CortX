@@ -1,4 +1,5 @@
 import type { Thema } from '../../../../shared/kern/modell.ts';
+import { TEXTE } from '../../../../shared/kern/texte.ts';
 import { meldeAblauf } from '../zugang/index.ts';
 
 export class PflegeFehler extends Error {
@@ -37,15 +38,15 @@ async function post<T>(url: string, body: unknown): Promise<T> {
       body: JSON.stringify(body),
     });
   } catch {
-    throw new PflegeFehler('The network request failed.', null);
+    throw new PflegeFehler(TEXTE.netzFehl, null);
   }
   if (!antwort.ok) {
-    let meldung = 'Could not update the topic.';
+    let meldung: string = TEXTE.aktualisierenThema;
     try {
       const daten = (await antwort.json()) as { error?: unknown };
       if (typeof daten.error === 'string' && daten.error.length > 0) meldung = daten.error;
     } catch {
-      meldung = 'Could not update the topic.';
+      meldung = TEXTE.aktualisierenThema;
     }
     meldeAblauf(antwort.status);
     throw new PflegeFehler(meldung, antwort.status);
@@ -58,14 +59,14 @@ export function ladeThemen(): Promise<Thema[]> {
     .then(async (antwort) => {
       if (!antwort.ok) {
         meldeAblauf(antwort.status);
-        throw new PflegeFehler('Could not load topics.', antwort.status);
+        throw new PflegeFehler(TEXTE.themenLaden, antwort.status);
       }
       const daten = (await antwort.json()) as { topics: Thema[] };
       return daten.topics;
     })
     .catch((fehler: unknown) => {
       if (fehler instanceof PflegeFehler) throw fehler;
-      throw new PflegeFehler('The network request failed.', null);
+      throw new PflegeFehler(TEXTE.netzFehl, null);
     });
 }
 

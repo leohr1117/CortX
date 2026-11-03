@@ -1,4 +1,5 @@
 import { INBOX_NAME } from '../../kern/grenzen.ts';
+import { meintest as satzMeintest, neuerName, TEXTE } from '../../kern/texte.ts';
 import type { Thema } from '../../kern/modell.ts';
 import { loeseThema, passendeThemen, ersetzeTag, type TagFund } from '../tags/regeln.ts';
 import { EBENEN, PFAD_TRENNER, zerlegeZielzeilen, type PfadEbene } from './register.ts';
@@ -50,15 +51,15 @@ export interface VorschlagListe {
 
 const NAEHE = 2;
 const MIN_AEHNLICH = 3;
-const TIEFE = 'A path has at most three levels.';
-const LUECKE = 'That path is missing a name.';
+const TIEFE = TEXTE.pfadTiefe;
+const LUECKE = TEXTE.pfadLuecke;
 const THEMA: PfadEbene = EBENEN[0];
 const SEITE: PfadEbene = EBENEN[1];
 const ABSCHNITT: PfadEbene = EBENEN[2];
 const NEU: Record<PfadEbene, string> = {
-  [THEMA]: 'New topic',
-  [SEITE]: 'New page',
-  [ABSCHNITT]: 'New section',
+  [THEMA]: TEXTE.neuesThema,
+  [SEITE]: TEXTE.neueSeite,
+  [ABSCHNITT]: TEXTE.neuerAbschnitt,
 };
 
 interface NamenTreffer {
@@ -102,7 +103,7 @@ function meintest(fragment: string, namen: readonly string[]): string | null {
 }
 
 function hinweisFuer(name: string | null): string | null {
-  return name ? `Did you mean ${name}?` : null;
+  return name ? satzMeintest(name) : null;
 }
 
 export function caretEbene(name: string, relativ: number): { ebene: number; fragment: string } {
@@ -258,7 +259,7 @@ function listeAus(
   return {
     treffer,
     neu,
-    neuText: `${NEU[ebene]} “${fragment}”`,
+    neuText: neuerName(NEU[ebene], fragment),
     gewaehlt,
   };
 }

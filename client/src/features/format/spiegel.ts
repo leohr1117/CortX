@@ -89,21 +89,21 @@ function zeichneAuswahl(): Extension {
 
 const thema = EditorView.theme(
   {
-    '&': { color: '#f2f2f2', backgroundColor: 'transparent', height: '100%' },
+    '&': { color: 'var(--haupt)', backgroundColor: 'transparent', height: '100%' },
     '.cm-scroller': { fontFamily: 'inherit', lineHeight: 'inherit', fontSize: 'inherit' },
     '.cm-content': {
       fontFamily: 'inherit',
       padding: '0',
       border: '0',
       backgroundColor: 'transparent',
-      color: '#f2f2f2',
-      caretColor: '#60a5fa',
+      color: 'var(--haupt)',
+      caretColor: 'var(--fokus)',
     },
     '.cm-line': { padding: '0' },
     '&.cm-focused': { outline: 'none' },
-    '.cm-cursor, .cm-dropCursor': { borderLeftColor: '#60a5fa' },
+    '.cm-cursor, .cm-dropCursor': { borderLeftColor: 'var(--fokus)' },
     '.cm-selectionBackground, &.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground': {
-      backgroundColor: 'rgba(96, 165, 250, 0.35)',
+      backgroundColor: 'var(--auswahl)',
     },
   },
   { dark: true },

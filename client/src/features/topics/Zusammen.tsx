@@ -6,6 +6,7 @@ import {
   zusammenHinweis,
 } from '../../../../shared/features/topics/index.ts';
 import type { Thema } from '../../../../shared/kern/modell.ts';
+import { TEXTE, zusammenTitel } from '../../../../shared/kern/texte.ts';
 import { HashIcon, LupeIcon, SchliessenIcon } from '../../ui/icons.tsx';
 
 export function Zusammen({
@@ -77,8 +78,8 @@ export function Zusammen({
     <section className="blatt" role="dialog" aria-modal="true" aria-labelledby="zusammen-titel">
       <div className="griff" aria-hidden="true" />
       <div className="bk">
-        <h2 id="zusammen-titel">Merge {zitier(name)} into</h2>
-        <button type="button" className="ib" aria-label="Close" onClick={onClose} disabled={gesperrt}>
+        <h2 id="zusammen-titel">{zusammenTitel(zitier(name))}</h2>
+        <button type="button" className="ib" aria-label={TEXTE.schliessen} onClick={onClose} disabled={gesperrt}>
           <SchliessenIcon />
         </button>
       </div>
@@ -89,8 +90,8 @@ export function Zusammen({
         <input
           ref={feld}
           value={suche}
-          placeholder="Search topics"
-          aria-label="Search topics"
+          placeholder={TEXTE.sucheThemen}
+          aria-label={TEXTE.sucheThemen}
           aria-controls="zusammen-liste"
           aria-expanded={ziele.length > 0}
           aria-activedescendant={ziele.length > 0 ? `zusammen-${index}` : undefined}
@@ -106,7 +107,7 @@ export function Zusammen({
           onKeyDown={taste}
         />
       </label>
-      <div className="wl rolle" id="zusammen-liste" role="listbox" aria-label="Topics">
+      <div className="wl rolle" id="zusammen-liste" role="listbox" aria-label={TEXTE.themen}>
         {ziele.map((zeile, stelle) => (
           <div
             key={zeile.name}

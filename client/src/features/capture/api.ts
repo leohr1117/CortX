@@ -1,12 +1,13 @@
 import type { SeiteKurz } from '../../../../shared/features/seiten/index.ts';
 import type { Notiz, Thema } from '../../../../shared/kern/modell.ts';
+import { TEXTE, anfrageFehl } from '../../../../shared/kern/texte.ts';
 import { meldeAblauf } from '../zugang/index.ts';
 
 export class ApiFehler extends Error {
   readonly status: number | null;
 
   constructor(status: number | null, meldung?: string) {
-    super(meldung ?? (status === null ? 'The network request failed.' : `Request failed (${status}).`));
+    super(meldung ?? (status === null ? TEXTE.netzFehl : anfrageFehl(status)));
     this.name = 'ApiFehler';
     this.status = status;
   }
@@ -15,12 +16,12 @@ export class ApiFehler extends Error {
 async function leseJson<T>(antwort: Response): Promise<T> {
   if (!antwort.ok) {
     meldeAblauf(antwort.status);
-    let meldung = `Request failed (${antwort.status}).`;
+    let meldung = anfrageFehl(antwort.status);
     try {
       const daten = (await antwort.json()) as { error?: unknown };
       if (typeof daten.error === 'string' && daten.error.length > 0) meldung = daten.error;
     } catch {
-      meldung = `Request failed (${antwort.status}).`;
+      meldung = anfrageFehl(antwort.status);
     }
     throw new ApiFehler(antwort.status, meldung);
   }

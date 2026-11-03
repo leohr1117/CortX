@@ -21,6 +21,44 @@
   --leiste-hoehe: calc(var(--leiste-pad) * 2 + var(--leiste-knopf) + var(--leiste-rand));
   --leiste-luecke: 12px;
   --karte-abstand: 16px;
+  --abstand-1: 1px;
+  --abstand-2: 2px;
+  --abstand-4: 4px;
+  --abstand-6: 6px;
+  --abstand-8: 8px;
+  --abstand-10: 10px;
+  --abstand-12: 12px;
+  --abstand-14: 14px;
+  --abstand-16: 16px;
+  --abstand-18: 18px;
+  --abstand-20: 20px;
+  --abstand-24: 24px;
+  --abstand-28: 28px;
+  --abstand-32: 32px;
+  --abstand-34: 34px;
+  --abstand-40: 40px;
+  --abstand-48: 48px;
+  --abstand-72: 72px;
+  --abstand-76: 76px;
+  --abstand-80: 80px;
+  --sr-versatz: -1px;
+  --radius-0: 0;
+  --radius-2: 2px;
+  --radius-4: 4px;
+  --radius-6: 6px;
+  --radius-8: 8px;
+  --radius-10: 10px;
+  --radius-12: 12px;
+  --radius-kreis: 50%;
+  --logo-ecke: 8;
+  --auswahl: rgba(96, 165, 250, 0.35);
+  --wichtig-hintergrund: #f3e2a8;
+  --wichtig-schrift: #1a1a1a;
+  --wichtig-balken: #b8892e;
+  --wichtig-strich: #5c4314;
+  --wichtig-marker: #8d8d8d;
+  --schatten: rgba(0, 0, 0, 0.35);
+  --schleier: rgba(0, 0, 0, 0.62);
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -61,7 +99,7 @@ a { color: inherit; text-decoration: none; }
   height: var(--kopf);
   display: flex;
   align-items: center;
-  padding: 0 4px;
+  padding: 0 var(--abstand-4);
   flex: none;
   background: var(--grund);
   border-bottom: 1px solid var(--trenner);
@@ -79,9 +117,9 @@ a { color: inherit; text-decoration: none; }
   height: 48px;
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 0 4px;
-  border-radius: 8px;
+  gap: var(--abstand-6);
+  padding: 0 var(--abstand-4);
+  border-radius: var(--radius-8);
 }
 .tlink svg { width: 18px; height: 18px; color: var(--leise); }
 .tlink:focus-visible,
@@ -97,7 +135,7 @@ a { color: inherit; text-decoration: none; }
   min-height: 0;
   display: flex;
   flex-direction: column;
-  padding: 8px var(--rand) 0;
+  padding: var(--abstand-8) var(--rand) 0;
   position: relative;
 }
 .schreib {
@@ -142,7 +180,7 @@ a { color: inherit; text-decoration: none; }
 }
 .schreib textarea::-webkit-scrollbar { display: none; }
 .schreib textarea::placeholder { color: var(--leise); }
-.schreib textarea::selection { background: rgba(96, 165, 250, 0.35); }
+.schreib textarea::selection { background: var(--auswahl); }
 .schreib.klar textarea { color: var(--haupt); caret-color: var(--fokus); }
 .tag { color: var(--fokus); }
 .anker { display: inline-block; width: 0; height: 0; }
@@ -150,8 +188,8 @@ a { color: inherit; text-decoration: none; }
 .fuss {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 8px var(--rand) max(34px, env(safe-area-inset-bottom));
+  gap: var(--abstand-12);
+  padding: var(--abstand-8) var(--rand) max(var(--abstand-34), env(safe-area-inset-bottom));
   flex: none;
   background: var(--grund);
 }
@@ -169,7 +207,7 @@ a { color: inherit; text-decoration: none; }
   display: none;
   font-size: 13px;
   color: var(--leise);
-  gap: 4px;
+  gap: var(--abstand-4);
   align-items: center;
 }
 .kbd i { font-style: normal; }
@@ -178,16 +216,16 @@ html[data-os="mac"] .kbd .win { display: none; }
 html[data-os="mac"] .kbd .mac { display: inline-flex; }
 .kbd span {
   border: 1px solid var(--rand-ruhig);
-  border-radius: 4px;
-  padding: 1px 6px;
+  border-radius: var(--radius-4);
+  padding: var(--abstand-1) var(--abstand-6);
   font-size: 12px;
   line-height: 16px;
 }
 .btn {
   height: 48px;
   min-width: 104px;
-  padding: 0 24px;
-  border-radius: 8px;
+  padding: 0 var(--abstand-24);
+  border-radius: var(--radius-8);
   background: var(--aktion);
   color: var(--aktion-text);
   font-weight: 500;
@@ -201,23 +239,23 @@ html[data-os="mac"] .kbd .mac { display: inline-flex; }
   width: 248px;
   background: var(--flaeche);
   border: 1px solid var(--rand-ruhig);
-  border-radius: 8px;
-  padding: 4px 0;
+  border-radius: var(--radius-8);
+  padding: var(--abstand-4) 0;
   z-index: 40;
 }
 .vorschlag .z {
   height: 48px;
   display: flex;
   align-items: center;
-  padding: 0 12px;
-  gap: 10px;
+  padding: 0 var(--abstand-12);
+  gap: var(--abstand-10);
   cursor: pointer;
 }
 .vorschlag .z .n { flex: 1; min-width: 0; }
 .vorschlag .z .n b { font-weight: 700; }
 .vorschlag .z .w { font-size: 13px; color: var(--leise); }
 .vorschlag .z.akt { background: var(--flaeche-2); }
-.vorschlag .tr { height: 1px; background: var(--trenner); margin: 4px 0; }
+.vorschlag .tr { height: 1px; background: var(--trenner); margin: var(--abstand-4) 0; }
 .vorschlag .z.neu .n { color: var(--haupt); }
 .vorschlag .z svg { width: 16px; height: 16px; color: var(--leise); flex: none; }
 
@@ -233,14 +271,14 @@ html[data-os="mac"] .kbd .mac { display: inline-flex; }
   min-height: 56px;
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 0 6px 0 16px;
+  gap: var(--abstand-6);
+  padding: 0 var(--abstand-6) 0 var(--abstand-16);
   background: var(--flaeche-2);
   border: 1px solid var(--rand-ruhig);
-  border-radius: 8px;
+  border-radius: var(--radius-8);
   font-size: 15px;
 }
-.toast.ohne { padding-right: 16px; }
+.toast.ohne { padding-right: var(--abstand-16); }
 .toast .t {
   flex: 0 1 auto;
   min-width: 0;
@@ -253,10 +291,10 @@ html[data-os="mac"] .kbd .mac { display: inline-flex; }
 .toast .a {
   height: 48px;
   min-width: 48px;
-  padding: 0 12px;
+  padding: 0 var(--abstand-12);
   font-weight: 600;
   color: var(--haupt);
-  border-radius: 6px;
+  border-radius: var(--radius-6);
   text-decoration: underline;
   text-underline-offset: 3px;
   text-decoration-color: var(--feldrand);
@@ -265,7 +303,7 @@ html[data-os="mac"] .kbd .mac { display: inline-flex; }
   font-size: 18px;
   font-weight: 700;
   color: var(--leise);
-  padding: 0 2px;
+  padding: 0 var(--abstand-2);
 }
 
 .karte-ort {
@@ -281,14 +319,14 @@ html[data-os="mac"] .kbd .mac { display: inline-flex; }
   pointer-events: auto;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--abstand-6);
   min-height: 56px;
   max-width: 480px;
-  padding: 0 0 0 16px;
+  padding: 0 0 0 var(--abstand-16);
   background: var(--flaeche-2);
   color: var(--haupt);
   border: 1px solid var(--rand-ruhig);
-  border-radius: 8px;
+  border-radius: var(--radius-8);
   font-size: 15px;
   touch-action: none;
   user-select: none;
@@ -305,10 +343,10 @@ html[data-os="mac"] .kbd .mac { display: inline-flex; }
 .karte .a {
   height: 48px;
   min-width: 48px;
-  padding: 0 12px;
+  padding: 0 var(--abstand-12);
   font-weight: 600;
   color: var(--fokus);
-  border-radius: 8px;
+  border-radius: var(--radius-8);
 }
 .karte .x {
   width: 48px;
@@ -316,7 +354,7 @@ html[data-os="mac"] .kbd .mac { display: inline-flex; }
   display: grid;
   place-items: center;
   color: var(--haupt);
-  border-radius: 8px;
+  border-radius: var(--radius-8);
 }
 .karte .a:focus-visible,
 .karte .x:focus-visible {
@@ -333,14 +371,14 @@ html[data-os="mac"] .kbd .mac { display: inline-flex; }
 
 @media (min-width: 900px) {
   :root { --rand: 32px; }
-  .kopf { height: 64px; padding: 0 20px; }
-  .kopf.leer { padding: 0 32px; }
+  .kopf { height: 64px; padding: 0 var(--abstand-20); }
+  .kopf.leer { padding: 0 var(--abstand-32); }
   .cap {
     width: 720px;
     max-width: 100%;
     margin: 0 auto;
     align-self: center;
-    padding: 72px 0 0;
+    padding: var(--abstand-72) 0 0;
   }
   .schreib { font-size: 20px; line-height: 32px; }
   .fuss {
@@ -348,7 +386,7 @@ html[data-os="mac"] .kbd .mac { display: inline-flex; }
     max-width: 100%;
     margin: 0 auto;
     align-self: center;
-    padding: 16px 0 40px;
+    padding: var(--abstand-16) 0 var(--abstand-40);
   }
   .kbd { display: flex; }
   .toast { bottom: 112px; min-width: 0; }
@@ -363,7 +401,7 @@ html[data-os="mac"] .kbd .mac { display: inline-flex; }
   height: 48px;
   display: grid;
   place-items: center;
-  border-radius: 8px;
+  border-radius: var(--radius-8);
   color: var(--haupt);
 }
 .ib:focus-visible {
@@ -374,13 +412,13 @@ html[data-os="mac"] .kbd .mac { display: inline-flex; }
   width: 18px;
   height: 18px;
   color: var(--leise);
-  margin-right: 2px;
+  margin-right: var(--abstand-2);
   flex: none;
 }
 .scrim {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.62);
+  background: var(--schleier);
   z-index: 40;
 }
 .blatt {
@@ -390,9 +428,9 @@ html[data-os="mac"] .kbd .mac { display: inline-flex; }
   bottom: 0;
   z-index: 41;
   background: var(--flaeche);
-  border-radius: 12px 12px 0 0;
+  border-radius: var(--radius-12) var(--radius-12) var(--radius-0) var(--radius-0);
   border-top: 1px solid var(--rand-ruhig);
-  padding-bottom: 34px;
+  padding-bottom: var(--abstand-34);
   display: flex;
   flex-direction: column;
   max-height: calc(100% - 16px);
@@ -401,16 +439,16 @@ html[data-os="mac"] .kbd .mac { display: inline-flex; }
 .blatt .griff {
   width: 36px;
   height: 4px;
-  border-radius: 2px;
+  border-radius: var(--radius-2);
   background: var(--feldrand);
-  margin: 8px auto 0;
+  margin: var(--abstand-8) auto 0;
   flex: none;
 }
 .blatt .bk {
   height: 56px;
   display: flex;
   align-items: center;
-  padding: 0 4px 0 16px;
+  padding: 0 var(--abstand-4) 0 var(--abstand-16);
   flex: none;
 }
 .blatt .bk h2 {
@@ -426,19 +464,19 @@ html[data-os="mac"] .kbd .mac { display: inline-flex; }
   font-size: 13px;
   line-height: 18px;
   color: var(--gefahr);
-  padding: 0 16px 8px;
+  padding: 0 var(--abstand-16) var(--abstand-8);
   flex: none;
 }
 .suche {
-  margin: 0 16px 8px;
+  margin: 0 var(--abstand-16) var(--abstand-8);
   height: 48px;
   border: 1px solid var(--feldrand);
-  border-radius: 8px;
+  border-radius: var(--radius-8);
   background: var(--grund);
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 0 12px;
+  gap: var(--abstand-10);
+  padding: 0 var(--abstand-12);
   color: var(--leise);
   font-size: 16px;
   flex: none;
@@ -456,7 +494,7 @@ html[data-os="mac"] .kbd .mac { display: inline-flex; }
   outline: none;
 }
 .suche input::placeholder { color: var(--leise); }
-.suche.fund { margin: 16px var(--rand) 16px; }
+.suche.fund { margin: var(--abstand-16) var(--rand) var(--abstand-16); }
 .suche.fund:focus-within {
   outline: 2px solid var(--fokus);
   outline-offset: 2px;
@@ -494,13 +532,13 @@ html[data-os="mac"] .kbd .mac { display: inline-flex; }
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.wl .tr { height: 1px; background: var(--trenner); margin: 4px 0; }
+.wl .tr { height: 1px; background: var(--trenner); margin: var(--abstand-4) 0; }
 .wz {
   height: 48px;
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 0 16px;
+  gap: var(--abstand-12);
+  padding: 0 var(--abstand-16);
   position: relative;
   cursor: pointer;
 }
@@ -542,11 +580,11 @@ svg.i.ok {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  padding-left: 4px;
+  padding-left: var(--abstand-4);
 }
 .kopf-rest { flex: 1; min-width: 0; }
 .kopf-aktion { display: flex; align-items: center; flex: none; }
-.kopf-aktion .schalt { margin-right: 4px; }
+.kopf-aktion .schalt { margin-right: var(--abstand-4); }
 .spalte {
   display: flex;
   align-items: center;
@@ -557,14 +595,14 @@ svg.i.ok {
 .inhalt {
   flex: 1 1 0px;
   min-height: 0;
-  padding-bottom: 40px;
+  padding-bottom: var(--abstand-40);
 }
 .ab {
   font-weight: 600;
   font-size: 13px;
   line-height: 18px;
   color: var(--leise);
-  margin: 24px var(--rand) 8px;
+  margin: var(--abstand-24) var(--rand) var(--abstand-8);
 }
 .liste {
   background: var(--flaeche);
@@ -575,8 +613,8 @@ svg.i.ok {
   min-height: 56px;
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 16px;
+  gap: var(--abstand-12);
+  padding: var(--abstand-10) var(--abstand-16);
   position: relative;
   cursor: pointer;
 }
@@ -619,8 +657,8 @@ svg.i.ok {
 .zeile .wert { font-size: 15px; color: var(--leise); }
 .zeile .pf { color: var(--leise); width: 16px; height: 16px; }
 .zeile.voll { align-items: flex-start; }
-.zeile.voll .sym { margin-top: 2px; }
-.zeile.voll .pf { margin-top: 4px; }
+.zeile.voll .sym { margin-top: var(--abstand-2); }
+.zeile.voll .pf { margin-top: var(--abstand-4); }
 .zeile.voll .lesetext {
   font-size: 16px;
   line-height: 24px;
@@ -629,16 +667,16 @@ svg.i.ok {
 }
 .leer1 {
   color: var(--leise);
-  margin: 32px var(--rand);
+  margin: var(--abstand-32) var(--rand);
   font-size: 16px;
   line-height: 24px;
 }
 .notiz {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--abstand-12);
   min-height: 56px;
-  padding: 0 0 0 16px;
+  padding: 0 0 0 var(--abstand-16);
   position: relative;
 }
 .notiz + .notiz::before {
@@ -656,7 +694,7 @@ svg.i.ok {
   align-self: stretch;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--abstand-12);
 }
 .notiz .ti {
   flex: 1;
@@ -691,7 +729,7 @@ a.tx:focus-visible {
 .lesetext li {
   position: relative;
   min-height: 24px;
-  padding-left: 16px;
+  padding-left: var(--abstand-16);
 }
 .lesetext li::before {
   content: "";
@@ -700,13 +738,13 @@ a.tx:focus-visible {
   top: 9px;
   width: 5px;
   height: 5px;
-  border-radius: 50%;
+  border-radius: var(--radius-kreis);
   background: currentColor;
 }
 .lesetext .hakenzeile {
   display: flex;
   align-items: flex-start;
-  gap: 8px;
+  gap: var(--abstand-8);
   min-height: 24px;
 }
 .lesetext .hakenlabel {
@@ -717,9 +755,9 @@ a.tx:focus-visible {
 .lesetext .haken {
   width: 16px;
   height: 16px;
-  margin-top: 4px;
+  margin-top: var(--abstand-4);
   border: 1.5px solid var(--feldrand);
-  border-radius: 4px;
+  border-radius: var(--radius-4);
   flex: none;
   display: grid;
   place-items: center;
@@ -744,15 +782,15 @@ a.tx:focus-visible {
   font-weight: 600;
   min-height: 24px;
 }
-.lesetext h2.abschnitt { scroll-margin-top: 72px; }
+.lesetext h2.abschnitt { scroll-margin-top: var(--abstand-72); }
 .lesetext h3 strong,
 .lesetext h2.titel strong,
 .lesetext h2.abschnitt strong { font-weight: 700; }
 .verzeichnis {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 14px;
-  margin: 0 0 16px;
+  gap: var(--abstand-8) var(--abstand-14);
+  margin: 0 0 var(--abstand-16);
   font-size: 13px;
   line-height: 18px;
 }
@@ -773,7 +811,7 @@ a.tx:focus-visible {
   color: var(--leise);
 }
 .notiz .termin,
-.notizblatt .termin { margin-top: 2px; }
+.notizblatt .termin { margin-top: var(--abstand-2); }
 .zeile .termin {
   white-space: nowrap;
   overflow: hidden;
@@ -794,18 +832,18 @@ a.tx:focus-visible {
     bottom: auto;
     transform: translate(-50%, -50%);
     width: 480px;
-    border-radius: 12px;
+    border-radius: var(--radius-12);
     border: 1px solid var(--rand-ruhig);
-    padding-bottom: 16px;
+    padding-bottom: var(--abstand-16);
   }
   .blatt .griff { display: none; }
   .wl { max-height: 480px; }
   .kopf h1 { font-size: 24px; line-height: 32px; }
   .spalte { width: 720px; max-width: 100%; margin: 0 auto; }
-  .kopf .spalte { width: 730px; margin: 0; margin-left: calc(50% - 360px - 12px); }
+  .kopf .spalte { width: 730px; margin: 0; margin-left: calc(50% - 360px - var(--abstand-12)); }
   .inhalt { width: 720px; max-width: 100%; margin-left: auto; margin-right: auto; }
   .ab { margin-left: 0; margin-right: 0; }
-  .liste { border: 1px solid var(--trenner); border-radius: 8px; }
+  .liste { border: 1px solid var(--trenner); border-radius: var(--radius-8); }
   .leer1 { margin-left: 0; }
   .suche.fund { margin-left: 0; margin-right: 0; }
   .blatt .bf { display: flex; justify-content: flex-end; }
@@ -822,8 +860,8 @@ a.tx:focus-visible {
   width: 244px;
   background: var(--flaeche);
   border: 1px solid var(--rand-ruhig);
-  border-radius: 8px;
-  padding: 4px 0;
+  border-radius: var(--radius-8);
+  padding: var(--abstand-4) 0;
   z-index: 1;
 }
 .menue .m {
@@ -831,10 +869,10 @@ a.tx:focus-visible {
   min-height: 48px;
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 8px 16px;
+  gap: var(--abstand-12);
+  padding: var(--abstand-8) var(--abstand-16);
   text-align: left;
-  border-radius: 0;
+  border-radius: var(--radius-0);
 }
 .menue .m svg { color: var(--leise); flex: none; }
 .menue .m:hover,
@@ -842,7 +880,7 @@ a.tx:focus-visible {
 .menue .m:focus-visible { outline: 2px solid var(--fokus); outline-offset: -2px; }
 .menue .mt { display: flex; flex-direction: column; min-width: 0; }
 .menue .m .ne { font-size: 13px; line-height: 18px; color: var(--leise); }
-.menue .tr { height: 1px; background: var(--trenner); margin: 4px 0; }
+.menue .tr { height: 1px; background: var(--trenner); margin: var(--abstand-4) 0; }
 .menue .m.gef,
 .menue .m.gef svg { color: var(--gefahr); }
 .menue .m.gef .ne { color: var(--leise); }
@@ -850,11 +888,11 @@ a.tx:focus-visible {
   font-size: 13px;
   line-height: 18px;
   color: var(--leise);
-  padding: 0 16px 8px;
+  padding: 0 var(--abstand-16) var(--abstand-8);
   flex: none;
 }
-.blatt .bi { padding: 0 16px; flex: none; }
-.blatt .bf { padding: 12px 16px 0; flex: none; }
+.blatt .bi { padding: 0 var(--abstand-16); flex: none; }
+.blatt .bf { padding: var(--abstand-12) var(--abstand-16) 0; flex: none; }
 .blatt .bf .btn { width: 100%; }
 .blatt form { display: flex; flex-direction: column; }
 .lab {
@@ -862,15 +900,15 @@ a.tx:focus-visible {
   font-weight: 600;
   font-size: 14px;
   line-height: 20px;
-  margin: 0 0 8px;
+  margin: 0 0 var(--abstand-8);
 }
 input.feld {
   width: 100%;
   min-height: 48px;
   border: 1px solid var(--feldrand);
-  border-radius: 8px;
+  border-radius: var(--radius-8);
   background: var(--grund);
-  padding: 12px 14px;
+  padding: var(--abstand-12) var(--abstand-14);
   font: inherit;
   font-size: 16px;
   line-height: 24px;
@@ -882,7 +920,7 @@ input.feld:focus {
 }
 input.feld::placeholder { color: var(--leise); }
 .feldfehler {
-  margin: 8px 0 0;
+  margin: var(--abstand-8) 0 0;
   font-size: 13px;
   line-height: 18px;
   color: var(--gefahr);
@@ -896,8 +934,8 @@ input.feld::placeholder { color: var(--leise); }
 
 .schalt {
   height: 32px;
-  padding: 0 12px;
-  border-radius: 8px;
+  padding: 0 var(--abstand-12);
+  border-radius: var(--radius-8);
   border: 1px solid var(--feldrand);
   font-size: 13px;
   line-height: 18px;
@@ -909,7 +947,7 @@ input.feld::placeholder { color: var(--leise); }
   background: var(--flaeche-2);
   border-color: var(--haupt);
 }
-.notizblatt { padding: 16px var(--rand) 40px; }
+.notizblatt { padding: var(--abstand-16) var(--rand) var(--abstand-40); }
 .notizblatt .lesetext {
   font-size: 18px;
   line-height: 28px;
@@ -928,7 +966,7 @@ input.feld::placeholder { color: var(--leise); }
   font-size: 13px;
   line-height: 18px;
   color: var(--leise);
-  margin-top: 16px;
+  margin-top: var(--abstand-16);
 }
 .notizblatt.schreiben {
   display: flex;
@@ -959,7 +997,7 @@ input.feld::placeholder { color: var(--leise); }
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: 0 24px 80px;
+  padding: 0 var(--abstand-24) var(--abstand-80);
   max-width: 400px;
   width: 100%;
   margin: 0 auto;
@@ -968,30 +1006,30 @@ input.feld::placeholder { color: var(--leise); }
 .marke {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--abstand-10);
   font-weight: 600;
   font-size: 24px;
   line-height: 32px;
-  margin-bottom: 6px;
+  margin-bottom: var(--abstand-6);
 }
 .marke .logo { width: 28px; height: 28px; flex: none; }
 .login .sub {
   color: var(--leise);
   font-size: 15px;
   line-height: 22px;
-  margin-bottom: 16px;
+  margin-bottom: var(--abstand-16);
 }
-.login .lab { margin: 16px 0 8px; }
+.login .lab { margin: var(--abstand-16) 0 var(--abstand-8); }
 .login input.feld { background: var(--flaeche); }
 .pw { position: relative; }
-.pw input { padding-right: 76px; }
+.pw input { padding-right: var(--abstand-76); }
 .pw .zeig {
   position: absolute;
   right: 0;
   top: 0;
   height: 48px;
   min-width: 72px;
-  padding: 0 14px;
+  padding: 0 var(--abstand-14);
   font-weight: 500;
   font-size: 15px;
   color: var(--haupt);
@@ -1000,15 +1038,15 @@ input.feld::placeholder { color: var(--leise); }
   outline: 2px solid var(--fokus);
   outline-offset: 2px;
 }
-.login .btn.voll { width: 100%; margin-top: 28px; }
+.login .btn.voll { width: 100%; margin-top: var(--abstand-28); }
 .login .alarm {
-  margin: 12px 0 0;
+  margin: var(--abstand-12) 0 0;
   font-size: 13px;
   line-height: 18px;
   color: var(--gefahr);
 }
 .login .hinweis {
-  margin-top: 16px;
+  margin-top: var(--abstand-16);
   text-align: center;
   font-size: 13px;
   line-height: 18px;
@@ -1016,8 +1054,8 @@ input.feld::placeholder { color: var(--leise); }
 }
 .abmelden {
   height: 48px;
-  padding: 0 12px;
-  border-radius: 8px;
+  padding: 0 var(--abstand-12);
+  border-radius: var(--radius-8);
   font-weight: 500;
   font-size: 15px;
   line-height: 20px;
@@ -1035,7 +1073,7 @@ input.feld::placeholder { color: var(--leise); }
   right: 10px;
   width: 8px;
   height: 8px;
-  border-radius: 50%;
+  border-radius: var(--radius-kreis);
   background: var(--fokus);
   pointer-events: none;
 }
@@ -1043,7 +1081,7 @@ input.feld::placeholder { color: var(--leise); }
   min-height: 48px;
   display: flex;
   align-items: center;
-  padding: 8px 16px;
+  padding: var(--abstand-8) var(--abstand-16);
   font-size: 15px;
   line-height: 20px;
 }
@@ -1058,7 +1096,7 @@ input.feld::placeholder { color: var(--leise); }
   display: grid;
   place-items: center;
   color: var(--haupt);
-  border-radius: 8px;
+  border-radius: var(--radius-8);
   flex: none;
 }
 .toast.hinweis .x:focus-visible {
@@ -1071,11 +1109,11 @@ input.feld::placeholder { color: var(--leise); }
   white-space: normal;
   overflow: visible;
 }
-.versionen { padding: 16px 16px 48px; }
+.versionen { padding: var(--abstand-16) var(--abstand-16) var(--abstand-48); }
 .versionen section + section {
   border-top: 1px solid var(--trenner);
-  margin-top: 16px;
-  padding-top: 16px;
+  margin-top: var(--abstand-16);
+  padding-top: var(--abstand-16);
 }
 .versionen .nr {
   font-weight: 600;
@@ -1083,20 +1121,20 @@ input.feld::placeholder { color: var(--leise); }
   line-height: 22px;
 }
 .versionen .wann {
-  margin-top: 2px;
+  margin-top: var(--abstand-2);
   font-size: 13px;
   line-height: 18px;
   color: var(--leise);
 }
 .versionen ul {
-  margin: 8px 0 0;
-  padding-left: 18px;
+  margin: var(--abstand-8) 0 0;
+  padding-left: var(--abstand-18);
 }
 .versionen li {
   color: var(--leise);
   font-size: 15px;
   line-height: 22px;
-  margin: 4px 0;
+  margin: var(--abstand-4) 0;
   overflow-wrap: break-word;
 }
 @media (min-width: 900px) {
@@ -1135,7 +1173,7 @@ input.feld::placeholder { color: var(--leise); }
 .schreib .cm-line { padding: 0; }
 .schreib .cm-editor.cm-focused { outline: none; }
 .schreib .cm-cursor { border-left-color: var(--fokus); }
-.schreib .cm-selectionBackground { background: rgba(96, 165, 250, 0.35) !important; }
+.schreib .cm-selectionBackground { background: var(--auswahl) !important; }
 .schreib .cm-fett,
 .schreib .cm-kursiv,
 .schreib .cm-strich,
@@ -1157,17 +1195,20 @@ input.feld::placeholder { color: var(--leise); }
 }
 .schreib .cm-code {
   background: var(--stil-hintergrund, var(--flaeche-2));
-  border-radius: 4px;
+  border-radius: var(--radius-4);
 }
 .schreib .cm-ueberschrift { font-weight: 650; }
 .schreib .cm-link { color: var(--fokus); }
 .schreib .cm-wichtig {
   background: #f3e2a8;
+  background: var(--wichtig-hintergrund);
   color: #1a1a1a;
-  border-radius: 2px;
+  color: var(--wichtig-schrift);
+  border-radius: var(--radius-2);
   box-shadow: inset 0 -2px 0 #5c4314;
+  box-shadow: inset 0 -2px 0 var(--wichtig-strich);
 }
-.schreib .cm-link.cm-wichtig { color: #1a1a1a; text-decoration: underline; }
+.schreib .cm-link.cm-wichtig { color: #1a1a1a; color: var(--wichtig-schrift); text-decoration: underline; }
 .schreib .cm-marker-weg {
   font-size: 0;
   line-height: 0;
@@ -1187,19 +1228,20 @@ input.feld::placeholder { color: var(--leise); }
   vertical-align: baseline;
 }
 .schreib .cm-editor .cm-line.cm-wichtig-zeile {
-  padding-left: 10px;
+  padding-left: var(--abstand-10);
   box-shadow: inset 3px 0 0 #b8892e;
+  box-shadow: inset 3px 0 0 var(--wichtig-balken);
 }
-.schreib .cm-wichtig-marker { color: #8d8d8d; }
+.schreib .cm-wichtig-marker { color: var(--wichtig-marker); }
 .schreib .cm-punkt,
 .schreib .cm-nummer { color: var(--haupt); }
 .schreib .cm-haken {
   display: inline-block;
   width: 16px;
   height: 16px;
-  margin-right: 8px;
+  margin-right: var(--abstand-8);
   border: 1.5px solid var(--feldrand);
-  border-radius: 4px;
+  border-radius: var(--radius-4);
   vertical-align: -2px;
   text-align: center;
   line-height: 14px;
@@ -1218,14 +1260,14 @@ input.feld::placeholder { color: var(--leise); }
   font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
   font-size: 0.92em;
   background: var(--stil-hintergrund, var(--flaeche-2));
-  border-radius: 4px;
-  padding: 0 4px;
+  border-radius: var(--radius-4);
+  padding: 0 var(--abstand-4);
 }
 .lesetext pre {
   margin: 0;
-  padding: 8px 10px;
+  padding: var(--abstand-8) var(--abstand-10);
   background: var(--flaeche-2);
-  border-radius: 8px;
+  border-radius: var(--radius-8);
   overflow-x: auto;
 }
 .lesetext pre code {
@@ -1239,7 +1281,7 @@ input.feld::placeholder { color: var(--leise); }
   width: 1px;
   height: 1px;
   padding: 0;
-  margin: -1px;
+  margin: var(--sr-versatz);
   overflow: hidden;
   clip-path: inset(50%);
   white-space: nowrap;
@@ -1247,17 +1289,21 @@ input.feld::placeholder { color: var(--leise); }
 .lesetext mark {
   position: relative;
   background: #f3e2a8;
+  background: var(--wichtig-hintergrund);
   color: #1a1a1a;
-  border-radius: 2px;
+  color: var(--wichtig-schrift);
+  border-radius: var(--radius-2);
   border-bottom: 2px solid #5c4314;
-  padding: 0 1px;
+  border-bottom: 2px solid var(--wichtig-strich);
+  padding: 0 var(--abstand-1);
   -webkit-box-decoration-break: clone;
   box-decoration-break: clone;
 }
 .lesetext mark a { color: inherit; text-decoration: underline; }
 .lesetext .wichtigzeile {
   border-left: 3px solid #b8892e;
-  padding-left: 8px;
+  border-left: 3px solid var(--wichtig-balken);
+  padding-left: var(--abstand-8);
   min-height: 24px;
 }
 .lesetext ol {
@@ -1267,21 +1313,21 @@ input.feld::placeholder { color: var(--leise); }
   counter-reset: punkt;
 }
 .lesetext ol li {
-  padding-left: 28px;
+  padding-left: var(--abstand-28);
   counter-increment: punkt;
 }
 .lesetext ol li::before {
   content: counter(punkt) ".";
   width: auto;
   height: auto;
-  border-radius: 0;
+  border-radius: var(--radius-0);
   background: none;
   top: 0;
   left: 0;
 }
 .format-leiste {
   display: flex;
-  gap: 4px;
+  gap: var(--abstand-4);
   align-items: center;
   z-index: 32;
 }
@@ -1292,7 +1338,7 @@ input.feld::placeholder { color: var(--leise); }
   display: grid;
   place-items: center;
 }
-.format-leiste .schalt.breit { width: auto; padding: 0 10px; }
+.format-leiste .schalt.breit { width: auto; padding: 0 var(--abstand-10); }
 .format-leiste .schalt.fett { font-weight: 700; }
 .format-leiste .schalt.kursiv { font-style: italic; }
 .format-leiste .schalt.strich { text-decoration: line-through; }
@@ -1303,24 +1349,24 @@ input.feld::placeholder { color: var(--leise); }
   bottom: var(--leiste-boden, env(safe-area-inset-bottom, 0px));
   background: var(--flaeche);
   border-top: 1px solid var(--trenner);
-  padding: var(--leiste-pad) 8px;
+  padding: var(--leiste-pad) var(--abstand-8);
   overflow-x: auto;
 }
 .format-leiste.schwebend {
   position: fixed;
   background: var(--flaeche);
   border: 1px solid var(--trenner);
-  border-radius: 10px;
-  padding: 4px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  border-radius: var(--radius-10);
+  padding: var(--abstand-4);
+  box-shadow: 0 8px 24px var(--schatten);
 }
 @media (max-width: 899px) {
   .app:has(.format-leiste.mobil) {
     padding-bottom: var(--leiste-hub, calc(var(--leiste-hoehe) + env(safe-area-inset-bottom, 0px)));
   }
   .fuss {
-    padding-top: 8px;
-    padding-bottom: 8px;
+    padding-top: var(--abstand-8);
+    padding-bottom: var(--abstand-8);
   }
   .notizblatt.schreiben {
     padding-bottom: var(--leiste-ueberlapp, var(--leiste-luecke));

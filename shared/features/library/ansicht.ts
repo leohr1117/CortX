@@ -1,4 +1,5 @@
 import { INBOX_NAME } from '../../kern/grenzen.ts';
+import { letzteNotizZeile as letzteAusLabel, MONATE, TEXTE } from '../../kern/texte.ts';
 import { seitentitel } from '../seiten/text.ts';
 import { gleicherName } from '../tags/index.ts';
 
@@ -18,27 +19,25 @@ export interface NotizGruppe<T> {
   notizen: T[];
 }
 
-const MONATE = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] as const;
-
 function tagesAnfang(datum: Date): number {
   return new Date(datum.getFullYear(), datum.getMonth(), datum.getDate()).getTime();
 }
 
 export function tagesLabel(iso: string, jetzt: Date): string {
   const datum = new Date(iso);
-  if (Number.isNaN(datum.getTime())) return 'Unknown';
+  if (Number.isNaN(datum.getTime())) return TEXTE.unbekannt;
   const tag = tagesAnfang(datum);
   const heute = tagesAnfang(jetzt);
   const gestern = tagesAnfang(new Date(jetzt.getFullYear(), jetzt.getMonth(), jetzt.getDate() - 1));
-  if (tag === heute) return 'Today';
-  if (tag === gestern) return 'Yesterday';
-  const monat = MONATE[datum.getMonth()] ?? 'Jan';
+  if (tag === heute) return TEXTE.heute;
+  if (tag === gestern) return TEXTE.gestern;
+  const monat = MONATE[datum.getMonth()] ?? MONATE[0];
   if (datum.getFullYear() === jetzt.getFullYear()) return `${datum.getDate()} ${monat}`;
   return `${datum.getDate()} ${monat} ${datum.getFullYear()}`;
 }
 
-export const LEERE_SEITEN = '0 pages';
-export const UNBENANNTE_SEITE = 'Untitled';
+export const LEERE_SEITEN = TEXTE.leereSeiten;
+export const UNBENANNTE_SEITE = TEXTE.unbenannt;
 
 export function seitenzeile(text: string, created: string, jetzt: Date): { titel: string; datum: string } {
   const titel = seitentitel(text);
@@ -49,11 +48,7 @@ export function seitenzeile(text: string, created: string, jetzt: Date): { titel
 }
 
 export function letzteNotizZeile(iso: string, jetzt: Date): string {
-  const label = tagesLabel(iso, jetzt);
-  if (label === 'Unknown') return 'Last note';
-  if (label === 'Today') return 'Last note today';
-  if (label === 'Yesterday') return 'Last note yesterday';
-  return `Last note ${label}`;
+  return letzteAusLabel(tagesLabel(iso, jetzt));
 }
 
 export function themaUnterzeile(zeile: BibliothekZeile, jetzt: Date): string {

@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import type { DatabaseSync } from 'node:sqlite';
 import { haengeBlock, neueSeite, pfadText, planeAblage, schluessel, seitentitel } from '../../../shared/features/seiten/index.ts';
 import { NOTE_TEXT_MAX } from '../../../shared/kern/grenzen.ts';
+import { TEXTE } from '../../../shared/kern/texte.ts';
 import type { Notiz } from '../../../shared/kern/modell.ts';
 import { AppFehler } from '../../kern/fehler.ts';
 import { transaktion } from '../../kern/db.ts';
@@ -9,9 +10,9 @@ import { legeThemaAn, listeThemen, themaId } from '../topics/index.ts';
 import { listeSeiten } from './katalog.ts';
 import { alsNotiz, liesNotizNachClient, liesNotizNachId, liesNotizenFuerThema, type NotizZeile } from './lesen.ts';
 
-const UNGUELTIG = 'The note text is missing or invalid.';
-const KONFLIKT = 'This page changed. Reload it and try again.';
-const LEER = 'Write something to add.';
+const UNGUELTIG = TEXTE.notizUngueltig;
+const KONFLIKT = TEXTE.seiteKonflikt;
+const LEER = TEXTE.leerAblegen;
 
 export interface AblageErgebnis {
   notiz: Notiz;
@@ -75,7 +76,7 @@ function haenge(db: DatabaseSync, seite: NotizZeile, block: string, abschnitt: s
     .run(text, seite.id, kontoId, seite.version);
   if (Number(geschrieben.changes) !== 1) throw new AppFehler(409, KONFLIKT);
   const neu = liesNotizNachId(db, seite.id, kontoId);
-  if (!neu) throw new AppFehler(500, 'Could not file the note.');
+  if (!neu) throw new AppFehler(500, TEXTE.nichtAblegen);
   return neu;
 }
 
@@ -96,7 +97,7 @@ function legeNeu(
       )
       .run(text, new Date().toISOString(), topicId, source, clientId, kontoId);
     const zeile = liesNotizNachId(db, Number(info.lastInsertRowid), kontoId);
-    if (!zeile) throw new AppFehler(500, 'Could not file the note.');
+    if (!zeile) throw new AppFehler(500, TEXTE.nichtAblegen);
     return zeile;
   } catch (fehler) {
     if (clientId && fehler instanceof Error && fehler.message.includes('UNIQUE')) {
@@ -123,7 +124,7 @@ export function legeAb(db: DatabaseSync, roh: string, clientId: string | null, k
       if (vorhanden) return schonDa(vorhanden);
     }
     const plan = planeAblage(roh, listeThemen(db, kontoId), listeSeiten(db, kontoId));
-    if (!plan) throw new AppFehler(400, 'Write something to file.');
+    if (!plan) throw new AppFehler(400, TEXTE.leerDatei);
     if (plan.ungueltig) throw new AppFehler(400, plan.hinweis ?? UNGUELTIG);
     const neuIds = new Set<number>();
     const alt = new Map<number, AltBild>();
@@ -134,7 +135,7 @@ export function legeAb(db: DatabaseSync, roh: string, clientId: string | null, k
     try {
       for (const ziel of plan.ziele) {
         const topicId = ziel.neu ? legeThemaAn(db, ziel.topicName, kontoId) : themaId(db, ziel.topicName, kontoId);
-        if (topicId === null) throw new AppFehler(500, 'Could not file the note.');
+        if (topicId === null) throw new AppFehler(500, TEXTE.nichtAblegen);
         if (ziel.seite) {
           const seite = findeSeite(db, topicId, ziel.seite, kontoId);
           if (seite) {
@@ -163,22 +164,22 @@ export function legeAb(db: DatabaseSync, roh: string, clientId: string | null, k
       if (fehler instanceof SchonDa) return schonDa(fehler.zeile);
       throw fehler;
     }
-    if (!letzte) throw new AppFehler(500, 'Could not file the note.');
+    if (!letzte) throw new AppFehler(500, TEXTE.nichtAblegen);
     const schritte: Array<{ art: 'anhaengen' | 'anlegen'; id: number; text: string; version: number; nachher?: number }> = [];
     for (const [id, bild] of alt) {
       const zeile = liesNotizNachId(db, id, kontoId);
-      if (!zeile) throw new AppFehler(500, 'Could not file the note.');
+      if (!zeile) throw new AppFehler(500, TEXTE.nichtAblegen);
       schritte.push({ art: 'anhaengen', id, text: bild.text, version: bild.version, nachher: zeile.version });
     }
     for (const id of neuIds) {
       const zeile = liesNotizNachId(db, id, kontoId);
-      if (!zeile) throw new AppFehler(500, 'Could not file the note.');
+      if (!zeile) throw new AppFehler(500, TEXTE.nichtAblegen);
       schritte.push({ art: 'anlegen', id, text: zeile.text, version: zeile.version });
     }
     return {
       notiz: alsNotiz(letzte),
       neu: irgendeinNeu,
-      ziel: ziele.join(' · '),
+      ziel: ziele.join(TEXTE.punktMitte),
       undo: merkeUndo(db, kontoId, { art: 'sammel', schritte, erfasst: roh }),
     };
   });

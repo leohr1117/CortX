@@ -2,11 +2,12 @@ import type { FastifyInstance } from 'fastify';
 import type { DatabaseSync } from 'node:sqlite';
 import { z } from 'zod';
 import { istVersionsnummer } from '../../../shared/features/version/index.ts';
+import { TEXTE } from '../../../shared/kern/texte.ts';
 import { AppFehler } from '../../kern/fehler.ts';
 import { verlangeKonto } from '../zugang/index.ts';
 import { liesStand, merkeStand } from './stand.ts';
 
-const UNGUELTIG = 'The version is missing or invalid.';
+const UNGUELTIG = TEXTE.versionUngueltig;
 
 const nummer = z.string().refine(istVersionsnummer);
 const koerper = z

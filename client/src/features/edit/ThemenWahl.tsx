@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { TEXTE } from '../../../../shared/kern/texte.ts';
 import { gleicherName } from '../../../../shared/features/tags/index.ts';
 import type { Notiz, Thema } from '../../../../shared/kern/modell.ts';
 import { verschiebeNotiz } from '../capture/api.ts';
@@ -74,7 +75,7 @@ export function ThemenWahl({
       }
       onZu(neu);
     } catch {
-      setFehler('Could not move the note.');
+      setFehler(TEXTE.verschiebenNotiz);
       setGesperrt(false);
     }
   }

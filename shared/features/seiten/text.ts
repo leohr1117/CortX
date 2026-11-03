@@ -1,3 +1,4 @@
+import { TEXTE } from '../../kern/texte.ts';
 import { ART, EBENE, type LeseBlock, type LeseTeil } from '../format/baum.ts';
 import { leseDokument } from '../format/lesen.ts';
 import { kopfZeichen, zeilenStuecke } from '../format/zeile.ts';
@@ -119,5 +120,5 @@ export function haengeBlock(seite: string, block: string, abschnitt: string | nu
 
 export function pfadText(topic: string, titel: string): string {
   if (titel.length === 0) return topic;
-  return `${topic} > ${titel}`;
+  return `${topic}${TEXTE.pfeil}${titel}`;
 }

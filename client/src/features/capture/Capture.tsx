@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { TEXTE } from '../../../../shared/kern/texte.ts';
 import { Link } from 'react-router';
 import type { EditorView } from '@codemirror/view';
 import { EBENEN, PFAD_TRENNER, pfadText, seitentitel, type SeiteKurz } from '../../../../shared/features/seiten/index.ts';
@@ -256,15 +257,15 @@ export function CaptureAnsicht() {
     const zielPlan = planeAblage(roh, themen, seiten);
     if (sperre.current || roh.trim().length === 0) return;
     if (zielPlan?.ungueltig) {
-      setFehler(zielPlan.hinweis ?? 'Could not file the note.');
+      setFehler(zielPlan.hinweis ?? TEXTE.nichtAblegen);
       return;
     }
     if (zielPlan && leeresAnhaengen(zielPlan)) {
-      setFehler('Write something to add.');
+      setFehler(TEXTE.leerAblegen);
       return;
     }
     if (roh.length > NOTE_TEXT_MAX) {
-      setFehler('Could not file the note.');
+      setFehler(TEXTE.nichtAblegen);
       return;
     }
     const vorher = meldung;
@@ -280,7 +281,7 @@ export function CaptureAnsicht() {
       beruehrt.current = true;
       if (ergebnis.art === 'abgelehnt') {
         setzeAussen(roh, roh.length);
-        setFehler(ergebnis.grund ?? 'Could not file the note.');
+        setFehler(ergebnis.grund ?? TEXTE.nichtAblegen);
         if (vorher) setMeldung(vorher);
         sichtRef.current?.focus();
         return;
@@ -302,7 +303,7 @@ export function CaptureAnsicht() {
       }
       sichtRef.current?.focus();
     } catch {
-      setFehler('Could not file the note.');
+      setFehler(TEXTE.nichtAblegen);
       if (vorher) setMeldung(vorher);
     } finally {
       sperre.current = false;
@@ -337,7 +338,7 @@ export function CaptureAnsicht() {
       <header className="kopf leer">
         <Link className="tlink" to="/library">
           <BibliothekIcon />
-          Library
+          {TEXTE.bibliothek}
         </Link>
       </header>
       <main className="cap">
@@ -345,7 +346,7 @@ export function CaptureAnsicht() {
           ref={sichtRef}
           text={text}
           leiste
-          placeholder="Start typing…"
+          placeholder={TEXTE.platzhalter}
           extensions={feld.erweiterung}
           onText={beiText}
           onCaret={setCaret}
@@ -374,11 +375,11 @@ export function CaptureAnsicht() {
           ) : null}
         </div>
         <div className="kbd" aria-hidden="true">
-          <span className="win">Ctrl</span>
+          <span className="win">{TEXTE.strg}</span>
           <i className="win">+</i>
-          <span className="win">Enter</span>
+          <span className="win">{TEXTE.eingabe}</span>
           <span className="mac">⌘</span>
-          <span className="mac">Enter</span>
+          <span className="mac">{TEXTE.eingabe}</span>
         </div>
         <button
           type="button"
@@ -386,7 +387,7 @@ export function CaptureAnsicht() {
           disabled={gesperrt}
           onClick={() => void ablegen()}
         >
-          File
+          {TEXTE.datei}
         </button>
       </footer>
     </div>

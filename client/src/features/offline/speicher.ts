@@ -1,3 +1,4 @@
+import { TEXTE } from '../../../../shared/kern/texte.ts';
 import type { WarteschlangeEintrag } from './warteschlange.ts';
 
 export const LOKAL_DB = 'cortex';
@@ -21,7 +22,7 @@ export function exklusiv<T>(arbeit: () => Promise<T>): Promise<T> {
 }
 
 function oeffne(): Promise<IDBDatabase> {
-  if (typeof indexedDB === 'undefined') return Promise.reject(new Error('Local storage is unavailable.'));
+  if (typeof indexedDB === 'undefined') return Promise.reject(new Error(TEXTE.speicherWeg));
   return new Promise((resolve, reject) => {
     const anfrage = indexedDB.open(LOKAL_DB, 1);
     anfrage.onupgradeneeded = () => {
@@ -32,7 +33,7 @@ function oeffne(): Promise<IDBDatabase> {
       }
     };
     anfrage.onsuccess = () => resolve(anfrage.result);
-    anfrage.onerror = () => reject(anfrage.error ?? new Error('Local storage is unavailable.'));
+    anfrage.onerror = () => reject(anfrage.error ?? new Error(TEXTE.speicherWeg));
   });
 }
 
@@ -46,7 +47,7 @@ async function liesWert(schluessel: string): Promise<string> {
         const wert = lesen.result as { text?: string } | undefined;
         resolve(wert?.text ?? '');
       };
-      lesen.onerror = () => reject(lesen.error ?? new Error('Could not read the draft.'));
+      lesen.onerror = () => reject(lesen.error ?? new Error(TEXTE.entwurfLesen));
     });
   } finally {
     db.close();
@@ -62,8 +63,8 @@ async function schreibWert(schluessel: string, text: string): Promise<void> {
       if (text.length === 0) store.delete(schluessel);
       else store.put({ text }, schluessel);
       tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error ?? new Error('Could not save the draft.'));
-      tx.onabort = () => reject(tx.error ?? new Error('Could not save the draft.'));
+      tx.onerror = () => reject(tx.error ?? new Error(TEXTE.entwurfSchreiben));
+      tx.onabort = () => reject(tx.error ?? new Error(TEXTE.entwurfSchreiben));
     });
   } finally {
     db.close();
@@ -85,7 +86,7 @@ export async function liesQueueOffen(): Promise<WarteschlangeEintrag[]> {
       const tx = db.transaction(WARTESCHLANGE_STORE, 'readonly');
       const lesen = tx.objectStore(WARTESCHLANGE_STORE).getAll();
       lesen.onsuccess = () => resolve(lesen.result as WarteschlangeEintrag[]);
-      lesen.onerror = () => reject(lesen.error ?? new Error('Could not read the queue.'));
+      lesen.onerror = () => reject(lesen.error ?? new Error(TEXTE.reiheLesen));
     });
   } finally {
     db.close();
@@ -99,8 +100,8 @@ export async function putQueueOffen(eintrag: WarteschlangeEintrag): Promise<void
       const tx = db.transaction(WARTESCHLANGE_STORE, 'readwrite');
       tx.objectStore(WARTESCHLANGE_STORE).put(eintrag);
       tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error ?? new Error('Could not save the note.'));
-      tx.onabort = () => reject(tx.error ?? new Error('Could not save the note.'));
+      tx.onerror = () => reject(tx.error ?? new Error(TEXTE.speichernNotiz));
+      tx.onabort = () => reject(tx.error ?? new Error(TEXTE.speichernNotiz));
     });
   } finally {
     db.close();
@@ -114,8 +115,8 @@ export async function entferneQueueOffen(clientId: string): Promise<void> {
       const tx = db.transaction(WARTESCHLANGE_STORE, 'readwrite');
       tx.objectStore(WARTESCHLANGE_STORE).delete(clientId);
       tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error ?? new Error('Could not update the queue.'));
-      tx.onabort = () => reject(tx.error ?? new Error('Could not update the queue.'));
+      tx.onerror = () => reject(tx.error ?? new Error(TEXTE.reiheSchreiben));
+      tx.onabort = () => reject(tx.error ?? new Error(TEXTE.reiheSchreiben));
     });
   } finally {
     db.close();

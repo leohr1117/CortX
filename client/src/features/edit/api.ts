@@ -1,4 +1,5 @@
 import type { Notiz } from '../../../../shared/kern/modell.ts';
+import { TEXTE } from '../../../../shared/kern/texte.ts';
 import { meldeAblauf } from '../zugang/index.ts';
 
 export class NotizFehler extends Error {
@@ -28,7 +29,7 @@ async function hole(url: string, fallback: string): Promise<Notiz> {
   try {
     antwort = await fetch(url, { cache: 'no-store' });
   } catch {
-    throw new NotizFehler('The network request failed.', null);
+    throw new NotizFehler(TEXTE.netzFehl, null);
   }
   if (!antwort.ok) return liesFehler(antwort, fallback);
   return (await antwort.json()) as Notiz;
@@ -42,28 +43,28 @@ async function sende(url: string, body: unknown): Promise<Response> {
       body: JSON.stringify(body),
     });
   } catch {
-    throw new NotizFehler('The network request failed.', null);
+    throw new NotizFehler(TEXTE.netzFehl, null);
   }
 }
 
 export function ladeNotiz(id: number): Promise<Notiz> {
-  return hole(`/api/notes/${id}`, 'Could not load the note.');
+  return hole(`/api/notes/${id}`, TEXTE.notizLaden);
 }
 
 export async function speichereNotiz(id: number, text: string, version: number): Promise<Notiz> {
   const antwort = await sende(`/api/notes/${id}`, { text, version });
-  if (!antwort.ok) return liesFehler(antwort, 'Could not save the note.');
+  if (!antwort.ok) return liesFehler(antwort, TEXTE.speichernNotiz);
   return (await antwort.json()) as Notiz;
 }
 
 export async function loescheNotiz(id: number): Promise<{ token: string }> {
   const antwort = await sende(`/api/notes/${id}/delete`, {});
-  if (!antwort.ok) return liesFehler(antwort, 'Could not delete the note.');
+  if (!antwort.ok) return liesFehler(antwort, TEXTE.loeschenNotiz);
   return (await antwort.json()) as { token: string };
 }
 
 export async function stelleNotizHer(token: string): Promise<Notiz> {
   const antwort = await sende('/api/notes/undo', { token });
-  if (!antwort.ok) return liesFehler(antwort, 'Could not undo.');
+  if (!antwort.ok) return liesFehler(antwort, TEXTE.nichtRueck);
   return (await antwort.json()) as Notiz;
 }

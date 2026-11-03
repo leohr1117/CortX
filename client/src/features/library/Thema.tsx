@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router';
 import { klickTipp, losTipp, merkTipp } from '../../ui/tipp.ts';
 import { gruppiereNotizen, LEERE_SEITEN, seitenzeile } from '../../../../shared/features/library/index.ts';
 import { INBOX_NAME } from '../../../../shared/kern/grenzen.ts';
+import { TEXTE } from '../../../../shared/kern/texte.ts';
 import { gleicherName } from '../../../../shared/features/tags/index.ts';
 import type { Thema } from '../../../../shared/kern/modell.ts';
 import type { Notiz } from '../../../../shared/kern/modell.ts';
@@ -32,8 +33,8 @@ import { bibliothekNeu, ladeThema, LeseFehler, notizPfad, themaPfad } from './ap
 import { Kopf } from './Kopf.tsx';
 
 function meldung(fehler: unknown): string {
-  if (fehler instanceof LeseFehler && fehler.status === 404) return 'Topic not found.';
-  return 'Could not load this topic.';
+  if (fehler instanceof LeseFehler && fehler.status === 404) return TEXTE.themaFehlt;
+  return TEXTE.themaLaden;
 }
 
 function NotizZeile({
@@ -83,7 +84,7 @@ export function ThemaAnsicht() {
   const name = params.get('name')?.trim() ?? '';
   const [titel, setTitel] = useState(name);
   const [notizen, setNotizen] = useState<Notiz[] | null>(null);
-  const [fehler, setFehler] = useState<string | null>(name ? null : 'Topic not found.');
+  const [fehler, setFehler] = useState<string | null>(name ? null : TEXTE.themaFehlt);
   const [dialog, setDialog] = useState<'menu' | 'rename' | 'merge' | null>(null);
   const [themen, setThemen] = useState<Thema[]>([]);
   const [aktionFehler, setAktionFehler] = useState<string | null>(null);
@@ -169,7 +170,7 @@ export function ThemaAnsicht() {
       setNotizMeldung(meldung);
       setNotizen((liste) => (liste ? liste.filter((eintrag) => eintrag.id !== notiz.id) : liste));
     } catch (grund: unknown) {
-      setAktionFehler(grund instanceof NotizFehler ? grund.message : 'Could not delete the note.');
+      setAktionFehler(grund instanceof NotizFehler ? grund.message : TEXTE.loeschenNotiz);
     } finally {
       sperre.current = false;
       setBeschaeftigt(false);
@@ -220,7 +221,7 @@ export function ThemaAnsicht() {
       });
     } catch (grund: unknown) {
       sperre.current = false;
-      setAktionFehler(grund instanceof PflegeFehler ? grund.message : 'Could not delete the topic.');
+      setAktionFehler(grund instanceof PflegeFehler ? grund.message : TEXTE.loeschenThema);
     }
   }
 
@@ -246,7 +247,7 @@ export function ThemaAnsicht() {
     } catch (grund: unknown) {
       sperre.current = false;
       setBeschaeftigt(false);
-      setAktionFehler(grund instanceof PflegeFehler ? grund.message : 'Could not merge the topic.');
+      setAktionFehler(grund instanceof PflegeFehler ? grund.message : TEXTE.zusammenThema);
     }
   }
 
@@ -290,10 +291,10 @@ export function ThemaAnsicht() {
 
   return (
     <div className="app">
-      <Kopf titel={titel || 'Topic'} zurueck="/library" zurueckLabel="Back to Library" aktion={aktion} />
+      <Kopf titel={titel || TEXTE.thema} zurueck="/library" zurueckLabel={TEXTE.zurueckBibliothek} aktion={aktion} />
       <main className="inhalt rolle">
         {fehler ? <p className="leer1">{fehler}</p> : null}
-        {notizen && notizen.length === 0 && inbox ? <p className="leer1">Inbox is empty.</p> : null}
+        {notizen && notizen.length === 0 && inbox ? <p className="leer1">{TEXTE.inboxLeer}</p> : null}
         {notizen && notizen.length === 0 && !inbox ? <p className="leer1">{LEERE_SEITEN}</p> : null}
         {gruppen.map((gruppe) => (
           <section key={gruppe.label}>

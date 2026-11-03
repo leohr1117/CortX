@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { TEXTE } from '../../../../shared/kern/texte.ts';
 import { PapierkorbIcon, PunkteIcon, StiftIcon, ZusammenIcon } from '../../ui/icons.tsx';
 
 export function ThemenKnopf({
@@ -43,7 +44,7 @@ export function ThemenKnopf({
       <button
         type="button"
         className={offen ? 'ib on' : 'ib'}
-        aria-label="Topic actions"
+        aria-label={TEXTE.themaAktionen}
         aria-haspopup="menu"
         aria-expanded={offen}
         aria-controls={offen ? 'thema-menue' : undefined}
@@ -52,21 +53,21 @@ export function ThemenKnopf({
         <PunkteIcon />
       </button>
       {offen ? (
-        <div className="menue" id="thema-menue" role="menu" aria-label="Topic actions">
+        <div className="menue" id="thema-menue" role="menu" aria-label={TEXTE.themaAktionen}>
           <button type="button" className="m" role="menuitem" onClick={onRename} disabled={gesperrt}>
             <StiftIcon />
-            <span>Rename</span>
+            <span>{TEXTE.umbenennen}</span>
           </button>
           <button type="button" className="m" role="menuitem" onClick={onMerge} disabled={gesperrt}>
             <ZusammenIcon />
-            <span>Merge into…</span>
+            <span>{TEXTE.zusammenfuehren}</span>
           </button>
           <div className="tr" role="separator" />
           <button type="button" className="m gef" role="menuitem" onClick={onDelete} disabled={gesperrt}>
             <PapierkorbIcon />
             <span className="mt">
-              <span>Delete topic</span>
-              <span className="ne">Its notes move to Inbox</span>
+              <span>{TEXTE.themaLoeschen}</span>
+              <span className="ne">{TEXTE.notizenNachInbox}</span>
             </span>
           </button>
         </div>

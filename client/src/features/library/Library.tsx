@@ -6,6 +6,7 @@ import {
   type Bibliothek,
   type BibliothekZeile,
 } from '../../../../shared/features/library/index.ts';
+import { TEXTE } from '../../../../shared/kern/texte.ts';
 import { HashIcon, PosteingangIcon, WeiterIcon } from '../../ui/icons.tsx';
 import { aktionRueckgaengig, textThemaWeg, textThemaZusammen, zeigeKarte } from '../../ui/karte.tsx';
 import {
@@ -24,7 +25,7 @@ import { klickTipp, losTipp, merkTipp } from '../../ui/tipp.ts';
 import { Kopf } from './Kopf.tsx';
 
 function Zeile({ zeile, inbox, jetzt }: { zeile: BibliothekZeile; inbox: boolean; jetzt: Date }) {
-  const ne = inbox ? 'Notes without a topic' : themaUnterzeile(zeile, jetzt);
+  const ne = inbox ? TEXTE.ohneThema : themaUnterzeile(zeile, jetzt);
   return (
     <Link className="zeile" to={themaPfad(zeile.name)} onPointerDown={merkTipp} onPointerUp={losTipp} onClick={klickTipp}>
       <span className="sym">{inbox ? <PosteingangIcon /> : <HashIcon />}</span>
@@ -140,7 +141,7 @@ export function LibraryAnsicht() {
     try {
       await macheRueckgaengig(meldung.token);
     } catch (grund: unknown) {
-      setUndoFehler(grund instanceof PflegeFehler ? grund.message : 'Could not undo.');
+      setUndoFehler(grund instanceof PflegeFehler ? grund.message : TEXTE.nichtRueck);
       setMachtRueck(false);
       return;
     }
@@ -167,9 +168,9 @@ export function LibraryAnsicht() {
   return (
     <div className="app">
       <Kopf
-        titel="Library"
+        titel={TEXTE.bibliothek}
         zurueck="/"
-        zurueckLabel="Back to Capture"
+        zurueckLabel={TEXTE.zurueckErfassen}
         aktion={
           <span className="kopf-aktion">
             <AbmeldenKnopf />
@@ -179,10 +180,10 @@ export function LibraryAnsicht() {
       />
       <main className="inhalt rolle">
         <Suchleiste wert={frage} onChange={beiSuche} />
-        {sucht && suchFehler ? <p className="leer1">Could not search.</p> : null}
+        {sucht && suchFehler ? <p className="leer1">{TEXTE.suchenFehl}</p> : null}
         {sucht && !suchFehler && treffer ? <Trefferliste treffer={treffer} /> : null}
-        {!sucht && fehler ? <p className="leer1">Could not load the library.</p> : null}
-        {!sucht && stand && leer ? <p className="leer1">No notes yet.</p> : null}
+        {!sucht && fehler ? <p className="leer1">{TEXTE.ladenBibliothek}</p> : null}
+        {!sucht && stand && leer ? <p className="leer1">{TEXTE.leer}</p> : null}
         {!sucht && stand && !leer ? (
           <>
             <div className="liste">
@@ -190,7 +191,7 @@ export function LibraryAnsicht() {
             </div>
             {themen.length > 0 ? (
               <>
-                <h2 className="ab">Topics</h2>
+                <h2 className="ab">{TEXTE.themen}</h2>
                 <div className="liste">
                   {themen.map((zeile) => (
                     <Zeile key={zeile.name} zeile={zeile} inbox={false} jetzt={jetzt} />

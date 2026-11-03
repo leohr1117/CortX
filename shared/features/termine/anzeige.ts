@@ -1,7 +1,6 @@
+import { MONATE, TEXTE } from '../../kern/texte.ts';
 import { berlinerTag } from './kalender.ts';
 import type { Termin } from './erkennen.ts';
-
-const MONATE = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] as const;
 
 export function terminText(termin: Termin, heute: Date): string {
   const teile = /^(\d{4})-(\d{2})-(\d{2})$/.exec(termin.datum);
@@ -14,5 +13,5 @@ export function terminText(termin: Termin, heute: Date): string {
   const basis = leseJahr === jahr ? `${tag} ${name}` : `${tag} ${name} ${jahr}`;
   if (!termin.uhrzeit) return basis;
   if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(termin.uhrzeit)) return basis;
-  return `${basis} · ${termin.uhrzeit}`;
+  return `${basis}${TEXTE.punktMitte}${termin.uhrzeit}`;
 }

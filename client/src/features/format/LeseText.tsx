@@ -13,6 +13,7 @@ import {
   type LeseTeil,
   type VorschauTag,
 } from '../../../../shared/features/format/index.ts';
+import { TEXTE } from '../../../../shared/kern/texte.ts';
 import { HakenIcon } from '../../ui/icons.tsx';
 
 function Markierung({ children }: { children: ReactNode }) {
@@ -21,7 +22,7 @@ function Markierung({ children }: { children: ReactNode }) {
   const Tag = vorschauTag(ART.wichtig) as VorschauTag;
   return (
     <Tag style={style}>
-      <span className="sr-nur">Wichtig</span>
+      <span className="sr-nur">{TEXTE.wichtigLesung}</span>
       {children}
     </Tag>
   );

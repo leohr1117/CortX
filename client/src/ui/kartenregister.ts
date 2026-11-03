@@ -1,3 +1,4 @@
+import { satzHinzugefuegt, satzThemaWeg, satzThemaZusammen, TEXTE } from '../../../shared/kern/texte.ts';
 import { zitier } from '../../../shared/features/topics/index.ts';
 
 export const KARTE_DAUER_OHNE_MS = 5000;
@@ -6,13 +7,13 @@ export const KARTE_WISCHEN_PX = 80;
 export const KARTE_TREFFER_PX = 48;
 
 export const KARTE_TEXT = {
-  rueckgaengig: 'Undo',
-  oeffnen: 'Open',
-  schliessen: 'Dismiss',
-  seiteGeloescht: 'Page deleted',
-  notizGeloescht: 'Note deleted',
-  offline: 'Filed offline · syncs later',
-  nichtRueckgaengig: 'Could not undo.',
+  rueckgaengig: TEXTE.rueckgaengig,
+  oeffnen: TEXTE.oeffnen,
+  schliessen: TEXTE.verwerfen,
+  seiteGeloescht: TEXTE.seiteGeloescht,
+  notizGeloescht: TEXTE.notizGeloescht,
+  offline: TEXTE.offline,
+  nichtRueckgaengig: TEXTE.nichtRueck,
 } as const;
 
 export type KarteAktionText = (typeof KARTE_TEXT)['rueckgaengig'] | (typeof KARTE_TEXT)['oeffnen'];
@@ -27,15 +28,15 @@ export function karteDauer(hatAktion: boolean): number {
 }
 
 export function textHinzugefuegt(ziel: string): string {
-  return `Added to ${ziel}`;
+  return satzHinzugefuegt(ziel);
 }
 
 export function textThemaWeg(name: string): string {
-  return `${zitier(name)} deleted`;
+  return satzThemaWeg(zitier(name));
 }
 
 export function textThemaZusammen(name: string, into: string): string {
-  return `${zitier(name)} merged into ${into}`;
+  return satzThemaZusammen(zitier(name), into);
 }
 
 export function aktionRueckgaengig(run: () => void): KarteAktion {

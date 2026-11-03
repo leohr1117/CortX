@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { pflegeMeldung, planeUmbenennen } from '../../../../shared/features/topics/index.ts';
 import { TOPIC_NAME_MAX } from '../../../../shared/kern/grenzen.ts';
+import { TEXTE } from '../../../../shared/kern/texte.ts';
 import type { Thema } from '../../../../shared/kern/modell.ts';
 import { SchliessenIcon } from '../../ui/icons.tsx';
 import { benenneUm, PflegeFehler } from './api.ts';
@@ -56,7 +57,7 @@ export function Umbenennen({
       const ergebnis = await benenneUm(name, plan.name);
       onSaved(ergebnis.topic);
     } catch (grund: unknown) {
-      setFehler(grund instanceof PflegeFehler ? grund.message : 'Could not rename the topic.');
+      setFehler(grund instanceof PflegeFehler ? grund.message : TEXTE.umbenennenThema);
       setSpeichert(false);
     }
   }
@@ -70,15 +71,15 @@ export function Umbenennen({
     <section className="blatt" role="dialog" aria-modal="true" aria-labelledby="umbenennen-titel">
       <div className="griff" aria-hidden="true" />
       <div className="bk">
-        <h2 id="umbenennen-titel">Rename topic</h2>
-        <button type="button" className="ib" aria-label="Close" onClick={onClose} disabled={speichert}>
+        <h2 id="umbenennen-titel">{TEXTE.themaUmbenennen}</h2>
+        <button type="button" className="ib" aria-label={TEXTE.schliessen} onClick={onClose} disabled={speichert}>
           <SchliessenIcon />
         </button>
       </div>
       <form noValidate onSubmit={senden}>
         <div className="bi">
           <label className="lab" htmlFor="thema-name">
-            Name
+            {TEXTE.name}
           </label>
           <input
             ref={feld}
@@ -104,7 +105,7 @@ export function Umbenennen({
         </div>
         <div className="bf">
           <button type="submit" className="btn" disabled={speichert}>
-            Save
+            {TEXTE.speichern}
           </button>
         </div>
       </form>

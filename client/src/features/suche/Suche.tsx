@@ -1,4 +1,5 @@
 import { Link } from 'react-router';
+import { TEXTE } from '../../../../shared/kern/texte.ts';
 import { SUCH_MAX, type SuchTreffer } from '../../../../shared/features/suche/index.ts';
 import { gleicherName } from '../../../../shared/features/tags/index.ts';
 import { INBOX_NAME } from '../../../../shared/kern/grenzen.ts';
@@ -13,8 +14,8 @@ export function Suchleiste({ wert, onChange }: { wert: string; onChange: (wert: 
       <LupeIcon />
       <input
         value={wert}
-        placeholder="Search notes"
-        aria-label="Search notes"
+        placeholder={TEXTE.sucheNotizen}
+        aria-label={TEXTE.sucheNotizen}
         maxLength={SUCH_MAX}
         autoCapitalize="off"
         autoCorrect="off"
@@ -27,7 +28,7 @@ export function Suchleiste({ wert, onChange }: { wert: string; onChange: (wert: 
 }
 
 export function Trefferliste({ treffer }: { treffer: SuchTreffer[] }) {
-  if (treffer.length === 0) return <p className="leer1">No matches.</p>;
+  if (treffer.length === 0) return <p className="leer1">{TEXTE.sucheLeer}</p>;
   return (
     <div className="liste">
       {treffer.map((zeile) => {

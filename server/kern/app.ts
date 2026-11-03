@@ -15,8 +15,10 @@ import { stridePasswortZiel } from '../../shared/features/zugang/index.ts';
 import { stridePublicUrl, strideUrl } from './config.ts';
 import { AppFehler } from './fehler.ts';
 
-const UNGUELTIG = 'The note text is missing or invalid.';
-const INTERN = 'Could not file the note.';
+import { TEXTE } from '../../shared/kern/texte.ts';
+
+const UNGUELTIG = TEXTE.notizUngueltig;
+const INTERN = TEXTE.nichtAblegen;
 const STUFEN = new Set(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']);
 
 function protokoll(stufe: string | false): FastifyServerOptions['logger'] {
@@ -77,7 +79,7 @@ export async function erstelleApp(
 
   app.setNotFoundHandler((anfrage, antwort) => {
     if (anfrage.url.startsWith('/api/') || !clientDa) {
-      return antwort.status(404).send({ error: 'Not found.' });
+      return antwort.status(404).send({ error: TEXTE.nichtGefunden });
     }
     return antwort.sendFile('index.html');
   });

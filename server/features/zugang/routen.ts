@@ -22,12 +22,14 @@ declare module 'fastify' {
   }
 }
 
-const FEHLT = 'Enter your username and password.';
-const FALSCH = 'The username or password is wrong.';
-const WEG = 'Stride is not reachable. Try again later.';
-const LIMIT = 'Too many sign-in attempts. Try again later.';
-const KAPUTT = 'Could not sign in.';
-const AN = 'Sign in.';
+import { TEXTE } from '../../../shared/kern/texte.ts';
+
+const FEHLT = TEXTE.anmeldenNamen;
+const FALSCH = TEXTE.anmeldenFalsch;
+const WEG = TEXTE.strideWeg;
+const LIMIT = TEXTE.anmeldenLimit;
+const KAPUTT = TEXTE.anmeldenKaputt;
+const AN = TEXTE.anmeldenPunkt;
 
 const koerper = z
   .object({

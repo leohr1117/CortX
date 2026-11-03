@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { TEXTE } from '../../../../shared/kern/texte.ts';
 import type { EditorView } from '@codemirror/view';
 import { leistenEintraege, type FormatBefehl } from '../../../../shared/features/format/index.ts';
 import {
@@ -117,7 +118,7 @@ export function Leiste({
       ref={leisteRef}
       className={mobil ? 'format-leiste mobil' : 'format-leiste schwebend'}
       role="toolbar"
-      aria-label="Format"
+      aria-label={TEXTE.format}
       style={stil}
     >
       {leistenEintraege().map((eintrag) => {

@@ -3,13 +3,14 @@ import type { DatabaseSync } from 'node:sqlite';
 import { z } from 'zod';
 import { pflegeMeldung } from '../../../shared/features/topics/index.ts';
 import { TOPIC_NAME_MAX } from '../../../shared/kern/grenzen.ts';
+import { TEXTE } from '../../../shared/kern/texte.ts';
 import { AppFehler } from '../../kern/fehler.ts';
 import { verlangeKonto } from '../zugang/index.ts';
 import { benenneUm, fuehreZusammen, loescheThema, macheRueckgaengig } from './pflege.ts';
 import { listeThemen } from './themen.ts';
 
 const UNGUELTIG = pflegeMeldung('invalid');
-const NICHTS = 'Nothing to undo.';
+const NICHTS = TEXTE.nichtsRueck;
 const nameFeld = z.string().max(TOPIC_NAME_MAX);
 const umbenennenBody = z.object({ name: nameFeld, next: nameFeld }).strict();
 const zusammenBody = z.object({ name: nameFeld, into: nameFeld }).strict();

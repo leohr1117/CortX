@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { TEXTE } from '../../../../shared/kern/texte.ts';
 import { HashIcon, PapierkorbIcon, PunkteIcon } from '../../ui/icons.tsx';
 
 export function NotizKnopf({
@@ -44,7 +45,7 @@ export function NotizKnopf({
       <button
         type="button"
         className={offen ? 'ib on' : 'ib'}
-        aria-label="Note actions"
+        aria-label={TEXTE.notizAktionen}
         aria-haspopup="menu"
         aria-expanded={offen}
         aria-controls={offen ? menueId : undefined}
@@ -53,15 +54,15 @@ export function NotizKnopf({
         <PunkteIcon />
       </button>
       {offen ? (
-        <div className="menue" id={menueId} role="menu" aria-label="Note actions">
+        <div className="menue" id={menueId} role="menu" aria-label={TEXTE.notizAktionen}>
           <button type="button" className="m" role="menuitem" onClick={onChange} disabled={gesperrt}>
             <HashIcon />
-            <span>Change</span>
+            <span>{TEXTE.aendern}</span>
           </button>
           <div className="tr" role="separator" />
           <button type="button" className="m gef" role="menuitem" onClick={onDelete} disabled={gesperrt}>
             <PapierkorbIcon />
-            <span>Delete</span>
+            <span>{TEXTE.loeschen}</span>
           </button>
         </div>
       ) : null}

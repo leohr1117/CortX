@@ -1,4 +1,5 @@
 import { INBOX_NAME, TOPIC_NAME_MAX } from '../../kern/grenzen.ts';
+import { hinweisZusammen, TEXTE } from '../../kern/texte.ts';
 import type { Thema } from '../../kern/modell.ts';
 import { gleicherName } from '../tags/index.ts';
 import { themaName } from './name.ts';
@@ -32,20 +33,20 @@ function fund(namen: readonly string[], roh: string): string | null {
 export function pflegeMeldung(grund: PflegeGrund): string {
   switch (grund) {
     case 'empty':
-      return 'Enter a name.';
+      return TEXTE.nameEingeben;
     case 'invalid':
-      return 'The topic name is missing or invalid.';
+      return TEXTE.themaUngueltig;
     case 'duplicate':
-      return 'A topic with this name already exists.';
+      return TEXTE.nameBelegt;
     case 'reserved':
-      return 'That name is reserved.';
+      return TEXTE.nameReserviert;
     case 'locked':
-      return 'Inbox cannot be changed.';
+      return TEXTE.inboxGesperrt;
     case 'missing':
     case 'unknown':
-      return 'Topic not found.';
+      return TEXTE.themaFehlt;
     case 'self':
-      return 'Choose a different topic.';
+      return TEXTE.anderesThema;
   }
 }
 
@@ -100,8 +101,5 @@ export function zitier(name: string): string {
 }
 
 export function zusammenHinweis(anzahl: number, name: string): string {
-  const titel = zitier(name);
-  if (anzahl === 0) return `${titel} is removed.`;
-  if (anzahl === 1) return `The note moves there and ${titel} is removed.`;
-  return `All ${anzahl} notes move there and ${titel} is removed.`;
+  return hinweisZusammen(anzahl, zitier(name));
 }

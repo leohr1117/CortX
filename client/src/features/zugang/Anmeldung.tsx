@@ -1,6 +1,7 @@
 import { type FormEvent, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { NAME_MAX, PASSWORT_MAX } from '../../../../shared/features/zugang/index.ts';
+import { TEXTE } from '../../../../shared/kern/texte.ts';
 import { useSitzung } from './Sitzung.tsx';
 
 export function Anmeldung() {
@@ -30,12 +31,12 @@ export function Anmeldung() {
         body: JSON.stringify({ name, passwort }),
       });
       if (!antwort.ok) {
-        let meldung = 'Could not sign in.';
+        let meldung: string = TEXTE.anmeldenKaputt;
         try {
           const daten = (await antwort.json()) as { error?: unknown };
           if (typeof daten.error === 'string' && daten.error.length > 0) meldung = daten.error;
         } catch {
-          meldung = 'Could not sign in.';
+          meldung = TEXTE.anmeldenKaputt;
         }
         setFehler(meldung);
         setPasswort('');
@@ -45,7 +46,7 @@ export function Anmeldung() {
       await navigate('/');
       anmelden();
     } catch {
-      setFehler('Stride is not reachable. Try again later.');
+      setFehler(TEXTE.strideWeg);
       setPasswort('');
       setSendet(false);
     }
@@ -57,20 +58,20 @@ export function Anmeldung() {
         <form method="post" noValidate onSubmit={(event) => void sende(event)}>
           <div className="marke">
             <svg className="logo" viewBox="0 0 28 28" aria-hidden="true">
-              <rect x="1" y="1" width="26" height="26" rx="8" fill="#f2f2f2" />
+              <rect x="1" y="1" width="26" height="26" rx="var(--logo-ecke)" fill="var(--aktion)" />
               <path
                 d="M9 9.5h10M9 14h10M9 18.5h6"
                 fill="none"
-                stroke="#141414"
+                stroke="var(--grund)"
                 strokeWidth="2"
                 strokeLinecap="round"
               />
             </svg>
-            CortX
+            {TEXTE.marke || 'CortX'}
           </div>
-          <p className="sub">Sign in with your Stride account.</p>
+          <p className="sub">{TEXTE.anmeldenUntertitel}</p>
           <label className="lab" htmlFor="username">
-            Username
+            {TEXTE.benutzer}
           </label>
           <input
             ref={nameFeld}
@@ -87,7 +88,7 @@ export function Anmeldung() {
             onChange={(event) => setName(event.target.value)}
           />
           <label className="lab" htmlFor="password">
-            Password
+            {TEXTE.passwort}
           </label>
           <div className="pw">
             <input
@@ -108,10 +109,10 @@ export function Anmeldung() {
               className="zeig"
               aria-controls="password"
               aria-pressed={sichtbar}
-              aria-label={sichtbar ? 'Hide password' : 'Show password'}
+              aria-label={sichtbar ? TEXTE.passwortVerbergen : TEXTE.passwortZeigen}
               onClick={() => setSichtbar((wert) => !wert)}
             >
-              {sichtbar ? 'Hide' : 'Show'}
+              {sichtbar ? TEXTE.verbergen : TEXTE.zeigen}
             </button>
           </div>
           {fehler ? (
@@ -120,9 +121,9 @@ export function Anmeldung() {
             </p>
           ) : null}
           <button className="btn voll" type="submit">
-            Sign in
+            {TEXTE.anmelden}
           </button>
-          <p className="hinweis">Change your password in Stride.</p>
+          <p className="hinweis">{TEXTE.passwortHinweis}</p>
         </form>
       </main>
     </div>

@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import type { DatabaseSync } from 'node:sqlite';
 import { z } from 'zod';
 import { NOTE_TEXT_MAX, TOPIC_NAME_MAX } from '../../../shared/kern/grenzen.ts';
+import { TEXTE } from '../../../shared/kern/texte.ts';
 import { AppFehler } from '../../kern/fehler.ts';
 import { verlangeKonto } from '../zugang/index.ts';
 import { loescheNotiz, speichereText, stelleNotizHer } from './aendern.ts';
@@ -10,8 +11,8 @@ import { listeSeiten } from './katalog.ts';
 import { alsNotiz, liesNotizNachId } from './lesen.ts';
 import { verschiebe } from './verschieben.ts';
 
-const UNGUELTIG = 'The note text is missing or invalid.';
-const THEMA_UNGUELTIG = 'The topic name is missing or invalid.';
+const UNGUELTIG = TEXTE.notizUngueltig;
+const THEMA_UNGUELTIG = TEXTE.themaUngueltig;
 
 const eingang = z
   .object({
@@ -32,7 +33,7 @@ const undoBody = z.object({ token: z.uuid() }).strict();
 
 function notizId(params: unknown): number {
   const parameter = idForm.safeParse(params);
-  if (!parameter.success) throw new AppFehler(404, 'Note not found.');
+  if (!parameter.success) throw new AppFehler(404, TEXTE.notizFehlt);
   return Number(parameter.data.id);
 }
 
@@ -53,13 +54,13 @@ export function notizRouten(api: FastifyInstance, db: DatabaseSync): void {
   api.post('/notes/undo', async (anfrage) => {
     const konto = verlangeKonto(anfrage);
     const body = undoBody.safeParse(anfrage.body);
-    if (!body.success) throw new AppFehler(400, 'Nothing to undo.');
+    if (!body.success) throw new AppFehler(400, TEXTE.nichtsRueck);
     return stelleNotizHer(db, body.data.token, konto);
   });
 
   api.get('/notes/:id', async (anfrage) => {
     const notiz = liesNotizNachId(db, notizId(anfrage.params), verlangeKonto(anfrage));
-    if (!notiz) throw new AppFehler(404, 'Note not found.');
+    if (!notiz) throw new AppFehler(404, TEXTE.notizFehlt);
     return alsNotiz(notiz);
   });
 

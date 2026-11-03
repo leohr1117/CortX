@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router';
 import { entscheideUpdateHinweis, HINWEIS_TEXT } from '../../../../shared/features/version/index.ts';
+import { TEXTE, versionsZeile } from '../../../../shared/kern/texte.ts';
 import { AKTUELLE_VERSION } from '../../../../shared/versionen.ts';
 import { PunkteIcon } from '../../ui/icons.tsx';
 import { KuerzelSchalter } from '../format/index.ts';
@@ -52,7 +53,7 @@ export function BibliothekMenue() {
       <button
         type="button"
         className={offen ? 'ib on' : 'ib'}
-        aria-label="Library menu"
+        aria-label={TEXTE.menueBibliothek}
         aria-haspopup="menu"
         aria-expanded={offen}
         aria-controls={offen ? 'bibliothek-menue' : undefined}
@@ -62,9 +63,9 @@ export function BibliothekMenue() {
         {punkt ? <span className="neu-punkt" data-neu-punkt="" aria-hidden="true" /> : null}
       </button>
       {offen ? (
-        <div className="menue" id="bibliothek-menue" role="menu" aria-label="Library menu">
+        <div className="menue" id="bibliothek-menue" role="menu" aria-label={TEXTE.menueBibliothek}>
           <div className="stat" role="none" data-version={AKTUELLE_VERSION}>
-            <span>Version {AKTUELLE_VERSION}</span>
+            <span>{versionsZeile(AKTUELLE_VERSION)}</span>
           </div>
           <div className="tr" role="separator" />
           <div role="none">

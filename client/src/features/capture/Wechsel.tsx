@@ -2,6 +2,7 @@ import { Fragment, type KeyboardEvent, useEffect, useRef, useState } from 'react
 import { neuesThemaZeile, sucheThemen } from '../../../../shared/features/topics/index.ts';
 import { gleicherName } from '../../../../shared/features/tags/index.ts';
 import { INBOX_NAME } from '../../../../shared/kern/grenzen.ts';
+import { neuerName, TEXTE } from '../../../../shared/kern/texte.ts';
 import type { Thema } from '../../../../shared/kern/modell.ts';
 import { ListeMitNeu } from '../../ui/ListeMitNeu.tsx';
 import { HakenIcon, HashIcon, LupeIcon, PlusIcon, PosteingangIcon, SchliessenIcon } from '../../ui/icons.tsx';
@@ -124,7 +125,7 @@ export function Wechsel({
         <span className="sym">
           {zeile.neu ? <PlusIcon /> : gleicherName(zeile.name, INBOX_NAME) ? <PosteingangIcon /> : <HashIcon />}
         </span>
-        <span className="n">{zeile.neu ? `New topic “${zeile.name}”` : zeile.name}</span>
+        <span className="n">{zeile.neu ? neuerName(TEXTE.neuesThema, zeile.name) : zeile.name}</span>
         {gewaehlt ? <HakenIcon /> : zeile.neu ? null : <span className="w">{zeile.count}</span>}
       </div>
     );
@@ -134,8 +135,8 @@ export function Wechsel({
     <section className="blatt" role="dialog" aria-modal="true" aria-labelledby="wechsel-titel">
       <div className="griff" aria-hidden="true" />
       <div className="bk">
-        <h2 id="wechsel-titel">Move note to</h2>
-        <button type="button" className="ib" aria-label="Close" onClick={onSchliessen}>
+        <h2 id="wechsel-titel">{TEXTE.verschiebenTitel}</h2>
+        <button type="button" className="ib" aria-label={TEXTE.schliessen} onClick={onSchliessen}>
           <SchliessenIcon />
         </button>
       </div>
@@ -144,8 +145,8 @@ export function Wechsel({
         <input
           ref={feld}
           value={suche}
-          placeholder="Search topics"
-          aria-label="Search topics"
+          placeholder={TEXTE.sucheThemen}
+          aria-label={TEXTE.sucheThemen}
           aria-controls="wechsel-liste"
           aria-expanded={zeilen.length > 0}
           aria-activedescendant={zeilen.length > 0 ? `wechsel-${index}` : undefined}
@@ -161,7 +162,7 @@ export function Wechsel({
       <ListeMitNeu
         id="wechsel-liste"
         className="wl"
-        label="Topics"
+        label={TEXTE.themen}
         aktivId={angefasst && zeilen.length > 0 ? `wechsel-${index}` : undefined}
         neu={
           neuZeile ? (

@@ -1,4 +1,5 @@
 import { type ReactNode, createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { TEXTE } from '../../../../shared/kern/texte.ts';
 import { useNavigate } from 'react-router';
 import type { SitzungsModus } from './ansicht.ts';
 
@@ -111,7 +112,7 @@ export function AbmeldenKnopf() {
 
   return (
     <button type="button" className="abmelden" onClick={() => void aus()}>
-      Sign out
+      {TEXTE.abmelden}
     </button>
   );
 }

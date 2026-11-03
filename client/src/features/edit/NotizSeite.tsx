@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router';
 import { ablageZeile, planeNotizText, textMeldung } from '../../../../shared/features/edit/index.ts';
 import { abschnittNamen, pfadText, seitentitel } from '../../../../shared/features/seiten/index.ts';
 import type { Notiz } from '../../../../shared/kern/modell.ts';
+import { TEXTE } from '../../../../shared/kern/texte.ts';
 import { AugeIcon, StiftIcon } from '../../ui/icons.tsx';
 import { Editor, LeseText } from '../format/index.ts';
 import { themaPfad } from '../library/api.ts';
@@ -36,7 +37,7 @@ export function NotizSeite() {
   const [feld, setFeld] = useState('');
   const [basis, setBasis] = useState('');
   const [modus, setModus] = useState<Modus>('lesen');
-  const [fehler, setFehler] = useState<string | null>(id === null ? 'Note not found.' : null);
+  const [fehler, setFehler] = useState<string | null>(id === null ? TEXTE.notizFehlt : null);
   const [hinweis, setHinweis] = useState<string | null>(null);
   const [bereit, setBereit] = useState(false);
   const [menue, setMenue] = useState(false);
@@ -87,7 +88,7 @@ export function NotizSeite() {
       .catch((grund: unknown) => {
         if (!aktiv) return;
         setNotiz(null);
-        setFehler(grund instanceof NotizFehler && grund.status === 404 ? 'Note not found.' : 'Could not load the note.');
+        setFehler(grund instanceof NotizFehler && grund.status === 404 ? TEXTE.notizFehlt : TEXTE.notizLaden);
       })
       .finally(() => {
         if (aktiv) setBereit(true);
@@ -156,17 +157,17 @@ export function NotizSeite() {
           setFeld(neu.text);
           setNotiz(neu);
           setFehler(null);
-          setHinweis('This page changed. Reloaded the latest text.');
+          setHinweis(TEXTE.seiteNeuGeladen);
           void schreibNotizEntwurf(neu.id, '').catch(() => undefined);
           return 'ok';
         } catch {
-          if (da.current) setFehler('This page changed. Reload it and try again.');
+          if (da.current) setFehler(TEXTE.seiteKonflikt);
           return 'fehler';
         }
       }
       if (!da.current || weg.current) return 'netz';
       const netz = grund instanceof NotizFehler && grund.status === null;
-      if (zeigen) setFehler(grund instanceof NotizFehler ? grund.message : 'Could not save the note.');
+      if (zeigen) setFehler(grund instanceof NotizFehler ? grund.message : TEXTE.speichernNotiz);
       return netz ? 'netz' : 'fehler';
     }
   }
@@ -218,19 +219,19 @@ export function NotizSeite() {
       navigate(themaPfad(aktuell.topic), { replace: true });
     } catch (grund: unknown) {
       weg.current = false;
-      if (da.current) setFehler(grund instanceof NotizFehler ? grund.message : 'Could not delete the note.');
+      if (da.current) setFehler(grund instanceof NotizFehler ? grund.message : TEXTE.loeschenNotiz);
     }
   }
 
   const zeile = notiz ? ablageZeile(notiz, new Date()) : '';
-  const pfad = notiz ? pfadText(notiz.topic, seitentitel(feld) || 'Untitled') : undefined;
+  const pfad = notiz ? pfadText(notiz.topic, seitentitel(feld) || TEXTE.unbenannt) : undefined;
   const namen = notiz && modus === 'lesen' ? abschnittNamen(feld) : [];
   const aktion = notiz ? (
     <div className="kopf-aktion">
       <button
         type="button"
         className="ib"
-        aria-label={modus === 'schreiben' ? 'Read' : 'Edit'}
+        aria-label={modus === 'schreiben' ? TEXTE.lesen : TEXTE.schreiben}
         onClick={() => void (modus === 'schreiben' ? zeigeLesen() : setModus('schreiben'))}
       >
         {modus === 'schreiben' ? <AugeIcon /> : <StiftIcon />}
@@ -252,13 +253,13 @@ export function NotizSeite() {
 
   return (
     <div className="app">
-      <Kopf titel={pfad} zurueck="/library" zurueckLabel="Back" onZurueck={() => void zurueck()} aktion={aktion} />
+      <Kopf titel={pfad} zurueck="/library" zurueckLabel={TEXTE.zurueck} onZurueck={() => void zurueck()} aktion={aktion} />
       <main className={modus === 'schreiben' ? 'inhalt rolle notizblatt schreiben' : 'inhalt rolle notizblatt'}>
         {fehler && !notiz ? <p className="leer1">{fehler}</p> : null}
         {notiz && modus === 'lesen' ? (
           <>
             {namen.length > 0 ? (
-              <nav className="verzeichnis" aria-label="On this page">
+              <nav className="verzeichnis" aria-label={TEXTE.aufSeite}>
                 {namen.map((name, index) => (
                   <a
                     key={`${index}-${name}`}
