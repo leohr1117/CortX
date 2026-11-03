@@ -1,40 +1,12 @@
 # Changelog
 
+## 1.9.0
+
+Deleting one side of bold, italic, strikethrough, important, or code removes the other side too. The words in between stay.
+
 ## 1.8.21
 
-Housekeeping only. CortX looks and works the same.
-
-## 1.8.20
-
-Formatting looks and works the same.
-
-## 1.8.19
-
-Housekeeping only. CortX looks and works the same.
-
-## 1.8.18
-
-Formatting looks and works the same.
-
-## 1.8.17
-
-Housekeeping only. CortX looks and works the same.
-
-## 1.8.16
-
-Formatting looks and works the same.
-
-## 1.8.15
-
-Formatting looks and works the same.
-
-## 1.8.14
-
-Formatting looks and works the same.
-
-## 1.8.13
-
-Housekeeping only. Notes, the format bar, and filing work the same.
+1.8.13 to 1.8.21: Internal cleanup, nothing changes for you.
 
 ## 1.8.12
 

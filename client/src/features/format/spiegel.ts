@@ -15,6 +15,7 @@ import {
   type TextWahl,
 } from '../../../../shared/features/format/index.ts';
 import { kuerzelAn } from './kuerzelSpeicher.ts';
+import { paarEingabe, paarFilter } from './paar.ts';
 import { schmuck } from './schmuck.ts';
 
 interface SpiegelHaken {
@@ -114,6 +115,8 @@ export function baueSpiegel(start: string, haken: SpiegelHaken): { erweiterungen
   let zuletzt = start;
   const erweiterungen: Extension[] = [
     history(),
+    paarFilter(),
+    paarEingabe,
     zeichneAuswahl(),
     EditorView.lineWrapping,
     thema,

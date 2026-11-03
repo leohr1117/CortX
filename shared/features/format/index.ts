@@ -29,6 +29,7 @@ export {
   STIL_VAR,
   formatVon,
   kombiniereStil,
+  loeschePaar,
   leistenEintraege,
   nurMarker,
   stilAttribut,

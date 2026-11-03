@@ -1,7 +1,7 @@
 import { ART, type Beleg } from './baum.ts';
 import type { TextWahl } from './ueberschrift.ts';
 import { schalteUeberschrift } from './ueberschrift.ts';
-import { belege, zeilenTreffer } from './lesen.ts';
+import { belege, leseDokument, zeilenTreffer } from './lesen.ts';
 import {
   INLINE_REGISTER,
   cursorInSchale,
@@ -92,6 +92,28 @@ function entferne(text: string, marker: Array<[number, number]>, start: number, 
     else if (bis > links) bis = links;
   }
   return { text: neu, start: von, ende: bis };
+}
+
+function inMarker(von: number, bis: number, spanne: readonly [number, number]): boolean {
+  return von >= spanne[0] && bis <= spanne[1];
+}
+
+export function loeschePaar(text: string, von: number, bis: number): TextWahl | null {
+  const wahl = klemme(text, von, bis);
+  if (wahl.start === wahl.ende) return null;
+  const arten = new Set<string>(INLINE_REGISTER.map((eintrag) => eintrag.art));
+  let beste: Beleg | null = null;
+  let breite = Number.POSITIVE_INFINITY;
+  for (const beleg of leseDokument(text).belege) {
+    if (!arten.has(beleg.art) || beleg.marker.length < 2) continue;
+    if (!beleg.marker.some((spanne) => inMarker(wahl.start, wahl.ende, spanne))) continue;
+    const span = beleg.ganzBis - beleg.ganzVon;
+    if (span >= breite) continue;
+    beste = beleg;
+    breite = span;
+  }
+  if (!beste) return null;
+  return entferne(text, beste.marker, wahl.start, wahl.ende);
 }
 
 function spanneZurueck(beleg: Beleg, index: number): { von: number; bis: number } {

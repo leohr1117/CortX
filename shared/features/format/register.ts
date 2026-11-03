@@ -13,6 +13,7 @@ import {
 } from './aktiv.ts';
 import {
   inlineAn,
+  loeschePaar,
   schalteCode,
   schalteFett,
   schalteHaken,
@@ -371,7 +372,7 @@ export function stilAttribut(arten: readonly string[]): string | undefined {
   return `${STIL_VAR}:${hintergrund}`;
 }
 
-export { inlineAn };
+export { inlineAn, loeschePaar };
 
 export interface InlineStand {
   fett: boolean;

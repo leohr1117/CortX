@@ -6,49 +6,17 @@ interface Versionseintrag {
 
 export const VERSIONEN: readonly Versionseintrag[] = [
   {
+    version: '1.9.0',
+    datum: '2026-11-03',
+    zeilen: [
+      'Deleting one side of bold, italic, strikethrough, important, or code removes the other side too.',
+      'The words in between stay.',
+    ],
+  },
+  {
     version: '1.8.21',
     datum: '2026-11-03',
-    zeilen: ['Housekeeping only. CortX looks and works the same.'],
-  },
-  {
-    version: '1.8.20',
-    datum: '2026-11-03',
-    zeilen: ['Formatting looks and works the same.'],
-  },
-  {
-    version: '1.8.19',
-    datum: '2026-11-03',
-    zeilen: ['Housekeeping only. CortX looks and works the same.'],
-  },
-  {
-    version: '1.8.18',
-    datum: '2026-11-03',
-    zeilen: ['Formatting looks and works the same.'],
-  },
-  {
-    version: '1.8.17',
-    datum: '2026-11-03',
-    zeilen: ['Housekeeping only. CortX looks and works the same.'],
-  },
-  {
-    version: '1.8.16',
-    datum: '2026-11-03',
-    zeilen: ['Formatting looks and works the same.'],
-  },
-  {
-    version: '1.8.15',
-    datum: '2026-11-03',
-    zeilen: ['Formatting looks and works the same.'],
-  },
-  {
-    version: '1.8.14',
-    datum: '2026-11-03',
-    zeilen: ['Formatting looks and works the same.'],
-  },
-  {
-    version: '1.8.13',
-    datum: '2026-11-03',
-    zeilen: ['Housekeeping only. Notes, the format bar, and filing work the same.'],
+    zeilen: ['1.8.13 to 1.8.21: Internal cleanup, nothing changes for you.'],
   },
   {
     version: '1.8.12',
