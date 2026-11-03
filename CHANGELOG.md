@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.8.19
+
+Housekeeping only. CortX looks and works the same.
+
 ## 1.8.18
 
 Formatting looks and works the same.
