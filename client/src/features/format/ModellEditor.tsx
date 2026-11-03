@@ -6,6 +6,7 @@ import { EditorState } from 'prosemirror-state';
 import { EditorView } from 'prosemirror-view';
 import { lade } from '../../../../shared/features/format/laden.ts';
 import { speichere } from '../../../../shared/features/format/speichern.ts';
+import { modellAblage } from './modellAblage.ts';
 import { modellEingabe } from './modellEingabe.ts';
 import { knotenAnsichten, markenAnsichten } from './modellSicht.ts';
 import { zustandNach } from './modellLauf.ts';
@@ -21,6 +22,7 @@ function plugins() {
     history(),
     keymap({ 'Mod-z': undo, 'Mod-y': redo, 'Shift-Mod-z': redo }),
     ...modellEingabe(),
+    modellAblage(),
     keymap(baseKeymap),
   ];
 }
