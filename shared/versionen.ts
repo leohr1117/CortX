@@ -6,6 +6,15 @@ interface Versionseintrag {
 
 export const VERSIONEN: readonly Versionseintrag[] = [
   {
+    version: '1.12.1',
+    datum: '2026-11-03',
+    zeilen: [
+      'In a note, - , [] and # at the start of a line become a list, a task, or a heading.',
+      '**text**, *text*, ~~text~~, !!text!! and `text` become formatting. Backspace right after restores the characters.',
+      'With shortcuts off, what you type stays as typed and is saved so it does not format on the next open.',
+    ],
+  },
+  {
     version: '1.12.0',
     datum: '2026-11-03',
     zeilen: [

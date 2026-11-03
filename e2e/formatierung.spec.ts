@@ -116,6 +116,27 @@ test('a typed dash and space becomes a list and backspace restores the character
   }
 });
 
+test('a typed bold shortcut becomes bold and backspace restores the characters', async ({ page }) => {
+  test.setTimeout(90_000);
+  const bestand = sichereBestand();
+  try {
+    setzeSchauspiel([{ name: 'Work', notizen: [{ text: 'Keep', created: versatz(11, 20) }] }]);
+    await page.goto('/library/topic?name=Work');
+    await page.locator('.notiz').first().locator('a.tx').click();
+    await page.getByRole('button', { name: 'Edit' }).click();
+    await setzeQuelle(page, '');
+    await tippe(page, '**x**');
+    await expect(page.locator('.modell-host .cm-fett')).toHaveText('x');
+    await erwarteQuelle(page, '**x**');
+    await page.keyboard.press('Backspace');
+    await expect(page.locator('.modell-host .cm-fett')).toHaveCount(0);
+    await expect(page.locator('.modell-host .ProseMirror')).toHaveText('**x**');
+    await erwarteQuelle(page, '\\*\\*x\\*\\*');
+  } finally {
+    stelleBestand(bestand);
+  }
+});
+
 test('turning shortcuts off keeps the format buttons', async ({ page }) => {
   test.setTimeout(90_000);
   const bestand = sichereBestand();
@@ -138,6 +159,17 @@ test('turning shortcuts off keeps the format buttons', async ({ page }) => {
     await setzeAuswahl(page, 0, 5);
     await page.keyboard.press('Control+b');
     await erwarteQuelle(page, '**Hello**');
+
+    await setzeQuelle(page, '');
+    await tippe(page, '**x**');
+    await expect(page.locator('.modell-host .cm-fett')).toHaveCount(0);
+    await expect(page.locator('.modell-host .ProseMirror')).toHaveText('**x**');
+    await erwarteQuelle(page, '\\*\\*x\\*\\*');
+    await setzeQuelle(page, '');
+    await tippe(page, '- ');
+    await expect(page.locator('.modell-host .cm-punkt')).toHaveCount(0);
+    await expect(page.locator('.modell-host .ProseMirror')).toHaveText('- ');
+    await erwarteQuelle(page, '\\- ');
   } finally {
     stelleBestand(bestand);
   }

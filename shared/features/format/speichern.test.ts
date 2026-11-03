@@ -211,6 +211,20 @@ describe('save a line document back to text', () => {
     expect(speichere(doc([absatz('~~done~~')]))).toBe('\\~\\~done\\~\\~');
   });
 
+  it('escapes a line shortcut typed with shortcuts off and keeps the old bytes otherwise', () => {
+    const liste = modell.nodes.absatz!.createChecked({ flucht: true }, modell.text('- Milch'));
+    const kopf = modell.nodes.absatz!.createChecked({ flucht: true }, modell.text('# Titel'));
+    expect(speichere(doc([liste]))).toBe('\\- Milch');
+    expect(speichere(doc([kopf]))).toBe('\\# Titel');
+    expect(lade('\\- Milch').textContent).toBe('- Milch');
+    expect(lade('\\- Milch').child(0).type.name).toBe('absatz');
+    expect(lade('\\# Titel').textContent).toBe('# Titel');
+    expect(speichere(lade('\\- Milch'))).toBe('\\- Milch');
+    expect(speichere(lade('\\# Titel'))).toBe('\\# Titel');
+    expect(speichere(doc([absatz('- Milch')]))).toBe('- Milch');
+    expect(speichere(doc([absatz('# Titel')]))).toBe('# Titel');
+  });
+
   it('round-trips each inline format and each pair from the nesting examples', () => {
     for (const name of ['fett', 'kursiv', 'strich', 'wichtig', 'code'] as const) runde(doc([absatz('Hi', marken(name))]));
     runde(doc([absatz('Hi', marken(ART.link))]));

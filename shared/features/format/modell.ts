@@ -17,7 +17,7 @@ interface ZeileAngabe {
 }
 
 const ZEILEN: readonly ZeileAngabe[] = [
-  { name: 'absatz', inhalt: 'inline*' },
+  { name: 'absatz', inhalt: 'inline*', attribute: { flucht: { standard: false } } },
   {
     name: 'ueberschrift',
     inhalt: 'inline*',

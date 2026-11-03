@@ -3,6 +3,7 @@ import { ART } from './baum.ts';
 import { FLUCHTZEICHEN } from './inline.ts';
 import { lade } from './laden.ts';
 import { formatVon, inlineFormate, type FormatId } from './register.ts';
+import { LISTEN_EINFUEGEN, kopfZeichen } from './zeile.ts';
 
 interface Stueck {
   text: string;
@@ -37,7 +38,7 @@ function rohtext(doc: Node): string | null {
 function attrsGleich(links: Record<string, unknown>, rechts: Record<string, unknown>): boolean {
   const namen = new Set([...Object.keys(links), ...Object.keys(rechts)]);
   for (const name of namen) {
-    if (name === 'quelle') continue;
+    if (name === 'quelle' || name === 'flucht') continue;
     if (links[name] !== rechts[name]) return false;
   }
   return true;
@@ -350,9 +351,17 @@ function passtZeile(knoten: Node, text: string): boolean {
   return doc !== null && doc.childCount === 1 && knotenGleich(doc.child(0), knoten);
 }
 
+function mitZeilenFlucht(text: string): string {
+  if (text.startsWith(LISTEN_EINFUEGEN) || text.startsWith(kopfZeichen(1))) return `\\${text}`;
+  return text;
+}
+
 function schreibeZeile(knoten: Node, index: number, kinder: readonly Node[]): string {
   const bruch = umbruchVon(knoten, index, kinder);
   const gebaut = VERSUCHE.map((versuch) => kernVon(knoten, index, kinder, versuch.voll, versuch.ausweichen) + bruch);
+  if (knoten.attrs.flucht === true && knoten.type.name === 'absatz') {
+    gebaut.push(mitZeilenFlucht(kernVon(knoten, index, kinder, true, false)) + bruch);
+  }
   if (istFortsetzung(knoten)) return gebaut[0] ?? bruch;
   for (const text of gebaut) {
     if (passtZeile(knoten, text)) return text;

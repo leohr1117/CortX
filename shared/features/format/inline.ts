@@ -5,8 +5,10 @@ import {
   FETT_UNTER,
   KURSIV_MARKER,
   KURSIV_UNTER,
+  LISTEN_EINFUEGEN,
   STREICH_MARKER,
   WICHTIG_INLINE,
+  kopfZeichen,
 } from './zeile.ts';
 
 const ESCAPE = new Set(['\\', '`', '*', '_', '~', '[', ']', '!']);
@@ -288,6 +290,11 @@ export function leseInline(
   const paare = wichtigPaare(zeile, vorher);
   let i = 0;
   while (i < zeile.length) {
+    if (i === 0 && (zeile.startsWith(`\\${LISTEN_EINFUEGEN}`) || zeile.startsWith(`\\${kopfZeichen(1)}`))) {
+      haengeText(teile, zeile[1] ?? '');
+      i = 2;
+      continue;
+    }
     if (zeile[i] === '\\' && ESCAPE.has(zeile[i + 1] ?? '')) {
       haengeText(teile, zeile[i + 1] ?? '');
       i += 2;
