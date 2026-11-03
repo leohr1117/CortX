@@ -1378,3 +1378,33 @@ input.feld::placeholder { color: var(--leise); }
   white-space: normal;
   align-items: flex-start;
 }
+.modell-host .ProseMirror {
+  box-sizing: border-box;
+  height: 100%;
+  min-height: 0;
+  overflow: auto;
+  white-space: pre-wrap;
+  white-space: break-spaces;
+  overflow-wrap: break-word;
+  outline: none;
+  background: transparent;
+  color: var(--haupt);
+  caret-color: var(--fokus);
+  font: inherit;
+  padding: 0;
+  counter-reset: nummer;
+}
+.modell-host .ProseMirror p,
+.modell-host .ProseMirror h2,
+.modell-host .ProseMirror div,
+.modell-host .ProseMirror pre {
+  margin: 0;
+}
+.modell-host .cm-wichtig-zeile {
+  padding-left: var(--abstand-10);
+  box-shadow: inset 3px 0 0 var(--wichtig-balken);
+}
+.modell-host .cm-nummer { counter-increment: nummer; }
+.modell-host .cm-marker { user-select: none; }
+.modell-host .cm-marker.punkt::before { content: "•"; }
+.modell-host .cm-marker.nummer::before { content: counter(nummer) "."; }
