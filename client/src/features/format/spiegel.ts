@@ -9,7 +9,7 @@ import { drawSelection, EditorView, keymap, type KeyBinding } from '@codemirror/
 import { NOTE_TEXT_MAX } from '../../../../shared/kern/grenzen.ts';
 import {
   leistenEintraege,
-  schalteFormat,
+  rufBefehl,
   wandleKuerzel,
   type FormatBefehl,
   type TextWahl,
@@ -40,6 +40,19 @@ function attribute(ungueltig: boolean): Extension {
   return EditorView.contentAttributes.of(werte);
 }
 
+export function wendeRuf(
+  view: EditorView,
+  id: FormatBefehl,
+  start: number,
+  ende: number,
+  ziel: string | null,
+): 'ziel' | 'text' {
+  const ergebnis = rufBefehl(id, view.state.doc.toString(), start, ende, ziel);
+  if (ergebnis.art === 'ziel') return 'ziel';
+  setzeWahl(view, ergebnis.wahl);
+  return 'text';
+}
+
 export function setzeWahl(view: EditorView, wahl: TextWahl): void {
   const start = Math.max(0, Math.min(wahl.start, wahl.text.length));
   const ende = Math.max(0, Math.min(wahl.ende, wahl.text.length));
@@ -53,26 +66,18 @@ export function setzeWahl(view: EditorView, wahl: TextWahl): void {
 }
 
 function formatTasten(haken: SpiegelHaken): readonly KeyBinding[] {
-  const lauf = (id: FormatBefehl) => (view: EditorView) => {
-    const sel = view.state.selection.main;
-    setzeWahl(view, schalteFormat(id, view.state.doc.toString(), sel.from, sel.to));
-    return true;
-  };
   const tasten: KeyBinding[] = [];
   for (const eintrag of leistenEintraege()) {
     const taste = eintrag.knopf.taste;
     if (!taste) continue;
-    if (eintrag.knopf.ziel) {
-      tasten.push({
-        key: taste,
-        run: () => {
-          haken.onLink();
-          return true;
-        },
-      });
-      continue;
-    }
-    tasten.push({ key: taste, run: lauf(eintrag.id) });
+    tasten.push({
+      key: taste,
+      run: (view) => {
+        const sel = view.state.selection.main;
+        if (wendeRuf(view, eintrag.id, sel.from, sel.to, null) === 'ziel') haken.onLink();
+        return true;
+      },
+    });
   }
   return tasten;
 }

@@ -13,7 +13,6 @@ import {
   sicherUntenPx,
   ueberlappPx,
 } from '../../ui/lage.ts';
-import { leseDruck, type Druck } from './druck.ts';
 
 function LeistenIcon({ pfade }: { pfade: readonly string[] }) {
   return (
@@ -24,18 +23,6 @@ function LeistenIcon({ pfade }: { pfade: readonly string[] }) {
     </svg>
   );
 }
-
-const LEER: Druck = {
-  fett: false,
-  kursiv: false,
-  strich: false,
-  code: false,
-  link: false,
-  ueberschrift: false,
-  liste: false,
-  haken: false,
-  wichtig: false,
-};
 
 export function Leiste({
   view,
@@ -49,7 +36,6 @@ export function Leiste({
   const leisteRef = useRef<HTMLDivElement>(null);
   const [mobil, setMobil] = useState(false);
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
-  const [druck, setDruck] = useState<Druck>(LEER);
 
   useLayoutEffect(() => {
     const media = window.matchMedia('(max-width: 899px)');
@@ -106,7 +92,6 @@ export function Leiste({
   useEffect(() => {
     if (!view) return;
     const sel = view.state.selection.main;
-    setDruck(leseDruck(view.state.doc.toString(), sel.from, sel.to));
     if (mobil) return;
     if (sel.empty) {
       setPos(null);
@@ -125,6 +110,8 @@ export function Leiste({
 
   if (!view || (!mobil && !pos)) return null;
   const stil = mobil || !pos ? undefined : { top: pos.top, left: pos.left };
+  const text = view.state.doc.toString();
+  const sel = view.state.selection.main;
   return (
     <div
       ref={leisteRef}
@@ -135,7 +122,7 @@ export function Leiste({
     >
       {leistenEintraege().map((eintrag) => {
         const knopf = eintrag.knopf;
-        const an = knopf.gedrueckt ? druck[eintrag.id] : false;
+        const an = knopf.gedrueckt ? eintrag.isActive(text, sel.from, sel.to) : false;
         return (
           <button
             key={eintrag.id}

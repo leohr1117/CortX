@@ -306,14 +306,23 @@ export function schalteKopf(text: string, start: number, ende: number): TextWahl
   return schalteUeberschrift(text, start, ende);
 }
 
+export type BefehlErgebnis = { art: 'ziel' } | { art: 'text'; wahl: TextWahl };
+
+export function rufBefehl(
+  id: FormatBefehl,
+  text: string,
+  start: number,
+  ende: number,
+  ziel: string | null,
+): BefehlErgebnis {
+  const befehl = formatVon(id);
+  if (!befehl.run) throw new Error('unknown command');
+  if (ziel === null && befehl.knopf?.ziel) return { art: 'ziel' };
+  return { art: 'text', wahl: befehl.run(text, start, ende, ziel ?? '') };
+}
+
 export function schalteFormat(id: FormatBefehl, text: string, start: number, ende: number, ziel = ''): TextWahl {
-  if (id === 'fett') return schalteFett(text, start, ende);
-  if (id === 'kursiv') return schalteKursiv(text, start, ende);
-  if (id === 'strich') return schalteStrich(text, start, ende);
-  if (id === 'code') return schalteCode(text, start, ende);
-  if (id === 'liste') return schalteListe(text, start, ende);
-  if (id === 'haken') return schalteHaken(text, start, ende);
-  if (id === 'wichtig') return schalteWichtig(text, start, ende);
-  if (id === 'link') return schalteVerknuepfung(text, start, ende, ziel);
-  return schalteKopf(text, start, ende);
+  const ergebnis = rufBefehl(id, text, start, ende, ziel);
+  if (ergebnis.art !== 'text') throw new Error('unknown command');
+  return ergebnis.wahl;
 }

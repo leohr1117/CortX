@@ -43,6 +43,8 @@ export {
   schalteStrich,
   schalteVerknuepfung,
   schalteWichtig,
+  rufBefehl,
+  type BefehlErgebnis,
 } from './befehl.ts';
 export { liegtInCode, wandleKuerzel } from './kuerzel.ts';
 export {

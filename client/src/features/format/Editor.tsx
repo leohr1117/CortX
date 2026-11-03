@@ -1,23 +1,14 @@
 import { type Ref, useLayoutEffect, useRef, useState } from 'react';
 import { EditorState, type Compartment, type Extension } from '@codemirror/state';
 import { EditorView, placeholder as platzhalter } from '@codemirror/view';
-import {
-  formatVon,
-  schalteFormat,
-  type FormatBefehl,
-  type TextWahl,
-} from '../../../../shared/features/format/index.ts';
+import { type FormatBefehl } from '../../../../shared/features/format/index.ts';
 import { Leiste } from './Leiste.tsx';
 import { LinkFeld } from './LinkFeld.tsx';
-import { baueSpiegel, setzeUngueltig, setzeWahl } from './spiegel.ts';
+import { baueSpiegel, setzeUngueltig, wendeRuf } from './spiegel.ts';
 
 interface Bereich {
   start: number;
   ende: number;
-}
-
-function wende(befehl: FormatBefehl, text: string, start: number, ende: number, ziel = ''): TextWahl {
-  return schalteFormat(befehl, text, start, ende, ziel);
 }
 
 function schreibeRef(ziel: Ref<EditorView | null> | undefined, wert: EditorView | null) {
@@ -139,19 +130,16 @@ export function Editor({
   function befehl(name: FormatBefehl) {
     const editor = viewRef.current;
     if (!editor) return;
-    if (formatVon(name).knopf?.ziel) {
-      const sel = editor.state.selection.main;
-      setLink({ start: sel.from, ende: sel.to });
-      return;
-    }
     const sel = editor.state.selection.main;
-    setzeWahl(editor, wende(name, editor.state.doc.toString(), sel.from, sel.to));
+    if (wendeRuf(editor, name, sel.from, sel.to, null) === 'ziel') {
+      setLink({ start: sel.from, ende: sel.to });
+    }
   }
 
   function fertig(ziel: string) {
     const editor = viewRef.current;
     if (!editor || !link) return;
-    setzeWahl(editor, wende('link', editor.state.doc.toString(), link.start, link.ende, ziel));
+    wendeRuf(editor, 'link', link.start, link.ende, ziel);
     setLink(null);
   }
 

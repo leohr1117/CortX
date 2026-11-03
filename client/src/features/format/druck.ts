@@ -1,13 +1,4 @@
-import {
-  WICHTIG_ZEILE,
-  hakenVon,
-  inlineAn,
-  kopfMarke,
-  leseDokument,
-  listenLaenge,
-  nummerLaenge,
-  type Beleg,
-} from '../../../../shared/features/format/index.ts';
+import { formatVon, type FormatBefehl } from '../../../../shared/features/format/index.ts';
 
 export interface Druck {
   fett: boolean;
@@ -21,45 +12,22 @@ export interface Druck {
   wichtig: boolean;
 }
 
-function zeileAm(text: string, index: number): string {
-  const von = text.lastIndexOf('\n', index - 1) + 1;
-  const danach = text.indexOf('\n', index);
-  const roh = text.slice(von, danach < 0 ? text.length : danach);
-  return roh.endsWith('\r') ? roh.slice(0, -1) : roh;
-}
-
-function istListe(zeile: string): boolean {
-  return listenLaenge(zeile) > 0 || nummerLaenge(zeile) > 0;
-}
-
-function istHaken(zeile: string): boolean {
-  return hakenVon(zeile) !== null;
-}
-
-function innen(beleg: Beleg, start: number, ende: number): boolean {
-  if (start === ende) return start >= beleg.von && start <= beleg.bis;
-  return start >= beleg.von && ende <= beleg.bis;
+function aktiv(id: FormatBefehl, text: string, start: number, ende: number): boolean {
+  const pruefe = formatVon(id).isActive;
+  if (!pruefe) throw new Error('unknown command');
+  return pruefe(text, start, ende);
 }
 
 export function leseDruck(text: string, start: number, ende: number): Druck {
-  const kopf = Math.max(0, Math.min(start, text.length));
-  const schwanz = Math.max(kopf, Math.min(ende, text.length));
-  const fund = leseDokument(text).belege;
-  const hat = (art: Beleg['art']) => fund.some((beleg) => beleg.art === art && innen(beleg, kopf, schwanz));
-  const zeile = zeileAm(text, kopf);
-  const inline = inlineAn(text, kopf, schwanz);
-  const codeblock = fund.some(
-    (beleg) => beleg.art === 'codeblock' && kopf >= beleg.ganzVon && schwanz <= beleg.ganzBis,
-  );
   return {
-    fett: inline.fett,
-    kursiv: inline.kursiv,
-    strich: inline.streich,
-    code: inline.code || codeblock,
-    link: hat('link'),
-    ueberschrift: kopfMarke(zeile) !== null,
-    liste: istListe(zeile),
-    haken: istHaken(zeile),
-    wichtig: inline.wichtig || zeile.startsWith(WICHTIG_ZEILE),
+    fett: aktiv('fett', text, start, ende),
+    kursiv: aktiv('kursiv', text, start, ende),
+    strich: aktiv('strich', text, start, ende),
+    code: aktiv('code', text, start, ende),
+    link: aktiv('link', text, start, ende),
+    ueberschrift: aktiv('ueberschrift', text, start, ende),
+    liste: aktiv('liste', text, start, ende),
+    haken: aktiv('haken', text, start, ende),
+    wichtig: aktiv('wichtig', text, start, ende),
   };
 }

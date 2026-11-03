@@ -1,4 +1,30 @@
 import {
+  aktivCode,
+  aktivFett,
+  aktivHaken,
+  aktivKopf,
+  aktivKursiv,
+  aktivLink,
+  aktivListe,
+  aktivStrich,
+  aktivWichtig,
+} from './aktiv.ts';
+import {
+  hatInlineWichtig,
+  inlineAn,
+  schalteCode,
+  schalteFett,
+  schalteHaken,
+  schalteInline,
+  schalteKopf,
+  schalteKursiv,
+  schalteListe,
+  schalteStrich,
+  schalteVerknuepfung,
+  schalteWichtig,
+} from './befehl.ts';
+import type { TextWahl } from './ueberschrift.ts';
+import {
   CODE_INLINE,
   FETT_MARKER,
   FETT_UNTER,
@@ -69,12 +95,21 @@ export type FormatKuerzel =
   | { art: 'wort'; ende: string }
   | { art: 'zeile'; genau: string; ersatz: string };
 
+export type BefehlRun = (text: string, start: number, ende: number, ziel?: string) => TextWahl;
+export type BefehlAktiv = (text: string, start: number, ende: number) => boolean;
+
 export interface FormatEintrag {
   id: FormatId;
   syntax?: FormatSyntax;
   knopf?: FormatKnopf;
   vorschau?: FormatVorschau;
   kuerzel?: FormatKuerzel;
+  readonly run?: BefehlRun;
+  readonly isActive?: BefehlAktiv;
+}
+
+function laufLink(text: string, start: number, ende: number, ziel = ''): TextWahl {
+  return schalteVerknuepfung(text, start, ende, ziel);
 }
 
 const HAKEN_EINFUEGEN = '[] ';
@@ -97,6 +132,8 @@ export const FORMAT_REGISTER: readonly FormatEintrag[] = [
     knopf: { zeichen: 'B', beschriftung: 'Bold', klasse: 'fett', gedrueckt: true, taste: 'Mod-b' },
     vorschau: { art: 'fett', klasse: 'cm-fett', rang: 1, tag: 'strong' },
     kuerzel: { art: 'wort', ende: FETT_MARKER },
+    get run() { return schalteFett; },
+    get isActive() { return aktivFett; },
   },
   {
     id: 'kursiv',
@@ -108,12 +145,16 @@ export const FORMAT_REGISTER: readonly FormatEintrag[] = [
     },
     knopf: { zeichen: 'I', beschriftung: 'Italic', klasse: 'kursiv', gedrueckt: true, taste: 'Mod-i' },
     vorschau: { art: 'kursiv', klasse: 'cm-kursiv', rang: 2, tag: 'em' },
+    get run() { return schalteKursiv; },
+    get isActive() { return aktivKursiv; },
   },
   {
     id: 'strich',
     syntax: { paare: [{ art: 'streich', marker: STREICH_MARKER, knopf: true, folge: 2 }] },
     knopf: { zeichen: 'S', beschriftung: 'Strikethrough', klasse: 'strich', gedrueckt: true, taste: 'Mod-Shift-x' },
     vorschau: { art: 'streich', klasse: 'cm-strich', rang: 3, tag: 's' },
+    get run() { return schalteStrich; },
+    get isActive() { return aktivStrich; },
   },
   {
     id: 'wichtig',
@@ -123,24 +164,32 @@ export const FORMAT_REGISTER: readonly FormatEintrag[] = [
     },
     knopf: { zeichen: '', beschriftung: 'Important', pfade: WICHTIG_PFAD, gedrueckt: true },
     vorschau: { art: 'wichtig', klasse: 'cm-wichtig', rang: 8, tag: 'mark' },
+    get run() { return schalteWichtig; },
+    get isActive() { return aktivWichtig; },
   },
   {
     id: 'code',
     syntax: { paare: [{ art: 'code', marker: CODE_INLINE, knopf: true, folge: 0 }], zaun: CODE_ZAUN },
     knopf: { zeichen: '</>', beschriftung: 'Code', gedrueckt: true, taste: 'Mod-e' },
     vorschau: { art: 'code', klasse: 'cm-code', rang: 4, tag: 'code' },
+    get run() { return schalteCode; },
+    get isActive() { return aktivCode; },
   },
   {
     id: 'ueberschrift',
     syntax: { einsetzen: UEBERSCHRIFT_MARKER },
     knopf: { zeichen: 'H', beschriftung: 'Heading', gedrueckt: true, taste: 'Mod-Shift-h' },
     vorschau: { art: 'ueberschrift', klasse: 'cm-ueberschrift', rang: 6 },
+    get run() { return schalteKopf; },
+    get isActive() { return aktivKopf; },
   },
   {
     id: 'liste',
     syntax: { einsetzen: LISTEN_EINFUEGEN },
     knopf: { zeichen: '', beschriftung: 'Bulleted list', pfade: LISTE_PFAD, gedrueckt: true, taste: 'Mod-Shift-l' },
     vorschau: { art: 'liste', widget: 'punkt' },
+    get run() { return schalteListe; },
+    get isActive() { return aktivListe; },
   },
   {
     id: 'haken',
@@ -148,12 +197,16 @@ export const FORMAT_REGISTER: readonly FormatEintrag[] = [
     knopf: { zeichen: '', beschriftung: 'Checklist', pfade: HAKEN_PFAD, gedrueckt: true, taste: 'Mod-Shift-u' },
     vorschau: { art: 'haken', widget: 'haken' },
     kuerzel: { art: 'zeile', genau: HAKEN_KUERZEL, ersatz: HAKEN_EINFUEGEN },
+    get run() { return schalteHaken; },
+    get isActive() { return aktivHaken; },
   },
   {
     id: 'link',
     syntax: { geruest: LINK_GERUEST },
     knopf: { zeichen: 'Link', beschriftung: 'Link', klasse: 'breit', gedrueckt: false, ziel: true, taste: 'Mod-k' },
     vorschau: { art: 'link', klasse: 'cm-link', rang: 5 },
+    get run() { return laufLink; },
+    get isActive() { return aktivLink; },
   },
   {
     id: 'codeblock',
@@ -176,11 +229,19 @@ export function formatVon(id: FormatId): FormatEintrag {
   return fund;
 }
 
-export function leistenEintraege(): readonly (FormatEintrag & { id: FormatBefehl; knopf: FormatKnopf })[] {
-  const aus: (FormatEintrag & { id: FormatBefehl; knopf: FormatKnopf })[] = [];
+export type LeistenEintrag = FormatEintrag & {
+  id: FormatBefehl;
+  knopf: FormatKnopf;
+  run: BefehlRun;
+  isActive: BefehlAktiv;
+};
+
+export function leistenEintraege(): readonly LeistenEintrag[] {
+  const aus: LeistenEintrag[] = [];
   for (const eintrag of FORMAT_REGISTER) {
-    if (!eintrag.knopf || eintrag.id === 'codeblock' || eintrag.id === 'nummer') continue;
-    aus.push(eintrag as FormatEintrag & { id: FormatBefehl; knopf: FormatKnopf });
+    if (!eintrag.knopf || !eintrag.run || !eintrag.isActive) continue;
+    if (eintrag.id === 'codeblock' || eintrag.id === 'nummer') continue;
+    aus.push(eintrag as LeistenEintrag);
   }
   return aus;
 }
@@ -294,7 +355,7 @@ export function stilAttribut(arten: readonly string[]): string | undefined {
   return `${STIL_VAR}:${hintergrund}`;
 }
 
-export { hatInlineWichtig, inlineAn, schalteInline } from './befehl.ts';
+export { hatInlineWichtig, inlineAn, schalteInline };
 
 export interface InlineStand {
   fett: boolean;
