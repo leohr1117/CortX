@@ -9,6 +9,7 @@ import { posFuer } from '../../../../shared/features/format/stelle.ts';
 import { setzeVorschlag, zielAmCursor } from '../../../../shared/features/seiten/zielvorschlag.ts';
 import { entfernePruefDom, richtePruefDom } from '../format/modellPruef.ts';
 import { ErfassenFeld } from './ErfassenFeld.tsx';
+import { setzeErfassenText } from './erfassenBefehl.ts';
 import { hatUeberschrift, textAusDokument } from './erfassenDokument.ts';
 
 const speicher = vi.hoisted(() => ({ text: '', schrieb: [] as string[] }));
@@ -61,10 +62,12 @@ interface Stand {
 function Halt({
   start,
   onAblegen,
+  platzhalter,
   stand,
 }: {
   start: string;
   onAblegen?: (text: string) => void;
+  platzhalter?: string;
   stand: Stand;
 }) {
   const [text, setText] = useState(start);
@@ -75,6 +78,7 @@ function Halt({
   return createElement(ErfassenFeld, {
     text,
     themen,
+    platzhalter,
     onAblegen,
     onText: (wert: string) => {
       stand.text = wert;
@@ -86,13 +90,13 @@ function Halt({
   });
 }
 
-async function oeffne(start = '', onAblegen?: (text: string) => void) {
+async function oeffne(start = '', onAblegen?: (text: string) => void, platzhalter?: string) {
   const stand: Stand = { text: start, view: null, setze: () => undefined };
   const host = document.createElement('div');
   document.body.appendChild(host);
   const root = wurzel(host);
   await act(async () => {
-    root.render(createElement(Halt, { start, onAblegen, stand }) as ReactNode);
+    root.render(createElement(Halt, { start, onAblegen, platzhalter, stand }) as ReactNode);
   });
   await act(async () => {
     await Promise.resolve();
@@ -284,5 +288,70 @@ describe('capture field', () => {
     expect(sitz.stand.text).toBe('#school/Seite!');
     expect(speicher.schrieb.at(-1)).toBe('#school/Seite!');
     await zu(sitz);
+  });
+
+  it('wraps a typed word marker and leaves a hash tag literal', async () => {
+    const sitz = await oeffne();
+    await tippe(sitz.stand.view!, 'hello**');
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(sitz.stand.text).toBe('**hello**');
+    expect(textAusDokument(sitz.stand.view!.state.doc)).toBe('**hello**');
+    await zu(sitz);
+
+    const hash = await oeffne();
+    await tippe(hash.stand.view!, '#tag**');
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(hash.stand.text).toBe('#tag**');
+    await zu(hash);
+  });
+
+  it('shows a formatted word with hidden markers and keeps the source', async () => {
+    const sitz = await oeffne();
+    const view = sitz.stand.view!;
+    await act(async () => {
+      setzeErfassenText(view, '**Hi**', 3, 3);
+    });
+    expect(textAusDokument(view.state.doc)).toBe('**Hi**');
+    const fett = elemente(view.dom).filter((el) => el.classList.contains('cm-fett'));
+    expect(fett.map((el) => el.textContent)).toContain('Hi');
+    expect(elemente(view.dom).filter((el) => el.classList.contains('cm-marker-weg'))).toHaveLength(2);
+    const quelle = '***~~!!`Hi`!!~~***';
+    const stelle = quelle.indexOf('Hi') + 1;
+    await act(async () => {
+      setzeErfassenText(view, quelle, stelle, stelle);
+    });
+    expect(textAusDokument(view.state.doc)).toBe(quelle);
+    const verschachtelt = elemente(view.dom).filter((el) =>
+      ['cm-fett', 'cm-kursiv', 'cm-strich', 'cm-wichtig', 'cm-code'].every((name) => el.classList.contains(name)),
+    );
+    expect(verschachtelt.map((el) => el.textContent)).toContain('Hi');
+    await zu(sitz);
+  });
+
+  it('draws the empty hint inside the field', async () => {
+    const sitz = await oeffne('', undefined, 'Start typing\u2026');
+    const hinweis = elemente(sitz.stand.view!.dom).find((el) => el.classList.contains('cm-placeholder'));
+    expect(hinweis?.textContent).toBe('Start typing\u2026');
+    let ahne: Node | null = hinweis ?? null;
+    let imFeld = false;
+    while (ahne) {
+      if (ahne.nodeType === 1 && (ahne as HTMLElement).classList.contains('cm-editor')) imFeld = true;
+      ahne = ahne.parentNode;
+    }
+    expect(imFeld).toBe(true);
+    await zu(sitz);
+  });
+
+  it('continues a list on enter and keeps a plain enter as a new line', async () => {
+    const liste = await oeffne();
+    await tippe(liste.stand.view!, '- milk');
+    await druck(liste.stand.view!, 'Enter');
+    expect(liste.stand.text).toBe('- milk\n- ');
+    expect(hatUeberschrift(liste.stand.view!.state.doc)).toBe(false);
+    await zu(liste);
   });
 });

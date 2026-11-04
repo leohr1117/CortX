@@ -1,116 +1,139 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { TEXTE } from '../../../../shared/kern/texte.ts';
 import { Link } from 'react-router';
-import type { EditorView } from '@codemirror/view';
+import type { EditorView as SpiegelAnsicht } from '@codemirror/view';
+import type { EditorView } from 'prosemirror-view';
 import { pfadText, seitentitel, type SeiteKurz } from '../../../../shared/features/seiten/index.ts';
-import { planeAblage, setzeVorschlag, zielAmCursor } from '../../../../shared/features/tags/index.ts';
+import { planeAblage } from '../../../../shared/features/tags/index.ts';
+import { type FormatBefehl } from '../../../../shared/features/format/index.ts';
 import { NOTE_TEXT_MAX } from '../../../../shared/kern/grenzen.ts';
 import type { Thema } from '../../../../shared/kern/modell.ts';
 import { aktionRueckgaengig, KARTE_TEXT, schliesseKarte, textHinzugefuegt, zeigeKarte } from '../../ui/karte.tsx';
 import { BibliothekIcon } from '../../ui/icons.tsx';
-import { Editor } from '../format/index.ts';
-import { legeInWarteschlange, liesEntwurf, schreibEntwurf, spuele } from '../offline/index.ts';
+import { Leiste } from '../format/Leiste.tsx';
+import { LinkFeld } from '../format/LinkFeld.tsx';
+import { legeInWarteschlange, schreibEntwurf, spuele } from '../offline/index.ts';
 import { ApiFehler, ladeSeiten, ladeThemen, legeNotizAb, macheRueckgaengig } from './api.ts';
-import { caretNachAblageRueck, textNachAblageRueck } from './rueck.ts';
-import { fangStrgEnter, setzeHinweis, tagFeld, tastenWennOffen, type TagAktionen } from './erkennung.ts';
-import { useMenuePlatz } from './menuePlatz.ts';
-import { Vorschlag } from './Vorschlag.tsx';
+import { ErfassenFeld } from './ErfassenFeld.tsx';
+import { rohOffset, rohPos, textAusDokument } from './erfassenDokument.ts';
+import { wendeBefehl } from './erfassenBefehl.ts';
+import { textNachAblageRueck } from './rueck.ts';
 import { leeresAnhaengen, ZielText } from './Ziel.tsx';
 
 type Meldung =
   | { art: 'abgelegt'; id: number; ziel: string; undo: string; text: string }
   | { art: 'offline'; clientId: string };
 
-const LEER_AKTION: TagAktionen = {
-  ablegen: () => undefined,
-  hoch: () => undefined,
-  runter: () => undefined,
-  zu: () => undefined,
-  waehlen: () => undefined,
-  gesperrt: () => false,
-};
+interface SpiegelKern {
+  readonly dom: HTMLElement;
+  readonly state: {
+    doc: { length: number; toString: () => string };
+    selection: { main: { empty: boolean; head: number; anchor: number; from: number; to: number } };
+  };
+  coordsAtPos: (stelle: number) => { left: number; right: number; top: number; bottom: number } | null;
+  focus: () => void;
+}
+
+function baueSpiegel(hole: () => EditorView | null): SpiegelKern {
+  const textVon = () => {
+    const view = hole();
+    return view ? textAusDokument(view.state.doc) : '';
+  };
+  return {
+    get dom() {
+      return hole()?.dom ?? document.documentElement;
+    },
+    get state() {
+      const view = hole();
+      const text = textVon();
+      if (!view) {
+        return {
+          doc: { length: 0, toString: () => '' },
+          selection: { main: { empty: true, head: 0, anchor: 0, from: 0, to: 0 } },
+        };
+      }
+      const anchor = rohOffset(view.state.doc, text, view.state.selection.anchor);
+      const head = rohOffset(view.state.doc, text, view.state.selection.head);
+      const from = Math.min(anchor, head);
+      const to = Math.max(anchor, head);
+      return {
+        doc: { length: text.length, toString: () => textVon() },
+        selection: { main: { empty: from === to, head, anchor, from, to } },
+      };
+    },
+    coordsAtPos(stelle: number) {
+      const view = hole();
+      if (!view) return null;
+      try {
+        return view.coordsAtPos(rohPos(view.state.doc, textVon(), stelle));
+      } catch {
+        return null;
+      }
+    },
+    focus() {
+      hole()?.focus();
+    },
+  };
+}
 
 export function CaptureAnsicht() {
   const [text, setText] = useState('');
-  const [caret, setCaret] = useState(0);
+  const textRef = useRef('');
   const [themen, setThemen] = useState<Thema[]>([]);
   const [seiten, setSeiten] = useState<SeiteKurz[]>([]);
   const [meldung, setMeldung] = useState<Meldung | null>(null);
   const [fehler, setFehler] = useState<string | null>(null);
   const [speichert, setSpeichert] = useState(false);
-  const [bereit, setBereit] = useState(false);
-  const [zu, setZu] = useState<string | null>(null);
-  const [wahlFuer, setWahlFuer] = useState('');
-  const [wahl, setWahl] = useState(0);
+  const [feldBereit, setFeldBereit] = useState(false);
+  const [katalogBereit, setKatalogBereit] = useState(false);
+  const [ansicht, setAnsicht] = useState<EditorView | null>(null);
+  const [stand, setStand] = useState(0);
+  const [link, setLink] = useState(false);
   const sichtRef = useRef<EditorView | null>(null);
-  const aktionen = useRef<TagAktionen>(LEER_AKTION);
-  const gebaut = useRef<ReturnType<typeof tagFeld> | null>(null);
-  if (gebaut.current === null) gebaut.current = tagFeld(aktionen);
-  const feld = gebaut.current;
   const sperre = useRef(false);
-  const beruehrt = useRef(false);
-  const echo = useRef<string | null>(null);
-  const zielCaret = useRef<number | null>(null);
+  const spiegel = useRef<SpiegelKern | null>(null);
+  if (spiegel.current === null) spiegel.current = baueSpiegel(() => sichtRef.current);
 
-  function setzeAussen(wert: string, stelle: number) {
-    echo.current = wert;
-    zielCaret.current = stelle;
+  function setzeText(wert: string) {
+    textRef.current = wert;
     setText(wert);
-    setCaret(stelle);
-    const editor = sichtRef.current;
-    if (!editor || editor.state.doc.toString() !== wert) return;
-    zielCaret.current = null;
-    const ziel = Math.max(0, Math.min(stelle, wert.length));
-    editor.focus();
-    if (editor.state.selection.main.head !== ziel) editor.dispatch({ selection: { anchor: ziel } });
   }
 
   function beiText(wert: string) {
-    if (echo.current === wert) {
-      echo.current = null;
-      setText(wert);
-      return;
-    }
-    echo.current = null;
-    beruehrt.current = true;
+    textRef.current = wert;
     setText(wert);
     setFehler(null);
+    setStand((zahl) => zahl + 1);
   }
 
   useEffect(() => {
-    sichtRef.current?.focus();
-    const los = fangStrgEnter(sichtRef, aktionen);
     let aktiv = true;
     void (async () => {
-      const [entwurf, liste, katalog] = await Promise.all([
-        liesEntwurf().catch(() => ''),
+      const [liste, katalog] = await Promise.all([
         ladeThemen().catch(() => [] as Thema[]),
         ladeSeiten().catch(() => [] as SeiteKurz[]),
       ]);
       if (!aktiv) return;
       setThemen(liste);
       setSeiten(katalog);
-      if (!beruehrt.current && entwurf.length > 0) setzeAussen(entwurf, entwurf.length);
-      setBereit(true);
+      setKatalogBereit(true);
     })();
     return () => {
       aktiv = false;
-      los();
     };
   }, []);
 
   useEffect(() => {
-    if (!bereit) return;
+    if (!feldBereit || !katalogBereit) return;
     document.documentElement.dataset.bereit = '1';
-    void schreibEntwurf(text);
-  }, [text, bereit]);
+  }, [feldBereit, katalogBereit]);
 
   useEffect(() => {
     let aktiv = true;
     const sync = () => {
-      void spuele((eintrag) => legeNotizAb(eintrag.text, eintrag.clientId)).then((stand) => {
+      void spuele((eintrag) => legeNotizAb(eintrag.text, eintrag.clientId)).then((standSync) => {
         if (!aktiv) return;
-        if (stand.erledigt.length > 0) {
+        if (standSync.erledigt.length > 0) {
           void Promise.all([ladeThemen().catch(() => null), ladeSeiten().catch(() => null)]).then(([liste, katalog]) => {
             if (!aktiv) return;
             if (liste) setThemen(liste);
@@ -119,7 +142,7 @@ export function CaptureAnsicht() {
         }
         setMeldung((alt) => {
           if (alt?.art === 'offline') {
-            const treffer = stand.erledigt.find((eintrag) => eintrag.clientId === alt.clientId);
+            const treffer = standSync.erledigt.find((eintrag) => eintrag.clientId === alt.clientId);
             if (treffer) {
               return {
                 art: 'abgelegt',
@@ -131,8 +154,8 @@ export function CaptureAnsicht() {
             }
             return alt;
           }
-          if (!alt && stand.rest.length > 0) {
-            const erste = stand.rest[0];
+          if (!alt && standSync.rest.length > 0) {
+            const erste = standSync.rest[0];
             if (erste) return { art: 'offline', clientId: erste.clientId };
           }
           return alt;
@@ -147,65 +170,6 @@ export function CaptureAnsicht() {
     };
   }, []);
 
-  const ziel = zielAmCursor(text, caret, themen, seiten, zu);
-  const liste = ziel?.liste ?? null;
-  const schluessel = ziel?.schluessel ?? '';
-  const offen = liste !== null && (liste.treffer.length > 0 || liste.neu);
-  const aktiv = wahlFuer === schluessel ? wahl : (liste?.gewaehlt ?? 0);
-  const plan = text.trim().length === 0 ? null : planeAblage(text, themen, seiten);
-  const leer = text.trim().length === 0;
-  const gesperrt = leer || speichert || plan?.ungueltig === true;
-  const pos = useMenuePlatz(offen, ziel?.tag.start ?? -1, text, sichtRef);
-
-  useLayoutEffect(() => {
-    const editor = sichtRef.current;
-    if (!editor) return;
-    editor.dispatch({
-      effects: [feld.tasten.reconfigure(tastenWennOffen(offen, aktionen)), setzeHinweis.of({ offen, aktiv })],
-    });
-    if (!offen && !editor.hasFocus && !aktionen.current.gesperrt()) editor.focus();
-  }, [offen, aktiv, feld]);
-
-  useLayoutEffect(() => {
-    const ziel = zielCaret.current;
-    if (ziel === null) return;
-    const editor = sichtRef.current;
-    if (!editor || editor.state.doc.toString() !== text) return;
-    zielCaret.current = null;
-    const stelle = Math.max(0, Math.min(ziel, editor.state.doc.length));
-    editor.focus();
-    if (editor.state.selection.main.head !== stelle || editor.state.selection.main.anchor !== stelle) {
-      editor.dispatch({ selection: { anchor: stelle } });
-    }
-  }, [text]);
-
-  function waehle(index: number) {
-    if (!ziel?.tag || !liste) return;
-    beruehrt.current = true;
-    const editor = sichtRef.current;
-    if (index < liste.treffer.length) {
-      const einsetzen = liste.treffer[index]?.einsetzen;
-      if (!einsetzen) return;
-      const neu = setzeVorschlag(text, caret, einsetzen);
-      if (!neu) return;
-      setZu(`${ziel.tag.start}:${neu.text.slice(ziel.tag.start + 1, neu.caret)}`);
-      if (!editor) {
-        setzeAussen(neu.text, neu.caret);
-        return;
-      }
-      echo.current = neu.text;
-      editor.focus();
-      editor.dispatch({
-        changes: { from: 0, to: editor.state.doc.length, insert: neu.text },
-        selection: { anchor: neu.caret },
-        userEvent: 'input',
-      });
-      return;
-    }
-    setZu(schluessel);
-    editor?.focus();
-  }
-
   async function katalogNeu() {
     const [liste, katalog] = await Promise.all([ladeThemen().catch(() => null), ladeSeiten().catch(() => null)]);
     if (liste) setThemen(liste);
@@ -216,16 +180,16 @@ export function CaptureAnsicht() {
     if (token.length === 0 || sperre.current) return;
     sperre.current = true;
     try {
-      const text = textNachAblageRueck(await macheRueckgaengig(token), gemerkt);
-      if (text === null) {
+      const wieder = textNachAblageRueck(await macheRueckgaengig(token), gemerkt);
+      if (wieder === null) {
         setMeldung(null);
         zeigeKarte(KARTE_TEXT.nichtRueckgaengig);
         return;
       }
       setMeldung(null);
       setFehler(null);
-      await schreibEntwurf(text);
-      setzeAussen(text, caretNachAblageRueck(text));
+      setzeText(wieder);
+      await schreibEntwurf(wieder);
       await katalogNeu();
       sichtRef.current?.focus();
     } catch (grund: unknown) {
@@ -251,8 +215,9 @@ export function CaptureAnsicht() {
     );
   }, [meldung]);
 
-  async function ablegen() {
-    const roh = sichtRef.current?.state.doc.toString() ?? text;
+  async function ablegen(rohEingabe?: string) {
+    const view = sichtRef.current;
+    const roh = rohEingabe ?? (view ? textAusDokument(view.state.doc) : textRef.current);
     const zielPlan = planeAblage(roh, themen, seiten);
     if (sperre.current || roh.trim().length === 0) return;
     if (zielPlan?.ungueltig) {
@@ -277,16 +242,14 @@ export function CaptureAnsicht() {
       const ergebnis = await legeInWarteschlange(roh, navigator.onLine, (eintrag) =>
         legeNotizAb(eintrag.text, eintrag.clientId),
       );
-      beruehrt.current = true;
       if (ergebnis.art === 'abgelehnt') {
-        setzeAussen(roh, roh.length);
+        setzeText(roh);
         setFehler(ergebnis.grund ?? TEXTE.nichtAblegen);
         if (vorher) setMeldung(vorher);
         sichtRef.current?.focus();
         return;
       }
-      setZu(null);
-      setzeAussen('', 0);
+      setzeText('');
       if (ergebnis.art === 'abgelegt') {
         const abgelegt = ergebnis.notiz;
         setMeldung({
@@ -310,27 +273,25 @@ export function CaptureAnsicht() {
     }
   }
 
-  aktionen.current = {
-    ablegen: () => {
-      void ablegen();
-    },
-    hoch: () => {
-      if (!liste) return;
-      setWahlFuer(schluessel);
-      setWahl(Math.max(0, aktiv - 1));
-    },
-    runter: () => {
-      if (!liste) return;
-      const letzte = liste.treffer.length + (liste.neu ? 1 : 0) - 1;
-      setWahlFuer(schluessel);
-      setWahl(Math.min(letzte, aktiv + 1));
-    },
-    zu: () => {
-      if (ziel) setZu(schluessel);
-    },
-    waehlen: () => waehle(aktiv),
-    gesperrt: () => false,
-  };
+  function befehl(name: FormatBefehl) {
+    const editor = sichtRef.current;
+    if (!editor) return;
+    if (wendeBefehl(editor, name, null) === 'ziel') setLink(true);
+    setStand((zahl) => zahl + 1);
+  }
+
+  function fertig(ziel: string) {
+    const editor = sichtRef.current;
+    setLink(false);
+    if (!editor) return;
+    wendeBefehl(editor, 'link', ziel);
+    setStand((zahl) => zahl + 1);
+  }
+
+  const plan = text.trim().length === 0 ? null : planeAblage(text, themen, seiten);
+  const leer = text.trim().length === 0;
+  const gesperrt = leer || speichert || plan?.ungueltig === true;
+  const leiste = ansicht ? (spiegel.current as unknown as SpiegelAnsicht) : null;
 
   return (
     <div className="app">
@@ -341,27 +302,25 @@ export function CaptureAnsicht() {
         </Link>
       </header>
       <main className="cap">
-        <Editor
-          ref={sichtRef}
+        <ErfassenFeld
           text={text}
-          leiste
-          placeholder={TEXTE.platzhalter}
-          extensions={feld.erweiterung}
+          themen={themen}
+          seiten={seiten}
+          platzhalter={TEXTE.platzhalter}
           onText={beiText}
-          onCaret={setCaret}
+          onAblegen={(wert) => {
+            void ablegen(wert);
+          }}
+          onAuswahl={() => setStand((zahl) => zahl + 1)}
+          onBereit={() => setFeldBereit(true)}
+          onZiel={() => setLink(true)}
+          ref={(view) => {
+            sichtRef.current = view;
+            setAnsicht(view);
+          }}
         />
-        {offen && liste ? (
-          <Vorschlag
-            liste={liste}
-            aktiv={aktiv}
-            fragment={ziel?.fragment ?? ''}
-            top={pos.top}
-            left={pos.left}
-            maxHeight={pos.maxHoehe}
-            fest
-            onWahl={waehle}
-          />
-        ) : null}
+        <Leiste view={leiste} stand={stand} onBefehl={befehl} />
+        {link ? <LinkFeld onClose={() => setLink(false)} onFertig={fertig} /> : null}
       </main>
       <footer className="fuss">
         <div className="ziel">

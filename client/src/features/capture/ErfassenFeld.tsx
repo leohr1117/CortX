@@ -1,37 +1,24 @@
 import { useEffect, useLayoutEffect, useRef, useState, type Ref } from 'react';
 import { baseKeymap } from 'prosemirror-commands';
-import { history, redo, undo } from 'prosemirror-history';
+import { closeHistory, history, redo, undo } from 'prosemirror-history';
 import { keymap } from 'prosemirror-keymap';
-import { EditorState, Plugin, type Command } from 'prosemirror-state';
+import { EditorState } from 'prosemirror-state';
 import { EditorView } from 'prosemirror-view';
 import type { Thema } from '../../../../shared/kern/modell.ts';
 import { VORSCHLAG_BREITE } from '../../../../shared/kern/grenzen.ts';
 import type { SeiteKurz } from '../../../../shared/features/seiten/pfad.ts';
 import { setzeVorschlag, zielAmCursor, type ZielAmCursor } from '../../../../shared/features/seiten/zielvorschlag.ts';
-import { offsetFuer, posFuer } from '../../../../shared/features/format/stelle.ts';
 import { knotenAnsichten, markenAnsichten } from '../format/modellSicht.ts';
-import { HINDERNIS, LAGE, liesSicht, listenPlatz } from '../../ui/lage.ts';
-import { tastaturIstHandy } from '../../ui/system.ts';
+import { HINDERNIS, LAGE, beobachteSicht, liesSicht, listenPlatz } from '../../ui/lage.ts';
 import { liesEntwurf, schreibEntwurf } from '../offline/index.ts';
+import { zustandOhneHistorie } from './erfassenBefehl.ts';
+import { auswahlAn, dokumentFuer, rohOffset, rohPos, textAusDokument } from './erfassenDokument.ts';
+import { feldPlugins, kuerzelWahl, wuchsUmEins, type FeldAktion } from './erfassenEingabe.ts';
+import { haengeErfassenGriff } from './erfassenGriff.ts';
+import { erfassenSchmuck } from './erfassenSchmuck.ts';
 import { Vorschlag } from './Vorschlag.tsx';
-import { auswahlAn, dokumentFuer, textAusDokument } from './erfassenDokument.ts';
 
 const KEINE_SEITEN: SeiteKurz[] = [];
-
-interface FeldAktion {
-  ablegen: () => void;
-  offen: () => boolean;
-  waehlen: () => void;
-  hoch: () => void;
-  runter: () => void;
-  zu: () => void;
-}
-
-interface Lage {
-  top: number;
-  left: number;
-  maxHoehe: number;
-}
 
 function schreibeRef(ziel: Ref<EditorView | null> | undefined, wert: EditorView | null) {
   if (!ziel) return;
@@ -39,67 +26,10 @@ function schreibeRef(ziel: Ref<EditorView | null> | undefined, wert: EditorView 
   else ziel.current = wert;
 }
 
-function istHandy(): boolean {
-  if (typeof window.matchMedia !== 'function') return false;
-  return tastaturIstHandy();
-}
-
-interface Eingabe extends Event {
-  key?: string;
-  inputType?: string;
-  isComposing?: boolean;
-  ctrlKey?: boolean;
-  metaKey?: boolean;
-  altKey?: boolean;
-}
-
-function istAblage(event: Event): boolean {
-  const taste = event as Eingabe;
-  const steuer = taste.ctrlKey === true || taste.metaKey === true;
-  return taste.key === 'Enter' && steuer && taste.altKey !== true && taste.isComposing !== true;
-}
-
-function ablagePlugin(aktion: () => FeldAktion): Plugin {
-  return new Plugin({
-    props: {
-      handleKeyDown(view, event) {
-        if (!istAblage(event)) return false;
-        event.preventDefault();
-        if (!view.composing) aktion().ablegen();
-        return true;
-      },
-      handleDOMEvents: {
-        beforeinput(view, event) {
-          const eingabe = event as Eingabe;
-          if (view.composing || eingabe.isComposing === true) return false;
-          if ((eingabe.ctrlKey !== true && eingabe.metaKey !== true) || eingabe.altKey === true) return false;
-          if (eingabe.inputType !== 'insertParagraph' && eingabe.inputType !== 'insertLineBreak') return false;
-          event.preventDefault();
-          return true;
-        },
-      },
-    },
-  });
-}
-
-function menuePlugin(aktion: () => FeldAktion): Plugin {
-  const lauf = (fn: (feld: FeldAktion) => void): Command => () => {
-    const feld = aktion();
-    if (!feld.offen()) return false;
-    fn(feld);
-    return true;
-  };
-  return keymap({
-    Enter: () => {
-      const feld = aktion();
-      if (!feld.offen() || istHandy()) return false;
-      feld.waehlen();
-      return true;
-    },
-    ArrowDown: lauf((feld) => feld.runter()),
-    ArrowUp: lauf((feld) => feld.hoch()),
-    Escape: lauf((feld) => feld.zu()),
-  });
+interface Lage {
+  top: number;
+  left: number;
+  maxHoehe: number;
 }
 
 function leisteKante(sichtVersatz: number, sichtHoehe: number): number {
@@ -114,7 +44,7 @@ function leisteKante(sichtVersatz: number, sichtHoehe: number): number {
 function menueLage(view: EditorView, text: string, start: number): Lage | null {
   let pos: { top: number; bottom: number; left: number } | null = null;
   try {
-    pos = view.coordsAtPos(posFuer(view.state.doc, text, start));
+    pos = view.coordsAtPos(rohPos(view.state.doc, text, start));
   } catch {
     return null;
   }
@@ -138,21 +68,32 @@ export function ErfassenFeld({
   text,
   themen,
   seiten = KEINE_SEITEN,
+  platzhalter,
   onText,
   onAblegen,
+  onAuswahl,
+  onBereit,
+  onZiel,
   ref,
 }: {
   text: string;
   themen: readonly Thema[];
   seiten?: readonly SeiteKurz[];
+  platzhalter?: string;
   onText?: (text: string) => void;
   onAblegen?: (text: string) => void;
+  onAuswahl?: () => void;
+  onBereit?: () => void;
+  onZiel?: () => void;
   ref?: Ref<EditorView | null>;
 }) {
   const host = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const onTextRef = useRef(onText);
   const onAblegenRef = useRef(onAblegen);
+  const onAuswahlRef = useRef(onAuswahl);
+  const onBereitRef = useRef(onBereit);
+  const onZielRef = useRef(onZiel);
   const textRef = useRef(text);
   const caretRef = useRef(text.length);
   const zuRef = useRef<string | null>(null);
@@ -160,6 +101,8 @@ export function ErfassenFeld({
   const beruehrt = useRef(false);
   const zuletztGeschrieben = useRef<string | null>(null);
   const refWeiter = useRef(ref);
+  const platzhalterRef = useRef(platzhalter);
+  platzhalterRef.current = platzhalter;
   const aktionRef = useRef<FeldAktion>({
     ablegen: () => undefined,
     offen: () => false,
@@ -177,6 +120,9 @@ export function ErfassenFeld({
   const [lage, setLage] = useState<Lage>({ top: 0, left: 8, maxHoehe: LAGE.listeMaxPx });
   onTextRef.current = onText;
   onAblegenRef.current = onAblegen;
+  onAuswahlRef.current = onAuswahl;
+  onBereitRef.current = onBereit;
+  onZielRef.current = onZiel;
   textRef.current = roh;
   zuRef.current = zu;
   refWeiter.current = ref;
@@ -195,6 +141,16 @@ export function ErfassenFeld({
   schluesselRef.current = schluessel;
   zielStand.current = ziel;
 
+  function veroeffentliche(wert: string, stelle: number) {
+    textRef.current = wert;
+    gemeldet.current = wert;
+    caretRef.current = stelle;
+    setRoh(wert);
+    setCaret(stelle);
+    onTextRef.current?.(wert);
+    onAuswahlRef.current?.();
+  }
+
   function wende(wert: string, stelle: number, melden: boolean) {
     const view = viewRef.current;
     textRef.current = wert;
@@ -204,10 +160,8 @@ export function ErfassenFeld({
     setCaret(stelle);
     if (melden) onTextRef.current?.(wert);
     if (!view) return;
-    const doc = dokumentFuer(wert);
-    const zustand = EditorState.create({ doc, plugins: view.state.plugins });
-    const sel = auswahlAn(doc, wert, stelle);
-    view.updateState(zustand.apply(zustand.tr.setSelection(sel).setMeta('addToHistory', false)));
+    zustandOhneHistorie(view, wert, stelle);
+    view.focus();
   }
 
   function waehle(index: number) {
@@ -265,9 +219,9 @@ export function ErfassenFeld({
       doc,
       plugins: [
         history(),
+        erfassenSchmuck(() => platzhalterRef.current ?? ''),
         keymap({ 'Mod-z': undo, 'Mod-y': redo, 'Shift-Mod-z': redo }),
-        ablagePlugin(() => aktionRef.current),
-        menuePlugin(() => aktionRef.current),
+        ...feldPlugins(() => aktionRef.current, () => onZielRef.current?.()),
         keymap(baseKeymap),
       ],
     });
@@ -285,24 +239,41 @@ export function ErfassenFeld({
       dispatchTransaction(tr) {
         const next = view.state.apply(tr);
         view.updateState(next);
+        const wert = textAusDokument(next.doc);
+        const stelle = rohOffset(next.doc, wert, next.selection.head);
         if (!tr.docChanged) {
-          const stelle = offsetFuer(next.doc, textRef.current, next.selection.head);
           caretRef.current = stelle;
           setCaret(stelle);
+          onAuswahlRef.current?.();
           return;
         }
-        const wert = textAusDokument(next.doc);
         beruehrt.current = true;
-        textRef.current = wert;
-        gemeldet.current = wert;
-        const stelle = offsetFuer(next.doc, wert, next.selection.head);
-        caretRef.current = stelle;
-        setRoh(wert);
-        setCaret(stelle);
-        onTextRef.current?.(wert);
+        if (!tr.getMeta('programm') && !tr.getMeta('convert') && wuchsUmEins(textRef.current, wert)) {
+          const wahl = kuerzelWahl(wert, stelle);
+          if (wahl) {
+            textRef.current = wert;
+            caretRef.current = stelle;
+            queueMicrotask(() => {
+              if (!view.dom.isConnected) {
+                veroeffentliche(wert, stelle);
+                return;
+              }
+              if (textAusDokument(view.state.doc) !== wert) return;
+              const zielDoc = dokumentFuer(wahl.text);
+              let naechste = view.state.tr.replaceWith(0, view.state.doc.content.size, zielDoc.content);
+              const zielSel = auswahlAn(naechste.doc, wahl.text, wahl.ende);
+              naechste = closeHistory(naechste.setSelection(zielSel).setMeta('convert', true));
+              view.dispatch(naechste);
+            });
+            return;
+          }
+        }
+        veroeffentliche(wert, stelle);
       },
     });
     caretRef.current = anfang.length;
+    view.dom.classList.add('cm-content');
+    if (host.current) haengeErfassenGriff(view, host.current);
     viewRef.current = view;
     schreibeRef(refWeiter.current, view);
     view.focus();
@@ -316,6 +287,8 @@ export function ErfassenFeld({
   useLayoutEffect(() => {
     if (text === gemeldet.current) return;
     gemeldet.current = text;
+    zuRef.current = null;
+    setZu(null);
     wende(text, text.length, false);
   }, [text]);
 
@@ -337,11 +310,20 @@ export function ErfassenFeld({
   useLayoutEffect(() => {
     const view = viewRef.current;
     if (!offen || !view || anker < 0) return;
-    const naechste = menueLage(view, roh, anker);
-    if (!naechste) return;
-    setLage((alt) =>
-      alt.top === naechste.top && alt.left === naechste.left && alt.maxHoehe === naechste.maxHoehe ? alt : naechste,
-    );
+    const setze = () => {
+      const naechste = menueLage(view, textRef.current, anker);
+      if (!naechste) return;
+      setLage((alt) =>
+        alt.top === naechste.top && alt.left === naechste.left && alt.maxHoehe === naechste.maxHoehe ? alt : naechste,
+      );
+    };
+    setze();
+    const stoppe = typeof window.addEventListener === 'function' ? beobachteSicht(setze) : () => undefined;
+    if (typeof view.dom.addEventListener === 'function') view.dom.addEventListener('scroll', setze);
+    return () => {
+      stoppe();
+      if (typeof view.dom.removeEventListener === 'function') view.dom.removeEventListener('scroll', setze);
+    };
   }, [offen, roh, anker, caret]);
 
   useEffect(() => {
@@ -351,9 +333,12 @@ export function ErfassenFeld({
         if (!aktivLauf) return;
         if (!beruehrt.current && textRef.current.length === 0 && entwurf.length > 0) wende(entwurf, entwurf.length, true);
         setBereit(true);
+        onBereitRef.current?.();
       })
       .catch(() => {
-        if (aktivLauf) setBereit(true);
+        if (!aktivLauf) return;
+        setBereit(true);
+        onBereitRef.current?.();
       });
     return () => {
       aktivLauf = false;
@@ -368,7 +353,9 @@ export function ErfassenFeld({
 
   return (
     <div className="erfassen">
-      <div ref={host} className="schreib modell-host" />
+      <div className="schreib">
+        <div ref={host} className="cm-editor modell-host" />
+      </div>
       {offen && liste ? (
         <Vorschlag
           liste={liste}

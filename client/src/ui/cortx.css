@@ -138,6 +138,20 @@ a { color: inherit; text-decoration: none; }
   padding: var(--abstand-8) var(--rand) 0;
   position: relative;
 }
+.erfassen {
+  flex: 1 1 0px;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.erfassen > .schreib {
+  display: flex;
+  flex-direction: column;
+}
+.erfassen .cm-editor {
+  flex: 1 1 0px;
+  min-height: 0;
+}
 .schreib {
   flex: 1 1 0px;
   min-height: 0;
@@ -1179,6 +1193,9 @@ input.feld::placeholder { color: var(--leise); }
 .schreib .cm-placeholder {
   color: var(--leise);
   font-family: inherit;
+  font-variant-ligatures: normal;
+  -webkit-font-variant-ligatures: normal;
+  font-feature-settings: normal;
 }
 .schreib .cm-line { padding: 0; }
 .schreib .cm-editor.cm-focused { outline: none; }

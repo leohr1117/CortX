@@ -1,3 +1,4 @@
+import { writeFileSync } from 'node:fs';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { meldeAn } from './anmelden.ts';
 import { cursorKopf, erwarteQuelle, setzeQuelle } from './feld.ts';
@@ -192,13 +193,30 @@ test('files with the button and with ctrl enter', async ({ page }, testInfo) => 
 
   await setzeQuelle(page, '#Home\nPay the rent');
   await expect(page.locator('.ziel b')).toHaveText('Home');
+  await page.addStyleTag({ content: '.schreib .cm-content { caret-color: transparent !important; }' });
+  const session = await page.context().newCDPSession(page);
   await page.keyboard.press('Control+Enter');
+  const schwelle = testInfo.project.name === 'desktop' ? 12 : 26;
+  await page.evaluate((ab) => new Promise<void>((resolve) => {
+    const tick = (): void => {
+      const karte = document.querySelector('.karte');
+      const lauf = karte?.getAnimations()[0];
+      if (lauf && karte?.textContent?.includes('Home') && Number(lauf.currentTime) >= ab) {
+        resolve();
+        return;
+      }
+      requestAnimationFrame(tick);
+    };
+    tick();
+  }), schwelle);
+  const bild = await session.send('Page.captureScreenshot', { format: 'png' });
+  writeFileSync(`${BILDER}/${testInfo.project.name}-03-toast.png`, Buffer.from(bild.data, 'base64'));
+  await session.detach();
   await expect(page.getByRole('status')).toContainText('Added to');
   await expect(page.getByRole('status')).toContainText('Home');
   await erwarteQuelle(page, '');
   await expect(page.getByRole('button', { name: 'Undo' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Change' })).toHaveCount(0);
-  await page.screenshot({ path: `${BILDER}/${testInfo.project.name}-03-toast.png` });
 
   await page.keyboard.press('Control+Enter');
   await erwarteQuelle(page, '');
