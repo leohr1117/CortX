@@ -1359,7 +1359,9 @@ input.feld::placeholder { color: var(--leise); }
   gap: var(--abstand-4);
   align-items: center;
   z-index: 32;
+  scrollbar-width: none;
 }
+.format-leiste::-webkit-scrollbar { display: none; }
 .format-leiste .schalt {
   width: var(--leiste-knopf);
   height: var(--leiste-knopf);
@@ -1388,6 +1390,10 @@ input.feld::placeholder { color: var(--leise); }
   border-radius: var(--radius-10);
   padding: var(--abstand-4);
   box-shadow: 0 8px 24px var(--schatten);
+}
+.format-leiste.schwebend.modell {
+  max-width: 420px;
+  overflow-x: auto;
 }
 @media (max-width: 899px) {
   .app:has(.format-leiste.mobil) {

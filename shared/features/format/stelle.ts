@@ -37,7 +37,7 @@ function textStellen(doc: Node): number[] {
 }
 
 export function inhaltZeichen(text: string): string {
-  const syntax = syntaxMaske(text, leseDokument(text).belege);
+  const syntax = syntaxMaske(text, leseDokument(text, true).belege);
   let aus = '';
   for (let i = 0; i < text.length; i += 1) {
     const z = text[i] ?? '';
@@ -48,7 +48,7 @@ export function inhaltZeichen(text: string): string {
 }
 
 export function grenzen(doc: Node, text: string): number[] {
-  const syntax = syntaxMaske(text, leseDokument(text).belege);
+  const syntax = syntaxMaske(text, leseDokument(text, true).belege);
   const stellen = textStellen(doc);
   const inhalt: number[] = [];
   for (let i = 0; i < text.length; i += 1) {

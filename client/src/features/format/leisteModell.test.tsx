@@ -5,6 +5,7 @@ import { TextSelection } from 'prosemirror-state';
 import type { EditorView } from 'prosemirror-view';
 import type { Root } from 'react-dom/client';
 import { ART } from '../../../../shared/features/format/baum.ts';
+import { NUMMER_KNOPF } from '../../../../shared/features/format/nummer.ts';
 import { leistenEintraege } from '../../../../shared/features/format/register.ts';
 import { speichere } from '../../../../shared/features/format/speichern.ts';
 import { TEXTE } from '../../../../shared/kern/texte.ts';
@@ -138,7 +139,7 @@ describe('format bar on the model editor', () => {
         knoten.childNodes.forEach(lauf);
       };
       lauf(sitz.host);
-      expect(gesehen).toEqual(namen);
+      expect(gesehen).toEqual([...namen, ...NUMMER_KNOPF.map((eintrag) => TEXTE[eintrag.text])]);
       expect(gepresst(sitz.host, TEXTE.fett)).toBe('false');
       await druecke(sitz.host, TEXTE.fett);
       expect(speichere(sitz.view.state.doc)).toBe('**a**\n**b**\n**c d e**');
@@ -193,6 +194,36 @@ describe('format bar on the model editor', () => {
       expect(speichere(sitz.view.state.doc)).toBe('a\nb');
       expect(arten(sitz.view)).toEqual(['absatz', 'absatz']);
       expect(gepresst(sitz.host, TEXTE.liste)).toBe('false');
+      expect(gepresst(sitz.host, TEXTE.haken)).toBe('false');
+    } finally {
+      await zu(sitz);
+    }
+  });
+
+  it('replaces the list marker from the number buttons', async () => {
+    const sitz = await oeffne('1. milk', () => undefined);
+    try {
+      await druecke(sitz.host, TEXTE.nummerGross);
+      expect(sitz.view.state.doc.textContent).toBe('milk');
+      expect(speichere(sitz.view.state.doc)).toBe('A. milk');
+      expect(gepresst(sitz.host, TEXTE.nummerGross)).toBe('true');
+      expect(gepresst(sitz.host, TEXTE.nummerZahl)).toBe('false');
+      expect(gepresst(sitz.host, TEXTE.liste)).toBe('false');
+      await druecke(sitz.host, TEXTE.liste);
+      expect(sitz.view.state.doc.textContent).toBe('milk');
+      expect(speichere(sitz.view.state.doc)).toBe('- milk');
+      expect(gepresst(sitz.host, TEXTE.liste)).toBe('true');
+      expect(gepresst(sitz.host, TEXTE.nummerGross)).toBe('false');
+      await druecke(sitz.host, TEXTE.nummerRoemisch);
+      expect(speichere(sitz.view.state.doc)).toBe('I. milk');
+      expect(sitz.view.state.doc.textContent).toBe('milk');
+      await druecke(sitz.host, TEXTE.haken);
+      expect(speichere(sitz.view.state.doc)).toBe('[] milk');
+      await druecke(sitz.host, TEXTE.nummerKlein);
+      expect(speichere(sitz.view.state.doc)).toBe('a. milk');
+      await druecke(sitz.host, TEXTE.nummerKlein);
+      expect(speichere(sitz.view.state.doc)).toBe('milk');
+      expect(gepresst(sitz.host, TEXTE.nummerKlein)).toBe('false');
       expect(gepresst(sitz.host, TEXTE.haken)).toBe('false');
     } finally {
       await zu(sitz);

@@ -21,6 +21,11 @@ describe('page text', () => {
     expect(seitentitel('!!!! Important line')).toBe('Important line');
     expect(seitentitel('`code` title')).toBe('code title');
     expect(seitentitel('- Buy milk')).toBe('Buy milk');
+    expect(seitentitel('1. Buy milk')).toBe('Buy milk');
+    expect(seitentitel('A. Buy milk')).toBe('Buy milk');
+    expect(seitentitel('a. Buy milk')).toBe('Buy milk');
+    expect(seitentitel('I. Buy milk')).toBe('Buy milk');
+    expect(seitentitel('i. Buy milk')).toBe('Buy milk');
   });
 
   it('stores a new page as a paragraph and keeps a heading the user wrote', () => {

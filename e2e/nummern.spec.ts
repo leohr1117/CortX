@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
 import { meldeAn } from './anmelden.ts';
-import { erwarteQuelle, setzeQuelle } from './feld.ts';
+import { erwarteQuelle, setzeAuswahl, setzeQuelle } from './feld.ts';
 import { leereLokal, warteBereit } from './lokal.ts';
 import { setzeSchauspiel, sichereBestand, stelleBestand } from './schau.ts';
 
@@ -96,6 +96,82 @@ test('pasted markdown becomes a numbered list at once', async ({ page }, testInf
       await expect.poll(() => sichereBestand().notes.some((eintrag) => eintrag.text === fall.text)).toBe(true);
       if (handy) await page.screenshot({ path: `${BILDER}/handy-nummer-einfuegen-${fall.name}.png`, fullPage: true });
     }
+  } finally {
+    stelleBestand(bestand);
+  }
+});
+
+const WECHSEL = [
+  { name: 'gross', start: '1. milk\n* bread', label: 'Numbered list, A.', text: 'A. milk\n* bread', klasse: 'gross', marker: 'A.' },
+  { name: 'klein', start: '1. milk\n* bread', label: 'Numbered list, a.', text: 'a. milk\n* bread', klasse: 'klein', marker: 'a.' },
+  { name: 'roemisch', start: '1. milk\n* bread', label: 'Numbered list, I.', text: 'I. milk\n* bread', klasse: 'roemisch', marker: 'I.' },
+  { name: 'roemisch-klein', start: '1. milk\n* bread', label: 'Numbered list, i.', text: 'i. milk\n* bread', klasse: 'roemisch-klein', marker: 'i.' },
+  { name: 'zahl', start: 'A. milk\n* bread', label: 'Numbered list, 1.', text: '1. milk\n* bread', klasse: '', marker: '' },
+] as const;
+
+async function inhalt(page: Page): Promise<string[]> {
+  return page.locator('.schreib .cm-marker').evaluateAll((els) => els.map((el) => el.nextElementSibling?.textContent ?? ''));
+}
+
+async function artKnopf(page: Page, name: string): Promise<void> {
+  const knopf = page.getByRole('button', { name, exact: true });
+  await knopf.scrollIntoViewIfNeeded();
+  await knopf.click();
+}
+
+test('the bar replaces the list marker for each kind', async ({ page }, testInfo) => {
+  test.setTimeout(120_000);
+  const bestand = sichereBestand();
+  const handy = testInfo.project.name === 'handy';
+  try {
+    for (const fall of WECHSEL) {
+      await imEditor(page, fall.start);
+      await setzeAuswahl(page, 3, 4);
+      await artKnopf(page, fall.label);
+      await erwarteQuelle(page, fall.text);
+      await expect.poll(() => sichereBestand().notes.some((eintrag) => eintrag.text === fall.text)).toBe(true);
+      expect(await inhalt(page)).toEqual(['milk', 'bread']);
+      if (fall.marker === '') {
+        await expect(page.locator('.schreib .cm-marker.nummer')).toHaveCount(1);
+        await expect(page.locator('.schreib .cm-marker.punkt')).toHaveCount(1);
+      } else await expect.poll(() => marker(page)).toEqual([fall.marker, '']);
+      const breite = handy ? 'handy' : 'desktop';
+      await page.screenshot({ path: `${BILDER}/${breite}-nummer-wechsel-${fall.name}.png`, fullPage: true });
+      await page.reload();
+      await warteBereit(page);
+      const liste = page.locator(fall.klasse ? `.lesetext ol.${fall.klasse}` : '.lesetext ol');
+      await expect(liste).toBeVisible();
+      await expect(liste.locator('li')).toHaveCount(1);
+      await expect(liste.locator('li').first()).toHaveText('milk');
+      await expect(page.locator('.lesetext ul li')).toHaveText('bread');
+      await page.getByRole('button', { name: 'Edit' }).click();
+      await erwarteQuelle(page, fall.text);
+    }
+  } finally {
+    stelleBestand(bestand);
+  }
+});
+
+test('the bar switches a numbered line to a list, a task, and text', async ({ page }, testInfo) => {
+  test.setTimeout(60_000);
+  const bestand = sichereBestand();
+  const handy = testInfo.project.name === 'handy';
+  try {
+    await imEditor(page, '1. milk\n* bread');
+    await setzeAuswahl(page, 3, 4);
+    await artKnopf(page, 'Bulleted list');
+    await erwarteQuelle(page, '- milk\n* bread');
+    expect(await inhalt(page)).toEqual(['milk', 'bread']);
+    await artKnopf(page, 'Checklist');
+    await erwarteQuelle(page, '[] milk\n* bread');
+    expect(await inhalt(page)).toEqual(['milk', 'bread']);
+    await artKnopf(page, 'Numbered list, A.');
+    await erwarteQuelle(page, 'A. milk\n* bread');
+    expect(await inhalt(page)).toEqual(['milk', 'bread']);
+    await artKnopf(page, 'Numbered list, A.');
+    await erwarteQuelle(page, 'milk\n* bread');
+    const breite = handy ? 'handy' : 'desktop';
+    await page.screenshot({ path: `${BILDER}/${breite}-nummer-wechsel-text.png`, fullPage: true });
   } finally {
     stelleBestand(bestand);
   }

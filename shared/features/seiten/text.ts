@@ -38,7 +38,7 @@ function zeilenText(block: LeseBlock): string {
 export function seitentitel(text: string): string {
   for (const stueck of zeilenStuecke(text)) {
     if (stueck.zeile.trim().length === 0) continue;
-    const block = leseDokument(stueck.zeile).bloecke[0];
+    const block = leseDokument(stueck.zeile, true).bloecke[0];
     if (!block) continue;
     return zeilenText(block).trim();
   }

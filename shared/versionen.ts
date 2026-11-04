@@ -6,6 +6,15 @@ interface Versionseintrag {
 
 export const VERSIONEN: readonly Versionseintrag[] = [
   {
+    version: '1.14.0',
+    datum: '2026-11-04',
+    zeilen: [
+      'Numbered lists can use 1., A., a., I., or i.',
+      'Enter adds the next item of the same kind. Pasting that Markdown formats it at once.',
+      'The formatting bar switches the kind, or turns the line into a list, a task, or plain text.',
+    ],
+  },
+  {
     version: '1.13.1',
     datum: '2026-11-04',
     zeilen: ['Internal cleanup, nothing changes for you.'],

@@ -136,6 +136,14 @@ function roh(zeile: string): { token: string; laenge: number } | null {
   return { token, laenge: fund[0].length };
 }
 
+export const NUMMER_KNOPF = [
+  { art: NUMMER_ART.zahl, zeichen: '1.', text: 'nummerZahl' },
+  { art: NUMMER_ART.gross, zeichen: 'A.', text: 'nummerGross' },
+  { art: NUMMER_ART.klein, zeichen: 'a.', text: 'nummerKlein' },
+  { art: NUMMER_ART.roemisch, zeichen: 'I.', text: 'nummerRoemisch' },
+  { art: NUMMER_ART.roemischKlein, zeichen: 'i.', text: 'nummerRoemischKlein' },
+] as const;
+
 export function erkenne(zeile: string): { art: NummerArt; gelesen: number; laenge: number } | null {
   const zeileLauf = nummerLauf([zeile])[0];
   if (!zeileLauf) return null;

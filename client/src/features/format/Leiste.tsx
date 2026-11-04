@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { TEXTE } from '../../../../shared/kern/texte.ts';
 import type { EditorView as ModellAnsicht } from 'prosemirror-view';
 import { leistenEintraege, type FormatBefehl } from '../../../../shared/features/format/index.ts';
+import { NUMMER_KNOPF } from '../../../../shared/features/format/nummer.ts';
 import {
   HINDERNIS,
   LAGE,
@@ -183,7 +184,7 @@ export function Leiste(props: LeistenProps) {
   return (
     <div
       ref={leisteRef}
-      className={mobil ? 'format-leiste mobil' : 'format-leiste schwebend'}
+      className={['format-leiste', mobil ? 'mobil' : 'schwebend', props.modell ? 'modell' : ''].filter(Boolean).join(' ')}
       role="toolbar"
       aria-label={TEXTE.format}
       style={stil}
@@ -225,6 +226,33 @@ export function Leiste(props: LeistenProps) {
           </button>
         );
       })}
+      {props.modell && props.view
+        ? NUMMER_KNOPF.map((eintrag) => {
+            const ansicht = props.view;
+            if (!ansicht) return null;
+            const name = TEXTE[eintrag.text];
+            const an = modellModul?.nummerAn(ansicht.state, eintrag.art) ?? false;
+            return (
+              <button
+                key={eintrag.art}
+                type="button"
+                className={['schalt', an ? 'an' : ''].filter(Boolean).join(' ')}
+                aria-label={name}
+                title={name}
+                aria-pressed={an}
+                onPointerDown={(event) => event.preventDefault()}
+                onClick={() => {
+                  void ladeModell().then((modul) => {
+                    modul.wendeNummer(ansicht, eintrag.art);
+                    setTick((wert) => wert + 1);
+                  });
+                }}
+              >
+                {eintrag.zeichen}
+              </button>
+            );
+          })
+        : null}
     </div>
   );
 }

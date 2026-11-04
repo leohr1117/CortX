@@ -21,6 +21,10 @@ const PROBEN = [
   '!!`Gold`!!',
   '!!!! **fett**',
   '__alpha__\n__beta__\ngamma',
+  'A. milk\n* bread',
+  'I. one\nII. two',
+  'i. one\nii. two',
+  'a. milk',
 ];
 
 describe('model position and text offset', () => {
@@ -40,6 +44,22 @@ describe('model position and text offset', () => {
         expect(zurueck, text).toBeGreaterThanOrEqual(i);
       }
     }
+  });
+
+  it('keeps a letter marker inside its own line', () => {
+    const text = 'A. milk\n* bread';
+    const doc = lade(text);
+    const grenze = grenzen(doc, text);
+    const von = grenze[3] ?? 0;
+    const bis = grenze[4] ?? 0;
+    let getroffen = 0;
+    doc.forEach((node, offset) => {
+      const ende = offset + node.nodeSize;
+      if (von < ende && bis > offset) getroffen += 1;
+    });
+    expect(getroffen).toBe(1);
+    expect(doc.child(0).textContent).toBe('milk');
+    expect(doc.child(1).textContent).toBe('bread');
   });
 
   it('puts the cursor of a wrapped word on the word', () => {
