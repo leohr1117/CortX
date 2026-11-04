@@ -39,6 +39,7 @@ export default defineConfig({
     {
       name: 'abnahme-handy',
       testMatch: /[/\\]abnahme[/\\].*\.spec\.ts$/,
+      testIgnore: /[/\\]abnahme[/\\]desktop\.spec\.ts$/,
       use: { ...devices['Pixel 7'], serviceWorkers: 'block' },
     },
     {
