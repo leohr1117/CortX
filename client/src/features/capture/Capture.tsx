@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { TEXTE } from '../../../../shared/kern/texte.ts';
 import { Link } from 'react-router';
-import type { EditorView as SpiegelAnsicht } from '@codemirror/view';
 import type { EditorView } from 'prosemirror-view';
 import { pfadText, seitentitel, type SeiteKurz } from '../../../../shared/features/seiten/index.ts';
 import { planeAblage } from '../../../../shared/features/tags/index.ts';
@@ -291,7 +290,7 @@ export function CaptureAnsicht() {
   const plan = text.trim().length === 0 ? null : planeAblage(text, themen, seiten);
   const leer = text.trim().length === 0;
   const gesperrt = leer || speichert || plan?.ungueltig === true;
-  const leiste = ansicht ? (spiegel.current as unknown as SpiegelAnsicht) : null;
+  const leiste = ansicht ? spiegel.current : null;
 
   return (
     <div className="app">

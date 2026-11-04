@@ -1,6 +1,5 @@
 import { act, createElement, useState, type ReactNode } from 'react';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { EditorState } from '@codemirror/state';
 import { TextSelection } from 'prosemirror-state';
 import type { EditorView } from 'prosemirror-view';
 import type { Root } from 'react-dom/client';
@@ -122,18 +121,6 @@ async function tippe(view: EditorView, text: string) {
   }
 }
 
-function altesFeld(text: string): string {
-  let state = EditorState.create({ doc: '' });
-  for (const zeichen of text) {
-    const kopf = state.selection.main.head;
-    state = state.update({
-      changes: { from: kopf, to: kopf, insert: zeichen },
-      selection: { anchor: kopf + zeichen.length },
-    }).state;
-  }
-  return state.doc.toString();
-}
-
 async function druck(view: EditorView, key: string, extra: { ctrl?: boolean; meta?: boolean } = {}) {
   await act(async () => {
     const ereignis = {
@@ -194,8 +181,8 @@ describe('capture field', () => {
     for (const probe of proben) {
       const sitz = await oeffne();
       await tippe(sitz.stand.view!, probe);
-      expect(sitz.stand.text).toBe(altesFeld(probe));
-      expect(textAusDokument(sitz.stand.view!.state.doc)).toBe(altesFeld(probe));
+      expect(sitz.stand.text).toBe(probe);
+      expect(textAusDokument(sitz.stand.view!.state.doc)).toBe(probe);
       expect(hatUeberschrift(sitz.stand.view!.state.doc)).toBe(false);
       await zu(sitz);
     }

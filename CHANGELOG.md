@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.13.1
+
+Internal cleanup, nothing changes for you.
+
 ## 1.13.0
 
 Capture on the start page shows formatting while you write. Bold, italic, strikethrough, important, and code can sit inside each other. Pasting Markdown shows lists, tasks, and the same formatting. A line like #topic/page stays text.

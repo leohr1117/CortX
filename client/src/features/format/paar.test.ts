@@ -1,60 +1,149 @@
-import { deleteCharBackward, deleteCharForward, history, undo } from '@codemirror/commands';
-import { EditorState, Transaction } from '@codemirror/state';
-import type { EditorView } from '@codemirror/view';
-import { describe, expect, it } from 'vitest';
-import { paarFilter } from './paar.ts';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { baseKeymap } from 'prosemirror-commands';
+import { history, redo, undo } from 'prosemirror-history';
+import { keymap } from 'prosemirror-keymap';
+import { EditorState } from 'prosemirror-state';
+import { EditorView } from 'prosemirror-view';
+import { auswahlAn, dokumentFuer, textAusDokument } from '../capture/erfassenDokument.ts';
+import { feldPlugins, type FeldAktion } from '../capture/erfassenEingabe.ts';
+import { erfassenSchmuck } from '../capture/erfassenSchmuck.ts';
+import { entfernePruefDom, richtePruefDom } from './modellPruef.ts';
+import { knotenAnsichten, markenAnsichten } from './modellSicht.ts';
 
-function rufe(taste: (view: EditorView) => boolean, state: EditorState, bei: (tr: Transaction) => void): boolean {
-  const ziel = {
-    state,
-    dispatch: (tr: Transaction) => bei(tr),
-  };
-  return taste(ziel as unknown as EditorView);
+const still: FeldAktion = {
+  ablegen() {},
+  offen: () => false,
+  waehlen() {},
+  hoch() {},
+  runter() {},
+  zu() {},
+};
+
+beforeAll(() => {
+  richtePruefDom();
+});
+
+afterAll(() => {
+  entfernePruefDom();
+});
+
+function oeffne(text: string, kopf = text.length): EditorView {
+  const host = document.createElement('div');
+  document.body.appendChild(host);
+  const doc = dokumentFuer(text);
+  const basis = EditorState.create({
+    doc,
+    plugins: [
+      history(),
+      erfassenSchmuck(() => ''),
+      keymap({ 'Mod-z': undo, 'Mod-y': redo, 'Shift-Mod-z': redo }),
+      ...feldPlugins(() => still, () => undefined),
+      keymap(baseKeymap),
+    ],
+  });
+  const auswahl = basis.tr.setSelection(auswahlAn(doc, text, kopf)).setMeta('addToHistory', false);
+  return new EditorView(host, {
+    state: basis.apply(auswahl),
+    nodeViews: knotenAnsichten(),
+    markViews: markenAnsichten(),
+  });
 }
 
-function nachTaste(doc: string, kopf: number, taste: (view: EditorView) => boolean): string {
-  const state = EditorState.create({
-    doc,
-    selection: { anchor: kopf },
-    extensions: [paarFilter()],
-  });
-  let neu = state;
-  const lief = rufe(taste, state, (tr) => {
-    neu = tr.state;
-  });
-  expect(lief).toBe(true);
-  return neu.doc.toString();
+function zu(view: EditorView): void {
+  const host = view.dom.parentElement;
+  view.destroy();
+  host?.remove();
+}
+
+function taste(view: EditorView, key: string, extra: { ctrl?: boolean; inputType?: string } = {}): boolean {
+  const ereignis = {
+    type: extra.inputType ? 'beforeinput' : 'keydown',
+    key,
+    code: key,
+    keyCode: key === 'Backspace' ? 8 : key === 'Delete' ? 46 : key === 'z' ? 90 : 0,
+    ctrlKey: extra.ctrl === true,
+    metaKey: false,
+    altKey: false,
+    shiftKey: false,
+    isComposing: false,
+    inputType: extra.inputType,
+    data: null,
+    defaultPrevented: false,
+    cancelBubble: false,
+    preventDefault() {
+      this.defaultPrevented = true;
+    },
+    stopPropagation() {
+      this.cancelBubble = true;
+    },
+  };
+  view.dom.dispatchEvent(ereignis as unknown as Event);
+  return ereignis.defaultPrevented;
 }
 
 describe('pair delete in the editor', () => {
-  it('records the delete event the command actually sends', () => {
-    const state = EditorState.create({ doc: '*test*', selection: { anchor: 6 } });
-    rufe(deleteCharBackward, state, (tr) => {
-      expect(tr.annotation(Transaction.userEvent)).toBe('delete.backward');
-      expect(tr.changes.length).toBeGreaterThan(0);
-    });
+  it('removes both markers in one backspace or delete', () => {
+    const ende = oeffne('*test*');
+    try {
+      taste(ende, 'Backspace');
+      expect(textAusDokument(ende.state.doc)).toBe('test');
+    } finally {
+      zu(ende);
+    }
+    const innen = oeffne('*test*', 1);
+    try {
+      taste(innen, 'Backspace');
+      expect(textAusDokument(innen.state.doc)).toBe('test');
+    } finally {
+      zu(innen);
+    }
+    const vorn = oeffne('*test*', 0);
+    try {
+      taste(vorn, 'Delete');
+      expect(textAusDokument(vorn.state.doc)).toBe('test');
+    } finally {
+      zu(vorn);
+    }
+    const fett = oeffne('**x**');
+    try {
+      taste(fett, 'Backspace');
+      expect(textAusDokument(fett.state.doc)).toBe('x');
+    } finally {
+      zu(fett);
+    }
   });
 
-  it('removes both markers in one backspace or delete', () => {
-    expect(nachTaste('*test*', 6, deleteCharBackward)).toBe('test');
-    expect(nachTaste('*test*', 1, deleteCharBackward)).toBe('test');
-    expect(nachTaste('*test*', 0, deleteCharForward)).toBe('test');
-    expect(nachTaste('**x**', 5, deleteCharBackward)).toBe('x');
-    expect(nachTaste('hello', 5, deleteCharBackward)).toBe('hell');
+  it('leaves a normal backspace for the field to delete one character', () => {
+    const wort = oeffne('hello');
+    try {
+      expect(taste(wort, 'Backspace', { inputType: 'deleteContentBackward' })).toBe(false);
+      expect(textAusDokument(wort.state.doc)).toBe('hello');
+      expect(taste(wort, 'Backspace')).toBe(false);
+      expect(textAusDokument(wort.state.doc)).toBe('hello');
+    } finally {
+      zu(wort);
+    }
   });
 
   it('undoes the pair in one step and keeps the earlier text', () => {
-    let state = EditorState.create({ doc: '', extensions: [history(), paarFilter()] });
-    state = state.update({ changes: { from: 0, insert: '*test*' }, selection: { anchor: 6 } }).state;
-    const lief = rufe(deleteCharBackward, state, (tr) => {
-      state = tr.state;
-    });
-    expect(lief).toBe(true);
-    expect(state.doc.toString()).toBe('test');
-    const zurueck = rufe(undo, state, (tr) => {
-      state = tr.state;
-    });
-    expect(zurueck).toBe(true);
-    expect(state.doc.toString()).toBe('*test*');
+    const view = oeffne('*test*');
+    try {
+      taste(view, 'Backspace');
+      expect(textAusDokument(view.state.doc)).toBe('test');
+      taste(view, 'z', { ctrl: true });
+      expect(textAusDokument(view.state.doc)).toBe('*test*');
+    } finally {
+      zu(view);
+    }
+  });
+
+  it('removes both markers from a phone backspace', () => {
+    const view = oeffne('*test*');
+    try {
+      taste(view, 'Backspace', { inputType: 'deleteContentBackward' });
+      expect(textAusDokument(view.state.doc)).toBe('test');
+    } finally {
+      zu(view);
+    }
   });
 });

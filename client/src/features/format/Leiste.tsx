@@ -1,6 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { TEXTE } from '../../../../shared/kern/texte.ts';
-import type { EditorView as SpiegelAnsicht } from '@codemirror/view';
 import type { EditorView as ModellAnsicht } from 'prosemirror-view';
 import { leistenEintraege, type FormatBefehl } from '../../../../shared/features/format/index.ts';
 import {
@@ -15,6 +14,17 @@ import {
   sicherUntenPx,
   ueberlappPx,
 } from '../../ui/lage.ts';
+
+export interface SpiegelAnsicht {
+  readonly dom: HTMLElement;
+  readonly state: {
+    readonly doc: { toString: () => string };
+    readonly selection: {
+      readonly main: { readonly empty: boolean; readonly head: number; readonly from: number; readonly to: number };
+    };
+  };
+  coordsAtPos(stelle: number): { readonly left: number; readonly top: number; readonly bottom: number } | null;
+}
 
 function LeistenIcon({ pfade }: { pfade: readonly string[] }) {
   return (
