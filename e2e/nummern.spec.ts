@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
 import { meldeAn } from './anmelden.ts';
-import { erwarteQuelle } from './feld.ts';
+import { erwarteQuelle, setzeQuelle } from './feld.ts';
 import { leereLokal, warteBereit } from './lokal.ts';
 import { setzeSchauspiel, sichereBestand, stelleBestand } from './schau.ts';
 
@@ -65,6 +65,36 @@ test('enter counts a numbered list and reload keeps the kind', async ({ page }, 
       await erwarteQuelle(page, fall.danach);
       if (fall.klasse === '') await expect(page.locator('.schreib .cm-marker.nummer')).toHaveCount(2);
       else await expect.poll(() => marker(page)).toEqual([...fall.marker]);
+    }
+  } finally {
+    stelleBestand(bestand);
+  }
+});
+
+test('pasted markdown becomes a numbered list at once', async ({ page }, testInfo) => {
+  test.setTimeout(120_000);
+  const bestand = sichereBestand();
+  const handy = testInfo.project.name === 'handy';
+  try {
+    for (const fall of FAELLE) {
+      await imEditor(page, 'Start');
+      await setzeQuelle(page, '');
+      await page.getByRole('textbox', { name: 'Note' }).evaluate((el, text: string) => {
+        const data = new DataTransfer();
+        data.setData('text/plain', text);
+        const event = new ClipboardEvent('paste', { bubbles: true, cancelable: true });
+        Object.defineProperty(event, 'clipboardData', { value: data });
+        el.dispatchEvent(event);
+      }, fall.text);
+      await erwarteQuelle(page, fall.text);
+      if (fall.klasse === '') await expect(page.locator('.schreib .cm-marker.nummer')).toHaveCount(1);
+      else await expect.poll(() => marker(page)).toEqual([fall.marker[0]]);
+      const inhalt = await page.locator('.schreib .cm-marker').evaluateAll((els) =>
+        els.map((el) => el.nextElementSibling?.textContent ?? ''),
+      );
+      expect(inhalt).toEqual(['milk']);
+      await expect.poll(() => sichereBestand().notes.some((eintrag) => eintrag.text === fall.text)).toBe(true);
+      if (handy) await page.screenshot({ path: `${BILDER}/handy-nummer-einfuegen-${fall.name}.png`, fullPage: true });
     }
   } finally {
     stelleBestand(bestand);

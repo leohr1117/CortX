@@ -338,7 +338,7 @@ describe('model editor', () => {
     }
   });
 
-  it('counts letter markers in the note and leaves a pasted letter line as text', async () => {
+  it('counts letter markers in the note and decimal markers in the widget', async () => {
     const sitz = await oeffne('A. milk\nC. tea', () => undefined);
     try {
       expect(speichere(sitz.view.state.doc)).toBe('A. milk\nC. tea');
@@ -354,15 +354,6 @@ describe('model editor', () => {
       expect(mitKlasse(zahl.view.dom, 'nummerart')).toEqual([]);
     } finally {
       await zu(zahl);
-    }
-    const paste = await oeffne('', () => undefined);
-    try {
-      zwischenablage(paste.view, 'paste', ablage('A. c'));
-      expect(paste.view.dom.textContent).toBe('A. c');
-      expect(speichere(paste.view.state.doc)).toBe('A. c');
-      expect(mitKlasse(paste.view.dom, 'nummerart')).toEqual([]);
-    } finally {
-      await zu(paste);
     }
   });
 
