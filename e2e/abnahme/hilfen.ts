@@ -277,3 +277,49 @@ export function stil(page: Page, wort: string): Promise<Stil> {
     throw new Error(`kein ${gesucht}`);
   }, wort);
 }
+
+export async function klickeAn(page: Page, selektor: string): Promise<void> {
+  await page.locator(selektor).first().click();
+}
+
+export async function knopfKlick(page: Page, name: string): Promise<void> {
+  const ziel = page.getByRole('toolbar', { name: 'Format' }).getByRole('button', { name, exact: true });
+  await ziel.click({ timeout: 5_000 });
+}
+
+export async function klickeBeschriftung(page: Page, name: string): Promise<void> {
+  await page.getByRole('button', { name, exact: true }).click();
+}
+
+export async function tippeTasten(page: Page, text: string): Promise<void> {
+  for (const teil of text.match(/[\p{L}\p{N}]+|[^\p{L}\p{N}]/gu) ?? []) {
+    if (teil === '\n') {
+      await page.keyboard.press('Enter');
+      continue;
+    }
+    await page.keyboard.type(teil);
+  }
+}
+
+export async function enterDannTasten(page: Page, text: string): Promise<void> {
+  await page.keyboard.press('Enter');
+  await page.keyboard.type(text, { delay: 0 });
+}
+
+export async function ablegenPerKlick(
+  page: Page,
+  feld: 'erfassen' | 'notiz',
+  notizId: number | null,
+  merkmal: string,
+): Promise<number> {
+  const antwort = page.waitForResponse((r) => {
+    if (!r.ok() || r.request().method() !== 'POST') return false;
+    if (!notizPfad(r.url(), feld === 'erfassen' ? null : notizId)) return false;
+    return (r.request().postData() ?? '').includes(merkmal);
+  });
+  if (feld === 'erfassen') await klickeBeschriftung(page, 'File');
+  const koerper = (await (await antwort).json()) as { id?: number };
+  const id = koerper.id ?? notizId;
+  if (!id) throw new Error('keine Notiz');
+  return id;
+}

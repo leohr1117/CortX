@@ -13,6 +13,7 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "e2e": "playwright test",
+    "abnahme:sauber": "node scripts/abnahme-sauber.mjs",
     "e2e:browsers": "playwright install chromium"
   },
   "dependencies": {

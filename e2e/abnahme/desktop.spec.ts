@@ -1,0 +1,347 @@
+import { expect, test, type Page } from '@playwright/test';
+import { meldeAn } from '../anmelden.ts';
+import { warteBereit } from '../lokal.ts';
+import {
+  FELD,
+  ablegenPerKlick,
+  editorJson,
+  enterDannTasten,
+  invarianten,
+  istListenzeile,
+  klickeAn,
+  klickeBeschriftung,
+  knopfKlick,
+  leereAuswahl,
+  modellText,
+  sichtbar,
+  stil,
+  tippeTasten,
+  waehleSichtbar,
+  waehleSichtbarenText,
+} from './hilfen.ts';
+
+const HANDY = { width: 390, height: 844 };
+const TREFFER_MIN = 48;
+
+test.beforeEach(({ }, testInfo) => {
+  testInfo.skip(testInfo.project.name !== 'abnahme-desktop', 'nur bei 1440 px');
+});
+
+interface Kasten {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+function schneidet(a: Kasten, b: Kasten): boolean {
+  return a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
+}
+
+function auswahlKasten(page: Page): Promise<Kasten | null> {
+  return page.evaluate(() => {
+    const auswahl = getSelection();
+    if (!auswahl || auswahl.rangeCount < 1) return null;
+    const rect = auswahl.getRangeAt(0).getBoundingClientRect();
+    if (rect.width < 1 || rect.height < 1) return null;
+    return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+  });
+}
+
+test('Feld oeffnet, Haken liefert Klartext', async ({ page }) => {
+  await meldeAn(page);
+  await page.goto('/');
+  await warteBereit(page);
+  await expect(page.locator(FELD)).toBeVisible();
+  const leer = await modellText(page);
+  expect(leer.trim()).toBe('');
+  await klickeAn(page, FELD);
+  await tippeTasten(page, 'Milch');
+  await expect.poll(async () => (await modellText(page)).trim()).toBe('Milch');
+  expect(await editorJson(page)).toMatchObject({ type: 'doc' });
+});
+
+const KNOEPFE = [
+  ['Bold', 'fett'],
+  ['Italic', 'kursiv'],
+  ['Strikethrough', 'strich'],
+  ['Code', 'mono'],
+] as const;
+
+const KUERZEL = [
+  ['**fett** x', 'fett', 'fett'],
+  ['*kursiv* x', 'kursiv', 'kursiv'],
+  ['~~weg~~ x', 'weg', 'strich'],
+  ['`code` x', 'code', 'mono'],
+] as const;
+
+async function oeffneFeld(page: Page, feld: 'erfassen' | 'notiz'): Promise<number | null> {
+  await meldeAn(page);
+  let id: number | null = null;
+  if (feld === 'erfassen') {
+    await page.goto('/');
+  } else {
+    const antwort = await page.request.post('/api/notes', { data: { text: 'Seite' } });
+    expect(antwort.ok()).toBe(true);
+    id = ((await antwort.json()) as { id: number }).id;
+    await page.goto(`/library/note?id=${id}`);
+    await warteBereit(page);
+    await klickeAn(page, 'header button[aria-label="Edit"]');
+  }
+  await warteBereit(page);
+  await expect(page.locator(FELD)).toBeVisible();
+  await klickeAn(page, FELD);
+  if (feld === 'notiz') {
+    await leereAuswahl(page);
+    await expect.poll(async () => (await modellText(page)).trim()).toBe('');
+  }
+  return id;
+}
+
+function flach(text: string): string {
+  return text.replace(/\u00a0/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+for (const feld of ['erfassen', 'notiz'] as const) {
+  test.describe(`${feld} – Desktop`, { tag: '@F1' }, () => {
+    test.beforeEach(async ({ page }) => {
+      await oeffneFeld(page, feld);
+    });
+
+    test.afterEach(async ({ page }) => {
+      await invarianten(page);
+    });
+
+    test('leeres Feld: Cursor in der Platzhalterzeile', async ({ page }) => {
+      const platz = page.locator('.cm-placeholder, [data-placeholder]').first();
+      const p = await platz.boundingBox({ timeout: 1_000 }).catch(() => null);
+      expect(p, 'Platzhalterzeile').not.toBeNull();
+      const hoehe = await page.locator(`${FELD} > *`).first().evaluate((el) => el.getBoundingClientRect().height);
+      expect(hoehe).toBeLessThanOrEqual((p?.height ?? 0) * 1.6);
+      await tippeTasten(page, 'Hallo');
+      const text = await page.locator(FELD).getByText('Hallo').boundingBox();
+      expect(text).not.toBeNull();
+      expect(Math.abs((text?.y ?? 0) - (p?.y ?? 0))).toBeLessThan(4);
+      await expect(page.locator(FELD)).toHaveScreenshot(`${feld}-leer-getippt.png`, { maxDiffPixelRatio: 0.01 });
+    });
+
+    for (const [knopfName, art] of KNOEPFE) {
+      test(`${knopfName}: ohne Markierung an, tippen, aus, weitertippen`, async ({ page }) => {
+        await tippeTasten(page, 'eins ');
+        await knopfKlick(page, knopfName);
+        await tippeTasten(page, 'zwei');
+        expect(await sichtbar(page)).toBe('eins zwei');
+        await knopfKlick(page, knopfName);
+        await tippeTasten(page, ' drei');
+        expect((await stil(page, 'zwei'))[art]).toBe(true);
+        expect((await stil(page, 'drei'))[art]).toBe(false);
+      });
+
+      test(`${knopfName}: auf Markierung, mehrzeilig, erneut aus`, async ({ page }) => {
+        await tippeTasten(page, 'aa\nbb\ncc dd');
+        await waehleSichtbar(page, 0, 99);
+        await knopfKlick(page, knopfName);
+        for (const wort of ['aa', 'bb', 'cc dd']) expect((await stil(page, wort))[art]).toBe(true);
+        await knopfKlick(page, knopfName);
+        for (const wort of ['aa', 'bb', 'cc dd']) expect((await stil(page, wort))[art]).toBe(false);
+      });
+    }
+
+    for (const [eingabe, wort, art] of KUERZEL) {
+      test(`Kuerzel per Tasten: ${eingabe}`, async ({ page }) => {
+        await tippeTasten(page, eingabe);
+        expect(await sichtbar(page)).toBe(eingabe.replace(/[*~`]/g, ''));
+        expect((await stil(page, wort))[art]).toBe(true);
+        expect((await stil(page, 'x'))[art]).toBe(false);
+      });
+    }
+
+    test('Weitertippen nach Format verfaelscht nichts', async ({ page }) => {
+      await tippeTasten(page, 'eins ');
+      await knopfKlick(page, 'Bold');
+      await tippeTasten(page, 'zwei');
+      await knopfKlick(page, 'Bold');
+      await tippeTasten(page, ' drei vier');
+      expect(await sichtbar(page)).toBe('eins zwei drei vier');
+    });
+
+    test('Pfeiltasten: jeder Druck ein sichtbares Zeichen', async ({ page }) => {
+      await tippeTasten(page, '**fett** x');
+      for (let i = 0; i < 4; i += 1) await page.keyboard.press('ArrowLeft');
+      await tippeTasten(page, 'Y');
+      expect(await sichtbar(page)).toBe('feYtt x');
+    });
+
+    test('Ruecktaste loescht den Buchstaben und laesst das Format (K6)', async ({ page }) => {
+      await tippeTasten(page, '**fett**');
+      await page.keyboard.press('Backspace');
+      await page.keyboard.press('Backspace');
+      expect(flach(await sichtbar(page))).toBe('fe');
+      expect(flach(await modellText(page))).toBe('fe');
+      expect((await stil(page, 'fe')).fett).toBe(true);
+    });
+
+    test('Mehrzeilig loeschen hinterlaesst keine Zeichen (K5)', async ({ page }) => {
+      await tippeTasten(page, 'aaa **bbb**\n~~ccc~~ ddd\neee fff');
+      await waehleSichtbarenText(page, 'bbb', 'eee ');
+      await page.keyboard.press('Backspace');
+      const text = await sichtbar(page);
+      expect(flach(text)).toBe('aaa fff');
+      expect(text).not.toMatch(/\*/);
+    });
+
+    test('Enter-Enter verlaesst die Liste (H7)', async ({ page }) => {
+      await tippeTasten(page, '- eins');
+      await page.keyboard.press('Enter');
+      await tippeTasten(page, 'zwei');
+      await page.keyboard.press('Enter');
+      await page.keyboard.press('Enter');
+      await tippeTasten(page, 'raus');
+      expect(await modellText(page)).not.toMatch(/\n- raus\s*$/);
+      expect(await istListenzeile(page, 'eins')).toBe(true);
+      expect(await istListenzeile(page, 'zwei')).toBe(true);
+      expect(await istListenzeile(page, 'raus')).toBe(false);
+      expect(await sichtbar(page)).toContain('raus');
+    });
+
+    test('Nummernliste laeuft weiter (H8)', async ({ page }) => {
+      await tippeTasten(page, '1. eins');
+      await page.keyboard.press('Enter');
+      await tippeTasten(page, 'zwei');
+      expect(await modellText(page)).not.toMatch(/^1\.\s/m);
+      expect(await istListenzeile(page, 'eins')).toBe(true);
+      expect(await istListenzeile(page, 'zwei')).toBe(true);
+    });
+
+    test('Sternchen am Listenanfang bleiben vollstaendig (K4)', async ({ page }) => {
+      await tippeTasten(page, '- Milch');
+      await page.keyboard.press('Enter');
+      await tippeTasten(page, '**Brot**');
+      const text = await sichtbar(page);
+      expect(flach(text)).toBe('Milch Brot');
+      expect(text).not.toMatch(/\*/);
+      expect((await stil(page, 'Brot')).fett).toBe(true);
+    });
+
+    test('Taste direkt nach Enter bleibt (K7)', async ({ page }) => {
+      await tippeTasten(page, '- eins');
+      await enterDannTasten(page, 'zw');
+      expect(await sichtbar(page)).toMatch(/eins[^\n]*\n[^\n]*zw/);
+    });
+
+    test('Kopieren gibt keine Formatzeichen weiter (H9)', async ({ page }) => {
+      await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
+      await tippeTasten(page, 'a **fett** b');
+      await waehleSichtbar(page, 0, 99);
+      await page.keyboard.press('Control+c');
+      expect(await page.evaluate(() => navigator.clipboard.readText())).toBe('a fett b');
+    });
+
+    test('Einfuegen formatiert Markdown (H10)', async ({ page }) => {
+      await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
+      await page.evaluate(async () => {
+        await navigator.clipboard.writeText('**Brot** und\n- Milch');
+      });
+      await klickeAn(page, FELD);
+      await page.keyboard.press('Control+v');
+      expect(await sichtbar(page)).not.toMatch(/\*/);
+      expect((await stil(page, 'Brot')).fett).toBe(true);
+      expect(await istListenzeile(page, 'Milch')).toBe(true);
+    });
+
+    test('Rueckgaengig nimmt Format und Wort einzeln zurueck (M2)', async ({ page }) => {
+      await tippeTasten(page, 'eins zwei drei');
+      await waehleSichtbar(page, 0, 99);
+      await knopfKlick(page, 'Bold');
+      await page.keyboard.press('Control+z');
+      expect(flach(await sichtbar(page))).toBe('eins zwei drei');
+      expect((await stil(page, 'drei')).fett).toBe(false);
+      await page.keyboard.press('Control+z');
+      expect(flach(await modellText(page))).toBe('eins zwei');
+    });
+  });
+
+  test.describe(`${feld} – Ablegen`, { tag: '@F2' }, () => {
+    let notizId: number | null = null;
+
+    test.beforeEach(async ({ page }) => {
+      notizId = await oeffneFeld(page, feld);
+    });
+
+    test('Speichern und Wiederoeffnen: Server-JSON gleich Editor-JSON', async ({ page }) => {
+      await tippeTasten(page, 'Einkauf\n');
+      await knopfKlick(page, 'Bulleted list');
+      await tippeTasten(page, 'Milch\n\n**wichtig** und ~~alt~~');
+      const editorDoc = await editorJson(page);
+      const id = await ablegenPerKlick(page, feld, notizId, 'Einkauf');
+      const server = (await (await page.request.get(`/api/notes/${id}`)).json()) as { doc?: unknown };
+      expect(server.doc).toEqual(editorDoc);
+      await page.goto(`/library/note?id=${id}`);
+      await warteBereit(page);
+      await klickeAn(page, 'header button[aria-label="Edit"]');
+      await warteBereit(page);
+      await expect(page.locator(FELD)).toBeVisible();
+      expect(await editorJson(page)).toEqual(editorDoc);
+    });
+
+    test('Offline ablegen, online gleich Server-JSON', async ({ page, context }) => {
+      await context.setOffline(true);
+      await tippeTasten(page, 'Milch');
+      const editorDoc = await editorJson(page);
+      if (feld === 'erfassen') {
+        await klickeBeschriftung(page, 'File');
+        await expect(page.getByRole('status')).toHaveText('Filed offline · syncs later');
+      }
+      const warten = page.waitForResponse((r) => {
+        if (!r.ok() || r.request().method() !== 'POST') return false;
+        const pfad = new URL(r.url()).pathname;
+        const passend = feld === 'erfassen' ? pfad === '/api/notes' : pfad === `/api/notes/${notizId}`;
+        if (!passend) return false;
+        return (r.request().postData() ?? '').includes('Milch');
+      });
+      await context.setOffline(false);
+      const antwort = await warten;
+      const koerper = (await antwort.json()) as { id?: number };
+      const id = koerper.id ?? notizId;
+      const server = (await (await page.request.get(`/api/notes/${id}`)).json()) as { doc?: unknown };
+      expect(server.doc).toEqual(editorDoc);
+    });
+  });
+
+  test.describe(`${feld} – Leiste`, { tag: '@F4' }, () => {
+    test('Leiste nicht ueber Auswahl oder Titel, Treffer mindestens 48 px', async ({ page }) => {
+      await oeffneFeld(page, feld);
+      await tippeTasten(page, 'Einkauf\nMilch');
+      await waehleSichtbarenText(page, 'Milch', 'Milch');
+      const fehler: string[] = [];
+      const leiste = page.getByRole('toolbar', { name: 'Format' });
+      const leisteKasten = await leiste.boundingBox();
+      const auswahl = await auswahlKasten(page);
+      if (!leisteKasten) fehler.push('Leiste nicht sichtbar');
+      else if (!auswahl) fehler.push('Auswahl nicht sichtbar');
+      else if (schneidet(leisteKasten, auswahl)) fehler.push('Leiste ueber der Auswahl');
+      const titel = page.locator('header.kopf h1');
+      const titelZahl = await titel.count();
+      if (feld === 'notiz' && titelZahl === 0) fehler.push('Titel fehlt');
+      const titelKasten = titelZahl > 0 ? await titel.first().boundingBox() : null;
+      if (leisteKasten && titelKasten && schneidet(leisteKasten, titelKasten)) fehler.push('Leiste ueber dem Titel');
+
+      await page.setViewportSize(HANDY);
+      await expect(page.locator('.format-leiste.mobil')).toBeVisible();
+      const knoepfe = await page.locator('.format-leiste.mobil .schalt').evaluateAll((els) =>
+        els.map((el) => {
+          const r = el.getBoundingClientRect();
+          return { name: el.getAttribute('aria-label') ?? '', w: r.width, h: r.height };
+        }),
+      );
+      if (knoepfe.length === 0) fehler.push('keine Trefferflaeche');
+      for (const knopf of knoepfe) {
+        if (knopf.w < TREFFER_MIN || knopf.h < TREFFER_MIN) {
+          fehler.push(`${knopf.name} ${Math.round(knopf.w)}x${Math.round(knopf.h)}`);
+        }
+      }
+      expect(fehler).toEqual([]);
+      await invarianten(page);
+    });
+  });
+}

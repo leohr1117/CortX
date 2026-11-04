@@ -18,6 +18,12 @@ Live: [cortx.leohr.de](https://cortx.leohr.de)
 
 Die Oberfläche ist englisch. Änderungen je Version stehen in [CHANGELOG.md](CHANGELOG.md).
 
+## Tests
+
+`npm test` führt die Unit-Tests aus. `npm run e2e -- e2e/<datei>.spec.ts` startet den Testserver und führt die genannte Browser-Datei aus.
+
+Die Abnahme in `e2e/abnahme` prüft das Erfassen-Feld und den Notiz-Editor an dem, was sichtbar ist, auf dem Handy und bei 1440 px. `npm run abnahme:sauber` bricht ab, wenn diese Tests den Editor über einen Hintereingang setzen oder lesen.
+
 ## Technik
 
 - TypeScript, React 19, React Router, Tailwind CSS 4, Vite
@@ -42,6 +48,7 @@ npm test               # Unit-Tests (Vitest)
 npm run typecheck      # Typprüfung
 npm run e2e:browsers   # Chromium für Playwright installieren
 npm run e2e            # Browser-Tests
+npm run abnahme:sauber # Abnahme ohne Hintereingang zum Editor
 npm run build          # Produktions-Build nach client/dist
 npm start              # Server mit fertigem Build
 ```
