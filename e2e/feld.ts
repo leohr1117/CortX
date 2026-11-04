@@ -157,6 +157,78 @@ export async function tippe(page: Page, x: number, y: number): Promise<void> {
   }
 }
 
+export interface KantenMass {
+  art: string;
+  luecke: number;
+  einzug: number;
+  hoehe: number;
+}
+
+export async function listenKanten(page: Page): Promise<KantenMass[]> {
+  return page.locator('.schreib .cm-punkt, .schreib .cm-nummer, .schreib .cm-nummerart').evaluateAll((zeilen) =>
+    zeilen.map((zeile) => {
+      const marker = zeile.querySelector('.cm-marker');
+      const stil = getComputedStyle(zeile);
+      const box = zeile.getBoundingClientRect();
+      const rand = parseFloat(stil.borderLeftWidth) || 0;
+      const einzug = parseFloat(stil.paddingLeft) || 0;
+      const textLinks = box.left + rand + einzug;
+      const rechts = marker ? marker.getBoundingClientRect().right : textLinks;
+      return {
+        art: zeile.className,
+        luecke: Math.round((textLinks - rechts) * 10) / 10,
+        einzug: Math.round(einzug * 10) / 10,
+        hoehe: Math.round(box.height * 10) / 10,
+      };
+    }),
+  );
+}
+
+export async function leseKanten(page: Page): Promise<KantenMass[]> {
+  return page.locator('.lesetext li').evaluateAll((zeilen) =>
+    zeilen.map((li) => {
+      const stil = getComputedStyle(li);
+      const before = getComputedStyle(li, '::before');
+      const einzug = parseFloat(stil.paddingLeft) || 0;
+      const links = parseFloat(before.left) || 0;
+      const breite = parseFloat(before.width) || 0;
+      const box = li.getBoundingClientRect();
+      return {
+        art: li.parentElement?.className ?? '',
+        luecke: Math.round((einzug - links - breite) * 10) / 10,
+        einzug: Math.round(einzug * 10) / 10,
+        hoehe: Math.round(box.height * 10) / 10,
+      };
+    }),
+  );
+}
+
+export async function absatzHoehe(page: Page): Promise<number> {
+  return page.locator('.schreib .ProseMirror > p').evaluateAll((zeilen) => {
+    const plain = zeilen.find(
+      (zeile) =>
+        !zeile.classList.contains('cm-punkt') &&
+        !zeile.classList.contains('cm-nummer') &&
+        !zeile.classList.contains('cm-nummerart'),
+    );
+    return plain ? Math.round(plain.getBoundingClientRect().height * 10) / 10 : -1;
+  });
+}
+
+export async function hakenKante(page: Page): Promise<{ abstand: number; einzug: number; hoehe: number }> {
+  return page.locator('.schreib .cm-haken').first().evaluate((haken) => {
+    const zeile = haken.closest('.ProseMirror > *');
+    const stil = getComputedStyle(haken);
+    const zeilenStil = zeile ? getComputedStyle(zeile) : stil;
+    const box = (zeile ?? haken).getBoundingClientRect();
+    return {
+      abstand: Math.round((parseFloat(stil.marginRight) || 0) * 10) / 10,
+      einzug: Math.round((parseFloat(zeilenStil.paddingLeft) || 0) * 10) / 10,
+      hoehe: Math.round(box.height * 10) / 10,
+    };
+  });
+}
+
 export async function leistenKante(page: Page): Promise<LeistenKante> {
   return page.getByRole('toolbar', { name: 'Format' }).evaluate((el) => {
     const rect = el.getBoundingClientRect();

@@ -6,6 +6,11 @@ interface Versionseintrag {
 
 export const VERSIONEN: readonly Versionseintrag[] = [
   {
+    version: '1.14.1',
+    datum: '2026-11-04',
+    zeilen: ['List markers keep a gap before the words while you edit, same as when you read.'],
+  },
+  {
     version: '1.14.0',
     datum: '2026-11-04',
     zeilen: [

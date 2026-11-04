@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
 import { meldeAn } from './anmelden.ts';
-import { erwarteQuelle, setzeAuswahl, setzeQuelle } from './feld.ts';
+import { absatzHoehe, erwarteQuelle, hakenKante, listenKanten, setzeAuswahl, setzeQuelle } from './feld.ts';
 import { leereLokal } from './lokal.ts';
 
 const BILDER = 'tmp-test/screens';
@@ -119,4 +119,24 @@ test('the capture tag menu and filing follow the keyboard', async ({ page }, tes
   await expect(page.getByRole('status')).toContainText(thema);
   await erwarteQuelle(page, '');
   await expect(page.getByRole('button', { name: 'File' })).toBeDisabled();
+});
+
+test('capture list markers keep a gap and the typed text', async ({ page }, testInfo) => {
+  const handy = testInfo.project.name === 'handy';
+  const text = 'plain\n- three\n1. milk\nA. milk\n[] task';
+  await setzeQuelle(page, text);
+  await erwarteQuelle(page, text);
+  const editor = await listenKanten(page);
+  const plain = await absatzHoehe(page);
+  const haken = await hakenKante(page);
+  expect(editor.map((zeile) => zeile.einzug)).toEqual([16, 28]);
+  expect(editor[0]?.luecke).toBeGreaterThan(8);
+  expect(editor[0]?.luecke).toBeLessThan(10);
+  expect(editor[1]?.luecke).toBeGreaterThan(4);
+  for (const zeile of editor) expect(Math.abs(zeile.hoehe - plain)).toBeLessThan(1.5);
+  expect(haken.einzug).toBe(0);
+  expect(haken.abstand).toBe(8);
+  expect(Math.abs(haken.hoehe - plain)).toBeLessThan(1.5);
+  await expect(page.locator('.schreib .cm-marker.nummerart')).toHaveCount(0);
+  if (handy) await page.screenshot({ path: `${BILDER}/handy-capture-liste.png`, fullPage: true });
 });

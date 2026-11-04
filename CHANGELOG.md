@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.14.1
+
+List markers keep a gap before the words while you edit, same as when you read.
+
 ## 1.14.0
 
 Numbered lists can use 1., A., a., I., or i. Enter adds the next item of the same kind, and pasting that Markdown formats it at once. The formatting bar switches the kind, or turns the line into a list, a task, or plain text.

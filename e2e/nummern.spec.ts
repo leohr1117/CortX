@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
 import { meldeAn } from './anmelden.ts';
-import { erwarteQuelle, setzeAuswahl, setzeQuelle } from './feld.ts';
+import { absatzHoehe, erwarteQuelle, hakenKante, leseKanten, listenKanten, setzeAuswahl, setzeQuelle } from './feld.ts';
 import { leereLokal, warteBereit } from './lokal.ts';
 import { setzeSchauspiel, sichereBestand, stelleBestand } from './schau.ts';
 
@@ -172,6 +172,40 @@ test('the bar switches a numbered line to a list, a task, and text', async ({ pa
     await erwarteQuelle(page, 'milk\n* bread');
     const breite = handy ? 'handy' : 'desktop';
     await page.screenshot({ path: `${BILDER}/${breite}-nummer-wechsel-text.png`, fullPage: true });
+  } finally {
+    stelleBestand(bestand);
+  }
+});
+
+test('list markers keep the same gap as the reading view', async ({ page }, testInfo) => {
+  test.setTimeout(60_000);
+  const bestand = sichereBestand();
+  const handy = testInfo.project.name === 'handy';
+  const text = ['plain', '- milk', '1. milk', 'A. milk', 'a. milk', 'I. milk', 'i. milk', '[] task'].join('\n');
+  try {
+    await imEditor(page, text);
+    const editor = await listenKanten(page);
+    const plain = await absatzHoehe(page);
+    const haken = await hakenKante(page);
+    expect(editor.map((zeile) => zeile.einzug)).toEqual([16, 28, 34, 34, 34, 34]);
+    expect(editor[0]?.luecke).toBeGreaterThan(8);
+    expect(editor[0]?.luecke).toBeLessThan(10);
+    for (const zeile of editor) {
+      expect(zeile.luecke).toBeGreaterThan(4);
+      expect(Math.abs(zeile.hoehe - plain)).toBeLessThan(1.5);
+    }
+    expect(haken.einzug).toBe(0);
+    expect(haken.abstand).toBe(8);
+    expect(Math.abs(haken.hoehe - plain)).toBeLessThan(1.5);
+    if (handy) await page.screenshot({ path: `${BILDER}/handy-listenabstand-editor.png`, fullPage: true });
+    await page.reload();
+    await warteBereit(page);
+    const lese = await leseKanten(page);
+    expect(lese.map((zeile) => zeile.einzug)).toEqual([16, 28, 34, 34, 34, 34]);
+    expect(lese[0]?.luecke).toBeGreaterThan(8);
+    expect(lese[0]?.luecke).toBeLessThan(10);
+    expect(Math.abs((lese[0]?.luecke ?? 0) - (editor[0]?.luecke ?? 0))).toBeLessThan(1);
+    if (handy) await page.screenshot({ path: `${BILDER}/handy-listenabstand-lesen.png`, fullPage: true });
   } finally {
     stelleBestand(bestand);
   }

@@ -363,11 +363,32 @@ describe('capture field', () => {
     expect(weg).toContain('**');
     expect(weg).toContain('- ');
     expect(weg.every((text) => !text?.includes('#'))).toBe(true);
-    expect(knoten.some((el) => el.classList.contains('cm-punkt') && el.textContent === '\u2022 ')).toBe(true);
+    const punkt = knoten.find((el) => el.classList.contains('cm-marker') && el.classList.contains('punkt'));
+    expect(punkt?.textContent).toBe('');
+    expect(knoten.some((el) => el.tagName === 'P' && el.classList.contains('cm-punkt'))).toBe(true);
     const plan = planeAblage(textAusDokument(view.state.doc), themen);
     expect(plan?.ungueltig).toBe(false);
     expect(plan?.ziele[1]).toMatchObject({ topicName: 'thema', seite: 'seite', text: '' });
     expect(plan?.ziele[2]).toMatchObject({ topicName: 'tag', seite: null, text: '' });
+    await zu(sitz);
+  });
+
+  it('gives a decimal marker the list column and leaves a letter line as typed', async () => {
+    const sitz = await oeffne();
+    const view = sitz.stand.view!;
+    const probe = '1. milk\nA. tea\n[] task';
+    await act(async () => {
+      setzeErfassenText(view, probe, probe.length, probe.length);
+    });
+    expect(textAusDokument(view.state.doc)).toBe(probe);
+    const knoten = elemente(view.dom);
+    const zahl = knoten.find((el) => el.classList.contains('cm-marker') && el.classList.contains('cm-zahl'));
+    expect(zahl?.textContent).toBe('1.');
+    expect(knoten.filter((el) => el.tagName === 'P' && el.classList.contains('cm-nummer'))).toHaveLength(1);
+    expect(knoten.some((el) => el.classList.contains('nummerart'))).toBe(false);
+    const haken = knoten.find((el) => el.classList.contains('cm-haken'));
+    expect(haken?.classList.contains('cm-marker')).toBe(false);
+    expect(knoten.some((el) => el.tagName === 'P' && el.classList.contains('cm-punkt'))).toBe(false);
     await zu(sitz);
   });
 

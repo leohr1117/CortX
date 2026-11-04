@@ -55,7 +55,25 @@ function spanne(doc: Node, text: string, von: number, bis: number): { from: numb
 interface Kachel {
   von: number;
   bis: number;
+  zeile: string;
   male: () => HTMLElement;
+}
+
+function zeilenKlasse(art: string): string {
+  if (art === ART.liste) return 'cm-punkt';
+  if (art === ART.nummer) return 'cm-nummer';
+  return '';
+}
+
+function zeileDeko(doc: Node, pos: number, name: string): Decoration | null {
+  if (name.length === 0) return null;
+  try {
+    const stelle = doc.resolve(pos);
+    if (stelle.depth < 1) return null;
+    return Decoration.node(stelle.before(), stelle.after(), { class: name });
+  } catch {
+    return null;
+  }
 }
 
 function widgetKnoten(beleg: Beleg): HTMLElement {
@@ -63,8 +81,8 @@ function widgetKnoten(beleg: Beleg): HTMLElement {
   span.setAttribute('aria-hidden', 'true');
   const art = vorschauWidget(beleg.art);
   if (art === WIDGET.nummer) {
-    span.className = 'cm-nummer';
-    span.textContent = `${beleg.zahl ?? ''}. `;
+    span.className = 'cm-marker cm-zahl';
+    span.textContent = `${beleg.zahl ?? ''}.`;
     return span;
   }
   if (art === WIDGET.haken) {
@@ -72,8 +90,7 @@ function widgetKnoten(beleg: Beleg): HTMLElement {
     span.textContent = beleg.abgehakt === true ? '\u2713' : '';
     return span;
   }
-  span.className = 'cm-punkt';
-  span.textContent = '\u2022 ';
+  span.className = 'cm-marker punkt';
   return span;
 }
 
@@ -117,7 +134,12 @@ function baue(state: EditorState, hinweis: string): DecorationSet {
       markiere(beleg, text, anfang, ende, zeigeSchale, verdeckt, gedimmt);
       const marker = beleg.marker[0];
       if (marker && verdeckt[marker[0]]) {
-        kacheln.set(marker[0], { von: marker[0], bis: marker[1], male: () => widgetKnoten(beleg) });
+        kacheln.set(marker[0], {
+          von: marker[0],
+          bis: marker[1],
+          zeile: zeilenKlasse(beleg.art),
+          male: () => widgetKnoten(beleg),
+        });
       }
     }
     if (!SICHTBAR.has(beleg.art)) continue;
@@ -145,6 +167,8 @@ function baue(state: EditorState, hinweis: string): DecorationSet {
             stopEvent: () => true,
             key: `kachel-${kachel.von}`,
           }));
+          const zeile = zeileDeko(doc, bereich.from, kachel.zeile);
+          if (zeile) teile.push(zeile);
         }
         teile.push(Decoration.inline(bereich.from, bereich.to, { class: 'cm-marker-weg', 'aria-hidden': 'true' }));
       }

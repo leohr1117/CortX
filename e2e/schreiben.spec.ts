@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
 import { meldeAn } from './anmelden.ts';
-import { erwarteQuelle, liesQuelle, setzeAuswahl, setzeCursor, setzeQuelle } from './feld.ts';
+import { absatzHoehe, erwarteQuelle, hakenKante, liesQuelle, listenKanten, setzeAuswahl, setzeCursor, setzeQuelle } from './feld.ts';
 import { leereLokal, warteBereit } from './lokal.ts';
 import { setzeSchauspiel, sichereBestand, stelleBestand } from './schau.ts';
 
@@ -329,6 +329,30 @@ test('a checkbox toggles in the editor, survives reload, and undoes', async ({ p
     if (handy) await nochmal.tap();
     else await nochmal.click();
     await erwarteQuelle(page, '[] a\nkeep');
+  } finally {
+    stelleBestand(bestand);
+  }
+});
+
+test('a bullet keeps a gap and the line spacing stays', async ({ page }, testInfo) => {
+  test.setTimeout(60_000);
+  const bestand = sichereBestand();
+  const handy = testInfo.project.name === 'handy';
+  try {
+    await imEditor(page, 'plain\n- three\n[] task');
+    const editor = await listenKanten(page);
+    const plain = await absatzHoehe(page);
+    const haken = await hakenKante(page);
+    expect(editor).toHaveLength(1);
+    expect(editor[0]?.einzug).toBe(16);
+    expect(editor[0]?.luecke).toBeGreaterThan(8);
+    expect(editor[0]?.luecke).toBeLessThan(10);
+    expect(Math.abs((editor[0]?.hoehe ?? 0) - plain)).toBeLessThan(1.5);
+    expect(haken.einzug).toBe(0);
+    expect(haken.abstand).toBe(8);
+    expect(Math.abs(haken.hoehe - plain)).toBeLessThan(1.5);
+    await erwarteQuelle(page, 'plain\n- three\n[] task');
+    if (handy) await page.screenshot({ path: `${BILDER}/handy-schreiben-liste.png`, fullPage: true });
   } finally {
     stelleBestand(bestand);
   }

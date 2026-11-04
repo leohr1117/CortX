@@ -41,6 +41,8 @@
   --abstand-72: 72px;
   --abstand-76: 76px;
   --abstand-80: 80px;
+  --listen-punkt: 5px;
+  --listen-abstand: calc(var(--abstand-16) - var(--abstand-2) - var(--listen-punkt));
   --sr-versatz: -1px;
   --radius-0: 0;
   --radius-2: 2px;
@@ -743,15 +745,15 @@ a.tx:focus-visible {
 .lesetext li {
   position: relative;
   min-height: 24px;
-  padding-left: var(--abstand-16);
+  padding-left: calc(var(--abstand-2) + var(--listen-punkt) + var(--listen-abstand));
 }
 .lesetext li::before {
   content: "";
   position: absolute;
-  left: 2px;
+  left: var(--abstand-2);
   top: 9px;
-  width: 5px;
-  height: 5px;
+  width: var(--listen-punkt);
+  height: var(--listen-punkt);
   border-radius: var(--radius-kreis);
   background: currentColor;
 }
@@ -1447,7 +1449,41 @@ input.feld::placeholder { color: var(--leise); }
   padding-left: var(--abstand-10);
   box-shadow: inset 3px 0 0 var(--wichtig-balken);
 }
-.modell-host .cm-nummer { counter-increment: nummer; }
+.modell-host .cm-punkt,
+.modell-host .cm-nummer,
+.modell-host .cm-nummerart {
+  position: relative;
+}
+.modell-host .cm-punkt {
+  padding-left: calc(var(--abstand-2) + var(--listen-punkt) + var(--listen-abstand));
+}
+.modell-host .cm-nummer {
+  padding-left: var(--abstand-28);
+  counter-increment: nummer;
+}
+.modell-host .cm-nummerart {
+  padding-left: var(--abstand-34);
+}
 .modell-host .cm-marker { user-select: none; }
-.modell-host .cm-marker.punkt::before { content: "•"; }
+.modell-host .cm-marker.punkt,
+.modell-host .cm-marker.nummer,
+.modell-host .cm-marker.nummerart,
+.modell-host .cm-marker.cm-zahl {
+  position: absolute;
+  top: 0;
+  pointer-events: none;
+}
+.modell-host .cm-marker.punkt {
+  left: var(--abstand-2);
+  top: calc((1lh - var(--listen-punkt)) / 2);
+  width: var(--listen-punkt);
+  height: var(--listen-punkt);
+  border-radius: var(--radius-kreis);
+  background: currentColor;
+}
+.modell-host .cm-marker.nummer,
+.modell-host .cm-marker.nummerart,
+.modell-host .cm-marker.cm-zahl {
+  left: 0;
+}
 .modell-host .cm-marker.nummer::before { content: counter(nummer) "."; }
