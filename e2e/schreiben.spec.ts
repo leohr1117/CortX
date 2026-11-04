@@ -211,7 +211,7 @@ test('enter, shift enter, and backspace edit a list in a note', async ({ page })
 
     await setzeQuelle(page, '1. milk');
     await page.keyboard.press('Enter');
-    await erwarteQuelle(page, '1. milk\n\n');
+    await erwarteQuelle(page, '1. milk\n2. ');
   } finally {
     stelleBestand(bestand);
   }

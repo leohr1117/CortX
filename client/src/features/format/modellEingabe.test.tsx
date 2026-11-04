@@ -259,23 +259,34 @@ describe('list keys in the model editor', () => {
     }
   });
 
-  it('breaks a numbered line without starting another number', async () => {
+  it('continues a numbered line and ends an empty one', async () => {
     const ende = await oeffne('1. item');
     try {
       setze(ende.view, 7);
       expect(druecke(ende.view, 'enter')).toBe(true);
-      expect(speichere(ende.view.state.doc)).toBe('1. item\n\n');
+      expect(speichere(ende.view.state.doc)).toBe('1. item\n2. ');
       expect(ende.view.state.doc.child(0).attrs.art).toBe('nummer');
-      expect(ende.view.state.doc.child(1).type.name).toBe('leerzeile');
+      expect(ende.view.state.doc.child(1).attrs).toMatchObject({ art: 'nummer', nummer: 2 });
+      expect(undoDepth(ende.view.state)).toBe(1);
+      expect(sende(ende.view, { type: 'keydown', key: 'z', keyCode: 90, ctrlKey: true })).toBe(true);
+      expect(speichere(ende.view.state.doc)).toBe('1. item');
     } finally {
       await zu(ende);
+    }
+    const telefon = await oeffne('A. milk');
+    try {
+      setze(telefon.view, 7);
+      expect(tippe(telefon.view, 'enter')).toBe(true);
+      expect(speichere(telefon.view.state.doc)).toBe('A. milk\nB. ');
+    } finally {
+      await zu(telefon);
     }
     const mitte = await oeffne('1. item');
     try {
       setze(mitte.view, 5);
       expect(druecke(mitte.view, 'enter')).toBe(true);
-      expect(speichere(mitte.view.state.doc)).toBe('1. it\nem');
-      expect(mitte.view.state.doc.child(1).type.name).toBe('absatz');
+      expect(speichere(mitte.view.state.doc)).toBe('1. it\n2. em');
+      expect(mitte.view.state.doc.child(1).attrs.art).toBe('nummer');
     } finally {
       await zu(mitte);
     }
@@ -287,10 +298,18 @@ describe('list keys in the model editor', () => {
       if (von === null || bis === null) throw new Error('selection');
       markiert.view.dispatch(markiert.view.state.tr.setSelection(TextSelection.create(doc, von, bis)));
       expect(druecke(markiert.view, 'enter')).toBe(true);
-      expect(speichere(markiert.view.state.doc)).toBe('1. \nem');
-      expect(markiert.view.state.doc.child(1).type.name).toBe('absatz');
+      expect(speichere(markiert.view.state.doc)).toBe('1. \n2. em');
+      expect(markiert.view.state.doc.child(1).attrs.art).toBe('nummer');
     } finally {
       await zu(markiert);
+    }
+    const leer = await oeffne('1. ');
+    try {
+      setze(leer.view, 3);
+      expect(druecke(leer.view, 'enter')).toBe(true);
+      expect(speichere(leer.view.state.doc)).toBe('');
+    } finally {
+      await zu(leer);
     }
   });
 

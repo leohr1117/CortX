@@ -2,7 +2,7 @@ import { keymap } from 'prosemirror-keymap';
 import { Plugin, type Command, type EditorState } from 'prosemirror-state';
 import type { EditorView } from 'prosemirror-view';
 import { PUNKT_TASTEN, punktArt, type PunktArt } from '../../../../shared/features/format/index.ts';
-import { nummerBruch, punktModell } from '../../../../shared/features/format/modellpunkt.ts';
+import { nummerBruch, nummerEnter, punktModell } from '../../../../shared/features/format/modellpunkt.ts';
 import { speichere } from '../../../../shared/features/format/speichern.ts';
 import { setzeZustand } from './modellLauf.ts';
 
@@ -38,7 +38,7 @@ export function modellEingabe(): Plugin[] {
   };
   const wende = (view: EditorView, art: PunktArt): boolean => {
     if (view.composing) return false;
-    const naechster = punktModell(view.state, art) ?? (art === 'enter' ? nummerBruch(view.state) : null);
+    const naechster = punktModell(view.state, art) ?? (art === 'enter' ? nummerEnter(view.state) ?? nummerBruch(view.state) : null);
     if (!naechster) return false;
     setzeZustand(view, naechster);
     merke(speichere(view.state.doc), view.state.selection.head);
@@ -46,7 +46,9 @@ export function modellEingabe(): Plugin[] {
   };
   const lage = (state: EditorState): [string, number] => [speichere(state.doc), state.selection.head];
   const taste = (art: PunktArt): Command => (state, dispatch, view) => {
-    if (!view || !dispatch) return punktModell(state, art) !== null || (art === 'enter' && nummerBruch(state) !== null);
+    if (!view || !dispatch) {
+      return punktModell(state, art) !== null || (art === 'enter' && (nummerEnter(state) !== null || nummerBruch(state) !== null));
+    }
     const [text, kopf] = lage(view.state);
     if (nimmSprung(text, kopf)) return true;
     return wende(view, art);
