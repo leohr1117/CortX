@@ -3,6 +3,7 @@ import { ART } from './baum.ts';
 import { FLUCHTZEICHEN } from './inline.ts';
 import { lade } from './laden.ts';
 import { formatVon, inlineFormate, type FormatId } from './register.ts';
+import { prefixNummer } from './nummer.ts';
 import { LISTEN_EINFUEGEN, kopfZeichen } from './zeile.ts';
 
 interface Stueck {
@@ -282,7 +283,7 @@ function punktPrefix(knoten: Node): string {
   if (istFortsetzung(knoten)) return /^ +/.exec(ohneEnde(String(knoten.attrs.quelle ?? '')))?.[0] ?? '';
   const art = String(knoten.attrs.art ?? ART.liste);
   if (art === ART.haken) return prefixMit(ART.haken, knoten.attrs.abgehakt === true ? 1 : 0);
-  if (art === ART.nummer) return prefixMit(ART.nummer, 0);
+  if (art === ART.nummer) return prefixNummer(String(knoten.attrs.nummerArt ?? ''), knoten.attrs.nummer) ?? prefixMit(ART.nummer, 0);
   return prefixMit(ART.liste, 0);
 }
 

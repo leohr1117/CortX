@@ -102,15 +102,20 @@ function baue(seed: number): Node {
   const rng = zufall(seed);
   const kinder: Node[] = [];
   const bloecke = 1 + Math.floor(rng() * 5);
+  let lauf = 0;
   for (let i = 0; i < bloecke; i += 1) {
     const art = Math.floor(rng() * 8);
+    if (art !== 5) lauf = 0;
     const inhalt = inline(rng);
     if (art === 0) kinder.push(modell.nodes.leerzeile!.createChecked());
     else if (art === 1) kinder.push(modell.nodes.ueberschrift!.createChecked({ stufe: 0, zeichen: '=' }, inhalt));
     else if (art === 2) kinder.push(modell.nodes.ueberschrift!.createChecked({ stufe: 2, zeichen: '#' }, inhalt));
     else if (art === 3) kinder.push(modell.nodes.wichtigZeile!.createChecked(null, inhalt));
     else if (art === 4) kinder.push(modell.nodes.punkt!.createChecked(null, inhalt));
-    else if (art === 5) kinder.push(modell.nodes.punkt!.createChecked({ art: ART.nummer, zeichen: '1.' }, inhalt));
+    else if (art === 5) {
+      lauf += 1;
+      kinder.push(modell.nodes.punkt!.createChecked({ art: ART.nummer, zeichen: '1.', nummerArt: 'zahl', nummer: lauf }, inhalt));
+    }
     else if (art === 6) {
       const abgehakt = rng() < 0.5;
       kinder.push(modell.nodes.punkt!.createChecked({ art: ART.haken, abgehakt, zeichen: abgehakt ? '[x]' : '[]' }, inhalt));

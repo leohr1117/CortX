@@ -53,7 +53,7 @@ function literal(text: string): Node {
 
 export function dokumentFuer(text: string): Node {
   try {
-    const doc = ohneUeberschrift(lade(text));
+    const doc = ohneUeberschrift(lade(text, false));
     if (textAusDokument(doc) === text) {
       if (doc.childCount === 0) return literal('');
       return doc;

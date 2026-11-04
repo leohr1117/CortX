@@ -98,6 +98,8 @@ function attribute(ziel: Ziel, beleg: Beleg, quelle: string, text: string): Reco
     attrs.einzug = 0;
   }
   if (ziel.knoten === 'ueberschrift') attrs.stufe = beleg.stufe ?? 0;
+  if (beleg.nummerArt) attrs.nummerArt = beleg.nummerArt;
+  if (beleg.wert !== undefined) attrs.nummer = beleg.wert;
   if (ziel.format && (ziel.knoten === 'ueberschrift' || ziel.knoten === 'punkt')) {
     attrs.zeichen = zeichenAus(ziel.format, beleg, text);
   }
@@ -218,8 +220,8 @@ function codeBeleg(belege: readonly Beleg[], von: number): Beleg {
   return beleg;
 }
 
-export function lade(text: string): Node {
-  const dokument = leseDokument(text);
+export function lade(text: string, arten = true): Node {
+  const dokument = leseDokument(text, arten);
   const zeilen = zeilenVon(text);
   const kinder: Node[] = [];
   let index = 0;

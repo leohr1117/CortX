@@ -1,5 +1,6 @@
 import { ART, type Beleg, type BelegArt, type Dokument, type LeseBlock, type LeseHakenPunkt, type LeseListe, type LeseTeil } from './baum.ts';
 import { leseInline } from './inline.ts';
+import { nummerLauf, type NummerZeile } from './nummer.ts';
 import {
   WICHTIG_ZEILE,
   hakenVon,
@@ -26,7 +27,7 @@ function struktur(
   art: BelegArt,
   stueck: ZeilenStueck,
   laenge: number,
-  extra?: { abgehakt?: boolean; zahl?: string; stufe?: number; listenLaenge?: number },
+  extra?: { abgehakt?: boolean; zahl?: string; stufe?: number; listenLaenge?: number; nummerArt?: NummerZeile['art']; wert?: number },
 ): Beleg {
   const ganzBis = stueck.von + stueck.zeile.length;
   const beleg: Beleg = {
@@ -42,7 +43,19 @@ function struktur(
   if (extra?.zahl !== undefined) beleg.zahl = extra.zahl;
   if (extra?.stufe !== undefined) beleg.stufe = extra.stufe;
   if (extra?.listenLaenge) beleg.listenLaenge = extra.listenLaenge;
+  if (extra?.nummerArt !== undefined) beleg.nummerArt = extra.nummerArt;
+  if (extra?.wert !== undefined) beleg.wert = extra.wert;
   return beleg;
+}
+
+function klasseAn(stueck: ZeilenStueck, nummer: NummerZeile | null): Beleg | null {
+  const basis = klassifiziere(stueck);
+  if (!nummer || (basis && basis.art !== ART.nummer)) return basis;
+  return struktur(ART.nummer, stueck, nummer.laenge, {
+    zahl: nummer.zeichen,
+    nummerArt: nummer.art,
+    wert: nummer.nummer,
+  });
 }
 
 function klassifiziere(stueck: ZeilenStueck): Beleg | null {
@@ -66,8 +79,8 @@ function klassifiziere(stueck: ZeilenStueck): Beleg | null {
   return null;
 }
 
-function besonders(stueck: ZeilenStueck): boolean {
-  return zaunAuf(stueck.zeile) !== null || klassifiziere(stueck) !== null;
+function besonders(stueck: ZeilenStueck, nummer: NummerZeile | null = null): boolean {
+  return zaunAuf(stueck.zeile) !== null || klasseAn(stueck, nummer) !== null;
 }
 
 function zeileInline(stueck: ZeilenStueck, laenge: number): { teile: LeseTeil[]; belege: Beleg[] } {
@@ -167,9 +180,16 @@ function haengeFort(
   return i;
 }
 
-export function leseDokument(text: string): Dokument {
+export function leseDokument(text: string, arten = false): Dokument {
   if (text.length === 0) return { bloecke: [], belege: [] };
   const stuecke = zeilenStuecke(text);
+  const nummern = new Map<number, NummerZeile>();
+  if (arten) {
+    nummerLauf(stuecke.map((stueck) => stueck.zeile)).forEach((zeile, index) => {
+      if (zeile) nummern.set(stuecke[index]!.von, zeile);
+    });
+  }
+  const klasseVon = (stueck: ZeilenStueck) => klasseAn(stueck, nummern.get(stueck.von) ?? null);
   const bloecke: LeseBlock[] = [];
   const belege: Beleg[] = [];
   let i = 0;
@@ -183,7 +203,7 @@ export function leseDokument(text: string): Dokument {
       i = fund.naechst;
       continue;
     }
-    const klasse = klassifiziere(stueck);
+    const klasse = klasseVon(stueck);
     if (klasse?.art === ART.ueberschrift) {
       const inline = zeileInline(stueck, laengeVon(klasse));
       bloecke.push(
@@ -206,7 +226,7 @@ export function leseDokument(text: string): Dokument {
       const punkte: LeseHakenPunkt[] = [];
       while (i < stuecke.length) {
         const zeile = stuecke[i]!;
-        const haken = klassifiziere(zeile);
+        const haken = klasseVon(zeile);
         if (haken?.art !== ART.haken) break;
         const inline = zeileInline(zeile, laengeVon(haken));
         punkte.push({ abgehakt: haken.abgehakt === true, teile: inline.teile });
@@ -219,23 +239,29 @@ export function leseDokument(text: string): Dokument {
     }
     if (klasse?.art === ART.liste || klasse?.art === ART.nummer) {
       const geordnet = klasse.art === ART.nummer;
+      const schrift = klasse.nummerArt;
       const punkte: LeseTeil[][] = [];
       while (i < stuecke.length) {
         const zeile = stuecke[i]!;
-        const eintrag = klassifiziere(zeile);
+        const eintrag = klasseVon(zeile);
         if (!eintrag || (geordnet ? eintrag.art !== ART.nummer : eintrag.art !== ART.liste)) break;
+        if (geordnet && eintrag.nummerArt !== schrift) break;
         const inline = zeileInline(zeile, laengeVon(eintrag));
         punkte.push(inline.teile);
         belege.push(eintrag, ...inline.belege);
         i += 1;
         if (!geordnet) i = haengeFort(stuecke, i, eintrag, inline.teile, belege);
       }
-      const block: LeseListe = geordnet ? { art: ART.liste, punkte, geordnet: true } : { art: ART.liste, punkte };
+      const block: LeseListe = geordnet
+        ? schrift
+          ? { art: ART.liste, punkte, geordnet: true, schrift }
+          : { art: ART.liste, punkte, geordnet: true }
+        : { art: ART.liste, punkte };
       bloecke.push(block);
       continue;
     }
     const zeilen: LeseTeil[][] = [];
-    while (i < stuecke.length && !besonders(stuecke[i]!)) {
+    while (i < stuecke.length && !besonders(stuecke[i]!, nummern.get(stuecke[i]!.von) ?? null)) {
       const zeile = stuecke[i]!;
       const inline = zeileInline(zeile, 0);
       zeilen.push(inline.teile);
@@ -267,8 +293,8 @@ export function zeilenTreffer(text: string, index: number, passend: (beleg: Bele
   return null;
 }
 
-export function leseBaum(text: string): LeseBlock[] {
-  return leseDokument(text).bloecke;
+export function leseBaum(text: string, arten = false): LeseBlock[] {
+  return leseDokument(text, arten).bloecke;
 }
 
 export function belege(text: string): Beleg[] {

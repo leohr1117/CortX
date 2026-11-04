@@ -5,6 +5,7 @@ import { ART } from '../../../../shared/features/format/baum.ts';
 import { stilAttribut } from '../../../../shared/features/format/stil.ts';
 import '../../../../shared/features/format/modellkasten.ts';
 import { modell } from '../../../../shared/features/format/modell.ts';
+import { schreibeNummer } from '../../../../shared/features/format/nummer.ts';
 import {
   WIDGET,
   formatVon,
@@ -43,6 +44,14 @@ function klasseVon(art: string): string {
   return vorschauVon(art).klasse ?? '';
 }
 
+function nummerLabel(node: Node): string | null {
+  const schrift = String(node.attrs.nummerArt ?? '');
+  const wert = Number(node.attrs.nummer ?? 0);
+  if (schrift === '' || schrift === 'zahl') return null;
+  const zeichen = schreibeNummer(schrift, wert);
+  return zeichen === '' ? null : `${zeichen}.`;
+}
+
 function blockKlassen(node: Node): string[] {
   const aus: string[] = [];
   const sicht = klasseVon(node.type.name);
@@ -51,7 +60,8 @@ function blockKlassen(node: Node): string[] {
   if (extra) aus.push(extra);
   if (node.type.name !== 'punkt') return aus;
   const widget = vorschauWidget(String(node.attrs.art ?? ''));
-  if (widget === WIDGET.punkt || widget === WIDGET.nummer) aus.push(`cm-${widget}`);
+  if (widget === WIDGET.punkt) aus.push('cm-punkt');
+  if (widget === WIDGET.nummer) aus.push(nummerLabel(node) ? 'cm-nummerart' : 'cm-nummer');
   return aus;
 }
 
@@ -100,13 +110,21 @@ function marker(node: Node, view: EditorView, getPos: () => number | undefined):
     merkeKasten(span, view, getPos);
     return span;
   }
+  const label = widget === WIDGET.nummer ? nummerLabel(node) : null;
+  if (label) {
+    span.classList.add('nummerart');
+    span.textContent = label;
+    return span;
+  }
   if (widget) span.classList.add(widget);
   return span;
 }
 
 function gleicheZeile(vorher: Node, nachher: Node): boolean {
   if (nachher.type !== vorher.type) return false;
-  return String(nachher.attrs.art ?? '') === String(vorher.attrs.art ?? '');
+  if (String(nachher.attrs.art ?? '') !== String(vorher.attrs.art ?? '')) return false;
+  if (String(nachher.attrs.nummerArt ?? '') !== String(vorher.attrs.nummerArt ?? '')) return false;
+  return Number(nachher.attrs.nummer ?? 0) === Number(vorher.attrs.nummer ?? 0);
 }
 
 function zeile(node: Node, view: EditorView, getPos: () => number | undefined): NodeView {

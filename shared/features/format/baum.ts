@@ -1,3 +1,5 @@
+import type { NummerArt } from './nummer.ts';
+
 export const ART = {
   text: 'text',
   fett: 'fett',
@@ -79,6 +81,7 @@ export interface LeseListe {
   art: typeof ART.liste;
   punkte: LeseTeil[][];
   geordnet?: boolean;
+  schrift?: NummerArt;
 }
 
 export interface LeseHakenPunkt {
@@ -137,6 +140,8 @@ export interface Beleg {
   abgehakt?: boolean;
   zahl?: string;
   stufe?: number;
+  nummerArt?: NummerArt;
+  wert?: number;
 }
 
 export interface Dokument {

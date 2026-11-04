@@ -57,6 +57,8 @@ describe('format model', () => {
       abgehakt: false,
       zeichen: formatVon(ART.liste).zeichen[0],
       einzug: 0,
+      nummerArt: '',
+      nummer: 0,
       quelle: '',
     });
     expect(modell.nodes.codeblock?.create().attrs).toEqual({
@@ -84,7 +86,7 @@ describe('format model', () => {
     ]);
     expect(doc.childCount).toBe(6);
     expect(doc.child(0).inlineContent).toBe(true);
-    expect(doc.child(3).attrs).toEqual({ art: 'haken', abgehakt: true, zeichen: '[]', einzug: 1, quelle: '' });
+    expect(doc.child(3).attrs).toEqual({ art: 'haken', abgehakt: true, zeichen: '[]', einzug: 1, nummerArt: '', nummer: 0, quelle: '' });
     expect(doc.child(3).childCount).toBe(1);
     const leer = modell.node('doc', null, []);
     expect(leer.childCount).toBe(0);

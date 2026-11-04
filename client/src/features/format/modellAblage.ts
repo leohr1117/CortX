@@ -9,7 +9,7 @@ function ohneQuelle(node: Node): Node {
 }
 
 function sliceAusText(text: string, parent: Node): Slice {
-  const doc = lade(text);
+  const doc = lade(text, false);
   const kinder: Node[] = [];
   doc.forEach((knoten) => kinder.push(ohneQuelle(knoten)));
   if (kinder.length === 0) return Slice.empty;

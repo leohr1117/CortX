@@ -41,6 +41,11 @@ describe('reading view', () => {
     expect(seite).toContain('<strong>bold</strong>');
     expect(seite).toContain('<ul><li>bullet</li><li>star</li></ul>');
     expect(seite).toContain('<ol><li>one</li></ol>');
+    expect(html('A. one\nB. two')).toContain('<ol class="gross"><li>one</li><li>two</li></ol>');
+    expect(html('a. one')).toContain('<ol class="klein"><li>one</li></ol>');
+    expect(html('I. one\nII. two')).toContain('<ol class="roemisch"><li>one</li><li>two</li></ol>');
+    expect(html('i. one\niv. two')).toContain('<ol class="roemisch-klein"><li>one</li><li>two</li></ol>');
+    expect(html('B. one\nC. two\nI. three')).toContain('<ol class="gross"><li>one</li><li>two</li><li>three</li></ol>');
     expect(seite.match(/class="hakenzeile"/g)).toHaveLength(3);
     expect(seite.match(/class="haken"/g)).toHaveLength(2);
     expect(seite.match(/class="haken zu"/g)).toHaveLength(1);

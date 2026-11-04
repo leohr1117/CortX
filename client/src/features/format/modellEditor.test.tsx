@@ -124,6 +124,13 @@ function tagNamen(knoten: Node): string[] {
   return aus;
 }
 
+function mitKlasse(knoten: Node, name: string): HTMLElement[] {
+  const aus: HTMLElement[] = [];
+  if (knoten.nodeType === 1 && (knoten as HTMLElement).classList.contains(name)) aus.push(knoten as HTMLElement);
+  knoten.childNodes.forEach((kind) => aus.push(...mitKlasse(kind, name)));
+  return aus;
+}
+
 describe('model editor', () => {
   it('keeps a loaded note byte for byte and does not save before typing', async () => {
     const text = '__alpha__\n__beta__\n_gamma_';
@@ -328,6 +335,34 @@ describe('model editor', () => {
       expect(daten.getData('text/plain')).toBe('c');
     } finally {
       await zu(sitz);
+    }
+  });
+
+  it('counts letter markers in the note and leaves a pasted letter line as text', async () => {
+    const sitz = await oeffne('A. milk\nC. tea', () => undefined);
+    try {
+      expect(speichere(sitz.view.state.doc)).toBe('A. milk\nC. tea');
+      expect(mitKlasse(sitz.view.dom, 'nummerart').map((el) => el.textContent)).toEqual(['A.', 'B.']);
+      expect(mitKlasse(sitz.view.dom, 'cm-nummer')).toEqual([]);
+    } finally {
+      await zu(sitz);
+    }
+    const zahl = await oeffne('1. milk', () => undefined);
+    try {
+      expect(speichere(zahl.view.state.doc)).toBe('1. milk');
+      expect(mitKlasse(zahl.view.dom, 'nummer').length).toBeGreaterThan(0);
+      expect(mitKlasse(zahl.view.dom, 'nummerart')).toEqual([]);
+    } finally {
+      await zu(zahl);
+    }
+    const paste = await oeffne('', () => undefined);
+    try {
+      zwischenablage(paste.view, 'paste', ablage('A. c'));
+      expect(paste.view.dom.textContent).toBe('A. c');
+      expect(speichere(paste.view.state.doc)).toBe('A. c');
+      expect(mitKlasse(paste.view.dom, 'nummerart')).toEqual([]);
+    } finally {
+      await zu(paste);
     }
   });
 

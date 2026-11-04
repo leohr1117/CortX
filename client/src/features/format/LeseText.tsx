@@ -183,8 +183,10 @@ function Block({
   }
   if (block.art === ART.liste) {
     const Tag = block.geordnet ? 'ol' : 'ul';
+    const schrift = block.schrift;
+    const klasse = schrift && schrift !== 'zahl' ? (schrift === 'roemischKlein' ? 'roemisch-klein' : schrift) : undefined;
     return (
-      <Tag>
+      <Tag className={klasse}>
         {block.punkte.map((teile, index) => (
           <li key={index}>
             <Teile teile={teile} verlinken={verlinken} />
@@ -240,7 +242,7 @@ export function LeseText({
   verlinken?: boolean;
   onKasten?: (stelle: number) => void;
 }) {
-  const baum = leseBaum(text);
+  const baum = leseBaum(text, true);
   const stellen = onKasten ? hakenStellen(text) : [];
   const cursor = { n: 0 };
   const stelleVon = () => {

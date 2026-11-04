@@ -35,6 +35,8 @@ const ZEILEN: readonly ZeileAngabe[] = [
       abgehakt: { standard: false },
       zeichen: { format: ART.liste },
       einzug: { standard: 0 },
+      nummerArt: { standard: '' },
+      nummer: { standard: 0 },
     },
   },
   {

@@ -1346,6 +1346,14 @@ input.feld::placeholder { color: var(--leise); }
   top: 0;
   left: 0;
 }
+.lesetext ol.gross li::before { content: counter(punkt, upper-alpha) "."; }
+.lesetext ol.klein li::before { content: counter(punkt, lower-alpha) "."; }
+.lesetext ol.roemisch li::before { content: counter(punkt, upper-roman) "."; }
+.lesetext ol.roemisch-klein li::before { content: counter(punkt, lower-roman) "."; }
+.lesetext ol.gross li,
+.lesetext ol.klein li,
+.lesetext ol.roemisch li,
+.lesetext ol.roemisch-klein li { padding-left: var(--abstand-34); }
 .format-leiste {
   display: flex;
   gap: var(--abstand-4);
