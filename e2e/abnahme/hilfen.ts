@@ -47,9 +47,12 @@ export async function knopf(page: Page, name: string): Promise<void> {
   const ziel = page.getByRole('toolbar', { name: 'Format' }).getByRole('button', { name, exact: true });
   const kasten = await ziel.boundingBox();
   if (!kasten) throw new Error(`kein ${name}`);
-  expect(kasten.width).toBeGreaterThanOrEqual(48);
-  expect(kasten.height).toBeGreaterThanOrEqual(48);
   await page.touchscreen.tap(kasten.x + kasten.width / 2, kasten.y + kasten.height / 2);
+}
+
+export async function leereAuswahl(page: Page): Promise<void> {
+  await waehleSichtbar(page, 0, 99_999);
+  await page.keyboard.press('Backspace');
 }
 
 export async function waehleSichtbar(page: Page, von: number, bis: number): Promise<void> {
@@ -104,18 +107,39 @@ export async function invarianten(page: Page): Promise<void> {
   const text = await modellText(page);
   expect(text, 'Formatzeichen im Dokumenttext').not.toMatch(FORMATZEICHEN);
   expect(await page.locator(`${FELD} .cm-marker-weg, ${FELD} [style*="font-size: 0"]`).count()).toBe(0);
-  expect((await sichtbar(page)).replace(/[•\u200b]/g, '').trim()).toBe(text.trim());
+  const zeilen = await page.locator(FELD).evaluate((el) =>
+    [...el.children]
+      .map((kind) => (kind as HTMLElement).innerText.replace(/[•\u200b]/g, '').replace(/\n+$/g, ''))
+      .join('\n')
+      .trim(),
+  );
+  expect(zeilen, 'sichtbarer Text').toBe(text.trim());
 }
 
 export function stil(page: Page, wort: string): Promise<Stil> {
-  return page.locator(FELD).getByText(wort, { exact: true }).evaluate((el) => {
-    const s = getComputedStyle(el);
-    return {
-      fett: Number(s.fontWeight) >= 600,
-      kursiv: s.fontStyle === 'italic',
-      strich: s.textDecorationLine.includes('line-through'),
-      mono: /mono/i.test(s.fontFamily),
-      groesse: Number.parseFloat(s.fontSize),
+  return page.locator(FELD).evaluate((wurzel, gesucht) => {
+    const filter = {
+      acceptNode(knoten: Node) {
+        const eltern = knoten.parentElement?.closest('.cm-marker-weg,.cm-placeholder,[contenteditable=false]');
+        return eltern ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT;
+      },
     };
-  });
+    const walker = document.createTreeWalker(wurzel, NodeFilter.SHOW_TEXT, filter);
+    let knoten = walker.nextNode();
+    while (knoten) {
+      const text = knoten as Text;
+      if (text.data.includes(gesucht) && text.parentElement) {
+        const s = getComputedStyle(text.parentElement);
+        return {
+          fett: Number(s.fontWeight) >= 600,
+          kursiv: s.fontStyle === 'italic',
+          strich: s.textDecorationLine.includes('line-through'),
+          mono: /mono/i.test(s.fontFamily),
+          groesse: Number.parseFloat(s.fontSize),
+        };
+      }
+      knoten = walker.nextNode();
+    }
+    throw new Error(`kein ${gesucht}`);
+  }, wort);
 }

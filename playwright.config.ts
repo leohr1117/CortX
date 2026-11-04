@@ -19,6 +19,7 @@ export default defineConfig({
   expect: { timeout: 10_000 },
   fullyParallel: false,
   workers: 1,
+  updateSnapshots: 'none',
   globalSetup: './e2e/global-setup.ts',
   use: {
     baseURL: url,
@@ -43,6 +44,7 @@ export default defineConfig({
     {
       name: 'abnahme-desktop',
       testMatch: /[/\\]abnahme[/\\].*\.spec\.ts$/,
+      testIgnore: /[/\\]abnahme[/\\]handy\.spec\.ts$/,
       use: { viewport: { width: 1440, height: 900 }, serviceWorkers: 'block' },
     },
   ],
