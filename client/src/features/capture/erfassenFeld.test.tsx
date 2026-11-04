@@ -6,6 +6,7 @@ import type { EditorView } from 'prosemirror-view';
 import type { Root } from 'react-dom/client';
 import type { Thema } from '../../../../shared/kern/modell.ts';
 import { posFuer } from '../../../../shared/features/format/stelle.ts';
+import { planeAblage } from '../../../../shared/features/seiten/pfad.ts';
 import { setzeVorschlag, zielAmCursor } from '../../../../shared/features/seiten/zielvorschlag.ts';
 import { entfernePruefDom, richtePruefDom } from '../format/modellPruef.ts';
 import { ErfassenFeld } from './ErfassenFeld.tsx';
@@ -343,6 +344,43 @@ describe('capture field', () => {
       ahne = ahne.parentNode;
     }
     expect(imFeld).toBe(true);
+    await zu(sitz);
+  });
+
+  it('formats pasted markdown and keeps a target line', async () => {
+    const sitz = await oeffne();
+    const view = sitz.stand.view!;
+    const probe = '**x**\n- a\n#thema/seite\n#tag';
+    await act(async () => {
+      const werte = new Map<string, string>([['text/plain', probe]]);
+      const ereignis = {
+        type: 'paste',
+        clipboardData: { getData: (art: string) => werte.get(art) ?? '' },
+        defaultPrevented: false,
+        preventDefault() {
+          this.defaultPrevented = true;
+        },
+        stopPropagation() {},
+      };
+      view.dom.dispatchEvent(ereignis as unknown as Event);
+    });
+    expect(textAusDokument(view.state.doc)).toBe(probe);
+    expect(sitz.stand.text).toBe(probe);
+    expect(hatUeberschrift(view.state.doc)).toBe(false);
+    expect(view.state.doc.child(2).type.name).toBe('absatz');
+    expect(view.state.doc.child(2).textContent).toBe('#thema/seite');
+    expect(view.state.doc.child(3).textContent).toBe('#tag');
+    const knoten = elemente(view.dom);
+    const weg = knoten.filter((el) => el.classList.contains('cm-marker-weg')).map((el) => el.textContent);
+    expect(knoten.filter((el) => el.classList.contains('cm-fett')).map((el) => el.textContent)).toContain('x');
+    expect(weg).toContain('**');
+    expect(weg).toContain('- ');
+    expect(weg.every((text) => !text?.includes('#'))).toBe(true);
+    expect(knoten.some((el) => el.classList.contains('cm-punkt') && el.textContent === '\u2022 ')).toBe(true);
+    const plan = planeAblage(textAusDokument(view.state.doc), themen);
+    expect(plan?.ungueltig).toBe(false);
+    expect(plan?.ziele[1]).toMatchObject({ topicName: 'thema', seite: 'seite', text: '' });
+    expect(plan?.ziele[2]).toMatchObject({ topicName: 'tag', seite: null, text: '' });
     await zu(sitz);
   });
 

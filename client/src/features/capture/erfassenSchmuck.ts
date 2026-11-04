@@ -4,10 +4,12 @@ import { Decoration, DecorationSet } from 'prosemirror-view';
 import {
   ART,
   STIL_REGISTER,
+  WIDGET,
   leseDokument,
   nurMarker,
   stilAttribut,
   vorschauSchichten,
+  vorschauWidget,
   type Beleg,
 } from '../../../../shared/features/format/index.ts';
 import { rohOffset, rohPos, textAusDokument } from './erfassenDokument.ts';
@@ -50,6 +52,37 @@ function spanne(doc: Node, text: string, von: number, bis: number): { from: numb
   return { from, to };
 }
 
+interface Kachel {
+  von: number;
+  bis: number;
+  male: () => HTMLElement;
+}
+
+function widgetKnoten(beleg: Beleg): HTMLElement {
+  const span = document.createElement('span');
+  span.setAttribute('aria-hidden', 'true');
+  const art = vorschauWidget(beleg.art);
+  if (art === WIDGET.nummer) {
+    span.className = 'cm-nummer';
+    span.textContent = `${beleg.zahl ?? ''}. `;
+    return span;
+  }
+  if (art === WIDGET.haken) {
+    span.className = beleg.abgehakt === true ? 'cm-haken zu' : 'cm-haken';
+    span.textContent = beleg.abgehakt === true ? '\u2713' : '';
+    return span;
+  }
+  span.className = 'cm-punkt';
+  span.textContent = '\u2022 ';
+  return span;
+}
+
+function naechstesVerdeckt(text: string, verdeckt: Uint8Array, start: number): number {
+  let j = start + 1;
+  while (j < text.length && verdeckt[j] && text[j] !== '\n') j += 1;
+  return j;
+}
+
 function platzhalter(doc: Node, hinweis: string): Decoration | null {
   if (hinweis.length === 0 || doc.childCount === 0) return null;
   const pos = Math.min(1, doc.content.size);
@@ -77,7 +110,16 @@ function baue(state: EditorState, hinweis: string): DecorationSet {
   const stil = new Uint8Array(text.length);
   const verdeckt = new Uint8Array(text.length);
   const gedimmt = new Uint8Array(text.length);
+  const kacheln = new Map<number, Kachel>();
   for (const beleg of leseDokument(text).belege) {
+    if (vorschauWidget(beleg.art)) {
+      const zeigeSchale = nurMarker(text.slice(beleg.von, beleg.bis)) && anfang === ende && anfang >= beleg.ganzVon && anfang <= beleg.ganzBis;
+      markiere(beleg, text, anfang, ende, zeigeSchale, verdeckt, gedimmt);
+      const marker = beleg.marker[0];
+      if (marker && verdeckt[marker[0]]) {
+        kacheln.set(marker[0], { von: marker[0], bis: marker[1], male: () => widgetKnoten(beleg) });
+      }
+    }
     if (!SICHTBAR.has(beleg.art)) continue;
     const zeigeSchale = nurMarker(text.slice(beleg.von, beleg.bis)) && anfang === ende && anfang >= beleg.ganzVon && anfang <= beleg.ganzBis;
     markiere(beleg, text, anfang, ende, zeigeSchale, verdeckt, gedimmt);
@@ -92,11 +134,21 @@ function baue(state: EditorState, hinweis: string): DecorationSet {
   let i = 0;
   while (i < text.length) {
     if (verdeckt[i]) {
-      let j = i + 1;
-      while (j < text.length && verdeckt[j] && text[j] !== '\n') j += 1;
-      const bereich = spanne(doc, text, i, j);
-      if (bereich) teile.push(Decoration.inline(bereich.from, bereich.to, { class: 'cm-marker-weg', 'aria-hidden': 'true' }));
-      i = j;
+      const kachel = kacheln.get(i);
+      const bis = kachel ? kachel.bis : naechstesVerdeckt(text, verdeckt, i);
+      const bereich = spanne(doc, text, i, bis);
+      if (bereich) {
+        if (kachel) {
+          teile.push(Decoration.widget(bereich.from, kachel.male, {
+            side: -1,
+            ignoreSelection: true,
+            stopEvent: () => true,
+            key: `kachel-${kachel.von}`,
+          }));
+        }
+        teile.push(Decoration.inline(bereich.from, bereich.to, { class: 'cm-marker-weg', 'aria-hidden': 'true' }));
+      }
+      i = bis;
       continue;
     }
     if (gedimmt[i]) {

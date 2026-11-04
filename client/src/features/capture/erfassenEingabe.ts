@@ -13,6 +13,7 @@ import {
 import { kuerzelAn } from '../format/kuerzelSpeicher.ts';
 import { setzeErfassenText, wendeBefehl } from './erfassenBefehl.ts';
 import { rohOffset, rohPos, textAusDokument } from './erfassenDokument.ts';
+import { erfassenEinfuegen } from './erfassenEinfuegen.ts';
 import { tagMarken } from './marken.ts';
 import { tastaturIstHandy } from '../../ui/system.ts';
 
@@ -266,6 +267,7 @@ export function kuerzelWahl(text: string, caret: number): { text: string; ende: 
 export function feldPlugins(aktion: () => FeldAktion, onZiel: () => void): Plugin[] {
   const sprung: Sprung = { bis: 0, laenge: -1, kopf: -1 };
   return [
+    erfassenEinfuegen(),
     ablagePlugin(aktion),
     menuePlugin(aktion),
     keymap(listenTasten(sprung)),
