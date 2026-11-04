@@ -6,6 +6,15 @@ interface Versionseintrag {
 
 export const VERSIONEN: readonly Versionseintrag[] = [
   {
+    version: '1.13.0',
+    datum: '2026-11-04',
+    zeilen: [
+      'Capture on the start page shows formatting while you write.',
+      'Bold, italic, strikethrough, important, and code can sit inside each other.',
+      'Pasting Markdown shows lists, tasks, and the same formatting. A line like #topic/page stays text.',
+    ],
+  },
+  {
     version: '1.12.1',
     datum: '2026-11-03',
     zeilen: [

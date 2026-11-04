@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.13.0
+
+Capture on the start page shows formatting while you write. Bold, italic, strikethrough, important, and code can sit inside each other. Pasting Markdown shows lists, tasks, and the same formatting. A line like #topic/page stays text.
+
 ## 1.12.1
 
 In a note, - , [] and # at the start of a line become a list, a task, or a heading. **text**, *text*, ~~text~~, !!text!! and `text` become formatting. Backspace right after restores the characters. With shortcuts off, what you type stays as typed and is saved so it does not format on the next open.
