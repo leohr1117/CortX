@@ -4,6 +4,7 @@ import { warteBereit } from '../lokal.ts';
 import {
   FELD,
   ablegenPerKlick,
+  blockText,
   editorJson,
   enterDannTasten,
   invarianten,
@@ -19,6 +20,13 @@ import {
   waehleSichtbar,
   waehleSichtbarenText,
 } from './hilfen.ts';
+import {
+  ausServer,
+  keineDoppelteLeerstelle,
+  serverUnverfaelscht,
+  type MarkName,
+  type NotizAntwort,
+} from './speicher.ts';
 
 const HANDY = { width: 390, height: 844 };
 const TREFFER_MIN = 48;
@@ -102,6 +110,17 @@ function flach(text: string): string {
   return text.replace(/\u00a0/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
+async function pruefeAblage(
+  page: Page,
+  merkmal: string,
+  marks: Partial<Record<MarkName, string[]>>,
+): Promise<void> {
+  const sicht = await blockText(page, FELD);
+  const id = await ablegenPerKlick(page, 'erfassen', null, merkmal);
+  const server = ausServer((await (await page.request.get(`/api/notes/${id}`)).json()) as NotizAntwort);
+  serverUnverfaelscht(server, sicht, marks);
+}
+
 for (const feld of ['erfassen', 'notiz'] as const) {
   test.describe(`${feld} – Desktop`, { tag: '@F1' }, () => {
     test.beforeEach(async ({ page }) => {
@@ -158,11 +177,12 @@ for (const feld of ['erfassen', 'notiz'] as const) {
 
     test('Weitertippen nach Format verfaelscht nichts', async ({ page }) => {
       await tippeTasten(page, 'eins ');
-      await knopfKlick(page, 'Bold');
+      await page.keyboard.press('Control+b');
       await tippeTasten(page, 'zwei');
-      await knopfKlick(page, 'Bold');
+      await page.keyboard.press('Control+b');
       await tippeTasten(page, ' drei vier');
       expect(await sichtbar(page)).toBe('eins zwei drei vier');
+      expect((await stil(page, 'zwei')).fett).toBe(true);
     });
 
     test('Pfeiltasten: jeder Druck ein sichtbares Zeichen', async ({ page }) => {
@@ -188,6 +208,7 @@ for (const feld of ['erfassen', 'notiz'] as const) {
       const text = await sichtbar(page);
       expect(flach(text)).toBe('aaa fff');
       expect(text).not.toMatch(/\*/);
+      if (feld === 'erfassen') await pruefeAblage(page, 'fff', { fett: [], kursiv: [], strich: [], code: [] });
     });
 
     test('Enter-Enter verlaesst die Liste (H7)', async ({ page }) => {
@@ -221,7 +242,23 @@ for (const feld of ['erfassen', 'notiz'] as const) {
       expect(flach(text)).toBe('Milch Brot');
       expect(text).not.toMatch(/\*/);
       expect((await stil(page, 'Brot')).fett).toBe(true);
+      if (feld === 'erfassen') await pruefeAblage(page, 'Brot', { fett: ['Brot'], kursiv: [], strich: [], code: [] });
     });
+
+    if (feld === 'erfassen') {
+      test('Doppelte Leerstelle in fortgesetzter Liste und Kasten (K8)', async ({ page }) => {
+        await tippeTasten(page, '- eins');
+        await page.keyboard.press('Enter');
+        await tippeTasten(page, 'zwei');
+        await page.keyboard.press('Enter');
+        await tippeTasten(page, '[ ] milch');
+        const sicht = await blockText(page, FELD);
+        const id = await ablegenPerKlick(page, 'erfassen', null, 'milch');
+        const server = ausServer((await (await page.request.get(`/api/notes/${id}`)).json()) as NotizAntwort);
+        keineDoppelteLeerstelle(server.roh);
+        serverUnverfaelscht(server, sicht, { fett: [], kursiv: [], strich: [], code: [] });
+      });
+    }
 
     test('Taste direkt nach Enter bleibt (K7)', async ({ page }) => {
       await tippeTasten(page, '- eins');

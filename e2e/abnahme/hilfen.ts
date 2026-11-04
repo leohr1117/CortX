@@ -96,6 +96,17 @@ export function sichtbar(page: Page): Promise<string> {
   return page.locator(FELD).innerText();
 }
 
+export function blockText(page: Page, selektor: string): Promise<string> {
+  return page.locator(selektor).evaluate((el) => {
+    const kinder = [...el.children];
+    const quelle = kinder.length > 0 ? kinder : [el];
+    return quelle
+      .map((kind) => (kind as HTMLElement).innerText.replace(/[•\u200b]/g, '').replace(/\u00a0/g, ' ').replace(/\n+$/g, ''))
+      .join('\n')
+      .replace(/\n+$/g, '');
+  });
+}
+
 export function modellText(page: Page): Promise<string> {
   return page.evaluate(() => {
     const haken = (window as Window & { __cortxModell?: { klartext: () => string } }).__cortxModell;
