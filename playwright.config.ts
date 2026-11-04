@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { defineConfig } from '@playwright/test';
+import { defineConfig, devices } from '@playwright/test';
 
 const E2E_PORT = 3110;
 const datenbank = path.resolve('tmp-test', `e2e-${process.pid}.db`);
@@ -25,8 +25,26 @@ export default defineConfig({
     serviceWorkers: 'block',
   },
   projects: [
-    { name: 'handy', use: { viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true } },
-    { name: 'desktop', use: { viewport: { width: 1440, height: 900 } } },
+    {
+      name: 'handy',
+      testIgnore: /[/\\]abnahme[/\\]/,
+      use: { viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true },
+    },
+    {
+      name: 'desktop',
+      testIgnore: /[/\\]abnahme[/\\]/,
+      use: { viewport: { width: 1440, height: 900 } },
+    },
+    {
+      name: 'abnahme-handy',
+      testMatch: /[/\\]abnahme[/\\].*\.spec\.ts$/,
+      use: { ...devices['Pixel 7'], serviceWorkers: 'block' },
+    },
+    {
+      name: 'abnahme-desktop',
+      testMatch: /[/\\]abnahme[/\\].*\.spec\.ts$/,
+      use: { viewport: { width: 1440, height: 900 }, serviceWorkers: 'block' },
+    },
   ],
   webServer: {
     command: 'node --disable-warning=ExperimentalWarning e2e/server.ts',

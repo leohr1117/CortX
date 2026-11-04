@@ -14,6 +14,7 @@ import { modellEingabe } from './modellEingabe.ts';
 import { inlinePlugins } from './inlineKuerzel.ts';
 import { zeilenPlugins } from './zeilenKuerzel.ts';
 import { haengeGriff, merkeEnde, merkeWahl } from './modellGriff.ts';
+import { haengeModell, loeseModell } from './modellHaken.ts';
 import { zustandNach } from './modellLauf.ts';
 import { knotenAnsichten, markenAnsichten, schichtenPlugin } from './modellSicht.ts';
 import { grenzen, offsetFuer } from './modellStelle.ts';
@@ -139,10 +140,12 @@ export function ModellEditor({
     });
     viewRef.current = view;
     haengeGriff(view);
+    haengeModell(view);
     merkeEnde(view, anfang);
     schreibeRef(refWeiter.current, view);
     view.focus();
     return () => {
+      loeseModell(view);
       view.destroy();
       viewRef.current = null;
       schreibeRef(refWeiter.current, null);

@@ -56,7 +56,7 @@ npm start              # Server mit fertigem Build
 | `CORTX_STRIDE_URL` | Anmeldeadresse von Stride, Standard `http://127.0.0.1:3000/api/zugang` |
 | `CORTX_STRIDE_PUBLIC_URL` | Öffentliche Stride-Adresse für „Passwort ändern“, Standard `https://stride.leohr.de` |
 | `LOG_LEVEL` | Log-Stufe, Standard `warn` |
-| `CORTX_TEST` | `1` markiert einen Testlauf: Der Server verlangt dann `CORTX_DB` außerhalb von `data/` und ruft Stride nicht auf |
+| `CORTX_TEST` | `1` markiert einen Testlauf: Der Server verlangt dann `CORTX_DB` außerhalb von `data/` und ruft Stride nicht auf; Browser-Tests lesen das Editor-Dokument dann über `window.__cortxModell` |
 
 Fehlt ein neuer Name, liest der Server weiter `CORTEX_DB`, `CORTEX_STRIDE_URL` und `CORTEX_TEST`. Platzhalter stehen in [.env.example](.env.example).
 

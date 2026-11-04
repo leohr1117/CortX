@@ -20,6 +20,33 @@ import { TEXTE } from '../../shared/kern/texte.ts';
 const UNGUELTIG = TEXTE.notizUngueltig;
 const INTERN = TEXTE.nichtAblegen;
 const STUFEN = new Set(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']);
+const TEST_MARKE = '<script>globalThis.__CORTX_TEST="1"</script>';
+
+function testMarkeAktiv(): boolean {
+  return process.env.CORTX_TEST === '1';
+}
+
+function mitTestMarke(html: string): string {
+  if (html.includes('__CORTX_TEST=')) return html;
+  const kopf = /<head[^>]*>/.exec(html);
+  if (!kopf) return html;
+  const bei = kopf.index + kopf[0].length;
+  return `${html.slice(0, bei)}${TEST_MARKE}${html.slice(bei)}`;
+}
+
+function istStrom(wert: object): wert is AsyncIterable<Uint8Array | string> {
+  return typeof (wert as { [Symbol.asyncIterator]?: unknown })[Symbol.asyncIterator] === 'function';
+}
+
+async function liesNutzlast(payload: unknown): Promise<string | null> {
+  if (typeof payload === 'string') return payload;
+  if (Buffer.isBuffer(payload)) return payload.toString('utf8');
+  if (payload instanceof Uint8Array) return Buffer.from(payload).toString('utf8');
+  if (!payload || typeof payload !== 'object' || !istStrom(payload)) return null;
+  const teile: Buffer[] = [];
+  for await (const stueck of payload) teile.push(typeof stueck === 'string' ? Buffer.from(stueck) : Buffer.from(stueck));
+  return Buffer.concat(teile).toString('utf8');
+}
 
 function protokoll(stufe: string | false): FastifyServerOptions['logger'] {
   if (stufe === false || stufe === 'silent') return false;
@@ -38,6 +65,16 @@ export async function erstelleApp(
     jetzt: dienste.jetzt ?? (() => Date.now()),
   };
   const app = Fastify({ logger: protokoll(stufe) });
+  app.addHook('onSend', async (_anfrage, antwort, payload) => {
+    if (!testMarkeAktiv()) return payload;
+    const typ = String(antwort.getHeader('content-type') ?? '');
+    if (!typ.includes('text/html')) return payload;
+    const html = await liesNutzlast(payload);
+    if (html === null) return payload;
+    const neu = mitTestMarke(html);
+    antwort.header('content-length', String(Buffer.byteLength(neu)));
+    return neu;
+  });
   app.decorateRequest('kontoId', null);
   const passwortZiel = stridePasswortZiel(stridePublicUrl());
 

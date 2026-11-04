@@ -8,6 +8,7 @@ import type { Thema } from '../../../../shared/kern/modell.ts';
 import { VORSCHLAG_BREITE } from '../../../../shared/kern/grenzen.ts';
 import type { SeiteKurz } from '../../../../shared/features/seiten/pfad.ts';
 import { setzeVorschlag, zielAmCursor, type ZielAmCursor } from '../../../../shared/features/seiten/zielvorschlag.ts';
+import { haengeModell, loeseModell } from '../format/modellHaken.ts';
 import { knotenAnsichten, markenAnsichten } from '../format/modellSicht.ts';
 import { HINDERNIS, LAGE, beobachteSicht, liesSicht, listenPlatz } from '../../ui/lage.ts';
 import { liesEntwurf, schreibEntwurf } from '../offline/index.ts';
@@ -274,10 +275,12 @@ export function ErfassenFeld({
     caretRef.current = anfang.length;
     view.dom.classList.add('cm-content');
     if (host.current) haengeErfassenGriff(view, host.current);
+    haengeModell(view);
     viewRef.current = view;
     schreibeRef(refWeiter.current, view);
     view.focus();
     return () => {
+      loeseModell(view);
       view.destroy();
       viewRef.current = null;
       schreibeRef(refWeiter.current, null);
