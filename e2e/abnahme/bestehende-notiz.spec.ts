@@ -4,10 +4,10 @@ import { warteBereit } from '../lokal.ts';
 import {
   FELD,
   blockText,
+  erwarteStil,
   gboard,
   klickeAn,
   knopf,
-  stil,
   tippeAn,
   tippeTasten,
 } from './hilfen.ts';
@@ -82,8 +82,8 @@ test.describe('bestehende Notiz', { tag: '@F1' }, () => {
     const text = await sicht(page);
     serverUnverfaelscht(server, text, nur('fett', 'zwei'));
     expect(text).toBe('Titel\neins zwei drei');
-    expect((await stil(page, 'zwei')).fett).toBe(true);
-    expect((await stil(page, 'drei')).fett).toBe(false);
+    await erwarteStil(page, 'zwei', 'fett', true);
+    await erwarteStil(page, 'drei', 'fett', false);
   });
 
   test('K2 bestehende Notiz: Strich ohne Markierung, Server nicht verdoppelt', async ({ page }, info) => {
@@ -98,7 +98,7 @@ test.describe('bestehende Notiz', { tag: '@F1' }, () => {
     expect(server.roh, 'Strich nicht verdoppelt').not.toContain('~~hdhx~~~~');
     const text = await sicht(page);
     serverUnverfaelscht(server, text, { strich: ['hdhx'] });
-    expect((await stil(page, 'hdhx')).strich).toBe(true);
+    await erwarteStil(page, 'hdhx', 'strich', true);
   });
 
   test('K3 bestehende Notiz: Enter am Ende eines Formats', async ({ page }, info) => {
@@ -112,8 +112,8 @@ test.describe('bestehende Notiz', { tag: '@F1' }, () => {
     const text = await sicht(page);
     serverUnverfaelscht(server, text, nur('fett', 'zwei'));
     expect(text).toBe('Titel\neins zwei\ndanach');
-    expect((await stil(page, 'zwei')).fett).toBe(true);
-    expect((await stil(page, 'danach')).fett).toBe(false);
+    await erwarteStil(page, 'zwei', 'fett', true);
+    await erwarteStil(page, 'danach', 'fett', false);
   });
 
   for (const format of FORMATE) {
@@ -128,8 +128,8 @@ test.describe('bestehende Notiz', { tag: '@F1' }, () => {
       const text = await sicht(page);
       serverUnverfaelscht(server, text, nur(format.mark, 'zwei'));
       expect(text).toBe('Titel\neins zwei drei');
-      expect((await stil(page, 'zwei'))[format.stilArt]).toBe(true);
-      expect((await stil(page, 'drei'))[format.stilArt]).toBe(false);
+      await erwarteStil(page, 'zwei', format.stilArt, true);
+      await erwarteStil(page, 'drei', format.stilArt, false);
     });
   }
 
@@ -145,8 +145,8 @@ test.describe('bestehende Notiz', { tag: '@F1' }, () => {
       const text = await sicht(page);
       serverUnverfaelscht(server, text, nur(format.mark, 'zwei'));
       expect(text).toBe('Titel\nvor zwei');
-      expect((await stil(page, 'vor'))[format.stilArt]).toBe(false);
-      expect((await stil(page, 'zwei'))[format.stilArt]).toBe(true);
+      await erwarteStil(page, 'vor', format.stilArt, false);
+      await erwarteStil(page, 'zwei', format.stilArt, true);
     });
   }
 
@@ -159,9 +159,9 @@ test.describe('bestehende Notiz', { tag: '@F1' }, () => {
     const server = ausServer(await gespeichert);
     const editor = await sicht(page);
     serverUnverfaelscht(server, editor, { fett: ['zwei'], kursiv: ['drei'], strich: [], code: [] });
-    expect((await stil(page, 'zwei')).fett).toBe(true);
-    expect((await stil(page, 'drei')).kursiv).toBe(true);
-    expect((await stil(page, 'QQ')).fett).toBe(false);
+    await erwarteStil(page, 'zwei', 'fett', true);
+    await erwarteStil(page, 'drei', 'kursiv', true);
+    await erwarteStil(page, 'QQ', 'fett', false);
     const lesen = 'header button[aria-label="Read"]';
     if (handy) await tippeAn(page, lesen);
     else await klickeAn(page, lesen);

@@ -1,6 +1,9 @@
-import { expect, type CDPSession, type Page } from '@playwright/test';
+import fs from 'node:fs';
+import { expect, type CDPSession, type Page, type TestInfo } from '@playwright/test';
 
 export const FELD = '.schreib .ProseMirror';
+const TREFFER_MIN = 48;
+const STIL_WARTE = 3_000;
 
 const FORMATZEICHEN =
   /\*\*|(^|[^\\])\*[^\s*]|~~|==|!!|`|^#{1,6}\s|^=\s|^[-*+]\s|^\d+\.\s|^[A-Za-z]\.\s|^\[[ x]?\]/m;
@@ -15,6 +18,8 @@ export interface Stil {
   kursiv: boolean;
   strich: boolean;
   mono: boolean;
+  wichtig: boolean;
+  kopf: boolean;
   groesse: number;
 }
 
@@ -22,6 +27,7 @@ export async function gboard({ page, cdp }: Feld, text: string): Promise<void> {
   for (const teil of text.match(/[\p{L}\p{N}]+|[^\p{L}\p{N}]/gu) ?? []) {
     if (teil === '\n') {
       await page.keyboard.press('Enter');
+      await ruhig(page);
       continue;
     }
     if (/^[\p{L}\p{N}]+$/u.test(teil)) {
@@ -34,7 +40,14 @@ export async function gboard({ page, cdp }: Feld, text: string): Promise<void> {
       }
     }
     await cdp.send('Input.insertText', { text: teil });
+    await ruhig(page);
   }
+}
+
+export async function ruhig(page: Page): Promise<void> {
+  await page.evaluate(() => new Promise<void>((fertig) => {
+    setTimeout(() => requestAnimationFrame(() => requestAnimationFrame(() => fertig())), 0);
+  }));
 }
 
 export async function tippeAn(page: Page, selektor: string): Promise<void> {
@@ -47,6 +60,8 @@ export async function knopf(page: Page, name: string): Promise<void> {
   const ziel = page.getByRole('toolbar', { name: 'Format' }).getByRole('button', { name, exact: true });
   const kasten = await ziel.boundingBox();
   if (!kasten) throw new Error(`kein ${name}`);
+  expect.soft(kasten.width, `${name} mindestens 48 px`).toBeGreaterThanOrEqual(TREFFER_MIN);
+  expect.soft(kasten.height, `${name} mindestens 48 px`).toBeGreaterThanOrEqual(TREFFER_MIN);
   await page.touchscreen.tap(kasten.x + kasten.width / 2, kasten.y + kasten.height / 2);
 }
 
@@ -116,15 +131,18 @@ export function modellText(page: Page): Promise<string> {
 
 export async function invarianten(page: Page): Promise<void> {
   const text = await modellText(page);
-  expect(text, 'Formatzeichen im Dokumenttext').not.toMatch(FORMATZEICHEN);
-  expect(await page.locator(`${FELD} .cm-marker-weg, ${FELD} [style*="font-size: 0"]`).count()).toBe(0);
+  expect.soft(text, 'Invariante: Formatzeichen im Dokumenttext').not.toMatch(FORMATZEICHEN);
+  expect.soft(
+    await page.locator(`${FELD} .cm-marker-weg, ${FELD} [style*="font-size: 0"]`).count(),
+    'Invariante: keine versteckten Marker',
+  ).toBe(0);
   const zeilen = await page.locator(FELD).evaluate((el) =>
     [...el.children]
       .map((kind) => (kind as HTMLElement).innerText.replace(/[•\u200b]/g, '').replace(/\n+$/g, ''))
       .join('\n')
       .trim(),
   );
-  expect(zeilen, 'sichtbarer Text').toBe(text.trim());
+  expect.soft(zeilen, 'Invariante: sichtbarer Text').toBe(text.trim());
 }
 
 export async function tippeBeschriftung(page: Page, name: string): Promise<void> {
@@ -269,17 +287,26 @@ export function stil(page: Page, wort: string): Promise<Stil> {
         return eltern ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT;
       },
     };
+    const traegt = (el: Element | null, name: string): boolean => {
+      for (let knoten = el; knoten; knoten = knoten.parentElement) {
+        if (knoten.classList.contains(name)) return true;
+      }
+      return false;
+    };
     const walker = document.createTreeWalker(wurzel, NodeFilter.SHOW_TEXT, filter);
     let knoten = walker.nextNode();
     while (knoten) {
       const text = knoten as Text;
       if (text.data.includes(gesucht) && text.parentElement) {
         const s = getComputedStyle(text.parentElement);
+        const eltern = text.parentElement;
         return {
           fett: Number(s.fontWeight) >= 600,
           kursiv: s.fontStyle === 'italic',
           strich: s.textDecorationLine.includes('line-through'),
           mono: /mono/i.test(s.fontFamily),
+          wichtig: traegt(eltern, 'cm-wichtig') || traegt(eltern, 'cm-wichtig-zeile'),
+          kopf: traegt(eltern, 'cm-ueberschrift'),
           groesse: Number.parseFloat(s.fontSize),
         };
       }
@@ -287,6 +314,18 @@ export function stil(page: Page, wort: string): Promise<Stil> {
     }
     throw new Error(`kein ${gesucht}`);
   }, wort);
+}
+
+export async function erwarteStil(page: Page, wort: string, art: keyof Stil, wert: boolean | number): Promise<void> {
+  await expect.poll(async () => (await stil(page, wort))[art], {
+    message: `${wort}.${String(art)}`,
+    timeout: STIL_WARTE,
+  }).toBe(wert);
+}
+
+export async function erwarteBasisbild(page: Page, name: string, info: TestInfo): Promise<void> {
+  expect(fs.existsSync(info.snapshotPath(name)), 'Basisbild fehlt').toBe(true);
+  await expect(page.locator(FELD)).toHaveScreenshot(name, { maxDiffPixelRatio: 0.01 });
 }
 
 export async function klickeAn(page: Page, selektor: string): Promise<void> {

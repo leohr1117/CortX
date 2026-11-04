@@ -7,6 +7,8 @@ import {
   blockText,
   editorJson,
   enterDannTasten,
+  erwarteBasisbild,
+  erwarteStil,
   invarianten,
   istListenzeile,
   klickeAn,
@@ -15,7 +17,6 @@ import {
   leereAuswahl,
   modellText,
   sichtbar,
-  stil,
   tippeTasten,
   waehleSichtbar,
   waehleSichtbarenText,
@@ -74,6 +75,8 @@ const KNOEPFE = [
   ['Italic', 'kursiv'],
   ['Strikethrough', 'strich'],
   ['Code', 'mono'],
+  ['Important', 'wichtig'],
+  ['Heading', 'kopf'],
 ] as const;
 
 const KUERZEL = [
@@ -127,7 +130,8 @@ for (const feld of ['erfassen', 'notiz'] as const) {
       await oeffneFeld(page, feld);
     });
 
-    test.afterEach(async ({ page }) => {
+    test.afterEach(async ({ page }, info) => {
+      if (info.status === 'skipped') return;
       await invarianten(page);
     });
 
@@ -141,7 +145,11 @@ for (const feld of ['erfassen', 'notiz'] as const) {
       const text = await page.locator(FELD).getByText('Hallo').boundingBox();
       expect(text).not.toBeNull();
       expect(Math.abs((text?.y ?? 0) - (p?.y ?? 0))).toBeLessThan(4);
-      await expect(page.locator(FELD)).toHaveScreenshot(`${feld}-leer-getippt.png`, { maxDiffPixelRatio: 0.01 });
+    });
+
+    test('Bildvergleich nach dem Tippen', async ({ page }, info) => {
+      await tippeTasten(page, 'Hallo');
+      await erwarteBasisbild(page, `${feld}-leer-getippt.png`, info);
     });
 
     for (const [knopfName, art] of KNOEPFE) {
@@ -149,29 +157,29 @@ for (const feld of ['erfassen', 'notiz'] as const) {
         await tippeTasten(page, 'eins ');
         await knopfKlick(page, knopfName);
         await tippeTasten(page, 'zwei');
-        expect(await sichtbar(page)).toBe('eins zwei');
+        await expect.poll(() => sichtbar(page), { timeout: 3_000 }).toBe('eins zwei');
         await knopfKlick(page, knopfName);
         await tippeTasten(page, ' drei');
-        expect((await stil(page, 'zwei'))[art]).toBe(true);
-        expect((await stil(page, 'drei'))[art]).toBe(false);
+        await erwarteStil(page, 'zwei', art, true);
+        await erwarteStil(page, 'drei', art, false);
       });
 
       test(`${knopfName}: auf Markierung, mehrzeilig, erneut aus`, async ({ page }) => {
         await tippeTasten(page, 'aa\nbb\ncc dd');
         await waehleSichtbar(page, 0, 99);
         await knopfKlick(page, knopfName);
-        for (const wort of ['aa', 'bb', 'cc dd']) expect((await stil(page, wort))[art]).toBe(true);
+        for (const wort of ['aa', 'bb', 'cc dd']) await erwarteStil(page, wort, art, true);
         await knopfKlick(page, knopfName);
-        for (const wort of ['aa', 'bb', 'cc dd']) expect((await stil(page, wort))[art]).toBe(false);
+        for (const wort of ['aa', 'bb', 'cc dd']) await erwarteStil(page, wort, art, false);
       });
     }
 
     for (const [eingabe, wort, art] of KUERZEL) {
       test(`Kuerzel per Tasten: ${eingabe}`, async ({ page }) => {
         await tippeTasten(page, eingabe);
-        expect(await sichtbar(page)).toBe(eingabe.replace(/[*~`]/g, ''));
-        expect((await stil(page, wort))[art]).toBe(true);
-        expect((await stil(page, 'x'))[art]).toBe(false);
+        await expect.poll(() => sichtbar(page), { timeout: 3_000 }).toBe(eingabe.replace(/[*~`]/g, ''));
+        await erwarteStil(page, wort, art, true);
+        await erwarteStil(page, 'x', art, false);
       });
     }
 
@@ -181,33 +189,32 @@ for (const feld of ['erfassen', 'notiz'] as const) {
       await tippeTasten(page, 'zwei');
       await page.keyboard.press('Control+b');
       await tippeTasten(page, ' drei vier');
-      expect(await sichtbar(page)).toBe('eins zwei drei vier');
-      expect((await stil(page, 'zwei')).fett).toBe(true);
+      await expect.poll(() => sichtbar(page), { timeout: 3_000 }).toBe('eins zwei drei vier');
+      await erwarteStil(page, 'zwei', 'fett', true);
     });
 
     test('Pfeiltasten: jeder Druck ein sichtbares Zeichen', async ({ page }) => {
       await tippeTasten(page, '**fett** x');
       for (let i = 0; i < 4; i += 1) await page.keyboard.press('ArrowLeft');
       await tippeTasten(page, 'Y');
-      expect(await sichtbar(page)).toBe('feYtt x');
+      await expect.poll(() => sichtbar(page), { timeout: 3_000 }).toBe('feYtt x');
     });
 
     test('Ruecktaste loescht den Buchstaben und laesst das Format (K6)', async ({ page }) => {
       await tippeTasten(page, '**fett**');
       await page.keyboard.press('Backspace');
       await page.keyboard.press('Backspace');
-      expect(flach(await sichtbar(page))).toBe('fe');
+      await expect.poll(async () => flach(await sichtbar(page)), { timeout: 3_000 }).toBe('fe');
       expect(flach(await modellText(page))).toBe('fe');
-      expect((await stil(page, 'fe')).fett).toBe(true);
+      await erwarteStil(page, 'fe', 'fett', true);
     });
 
     test('Mehrzeilig loeschen hinterlaesst keine Zeichen (K5)', async ({ page }) => {
       await tippeTasten(page, 'aaa **bbb**\n~~ccc~~ ddd\neee fff');
       await waehleSichtbarenText(page, 'bbb', 'eee ');
       await page.keyboard.press('Backspace');
-      const text = await sichtbar(page);
-      expect(flach(text)).toBe('aaa fff');
-      expect(text).not.toMatch(/\*/);
+      await expect.poll(async () => flach(await sichtbar(page)), { timeout: 3_000 }).toBe('aaa fff');
+      await expect.poll(() => sichtbar(page), { timeout: 3_000 }).not.toMatch(/\*/);
       if (feld === 'erfassen') await pruefeAblage(page, 'fff', { fett: [], kursiv: [], strich: [], code: [] });
     });
 
@@ -222,7 +229,7 @@ for (const feld of ['erfassen', 'notiz'] as const) {
       expect(await istListenzeile(page, 'eins')).toBe(true);
       expect(await istListenzeile(page, 'zwei')).toBe(true);
       expect(await istListenzeile(page, 'raus')).toBe(false);
-      expect(await sichtbar(page)).toContain('raus');
+      await expect.poll(() => sichtbar(page), { timeout: 3_000 }).toContain('raus');
     });
 
     test('Nummernliste laeuft weiter (H8)', async ({ page }) => {
@@ -238,10 +245,9 @@ for (const feld of ['erfassen', 'notiz'] as const) {
       await tippeTasten(page, '- Milch');
       await page.keyboard.press('Enter');
       await tippeTasten(page, '**Brot**');
-      const text = await sichtbar(page);
-      expect(flach(text)).toBe('Milch Brot');
-      expect(text).not.toMatch(/\*/);
-      expect((await stil(page, 'Brot')).fett).toBe(true);
+      await expect.poll(async () => flach(await sichtbar(page)), { timeout: 3_000 }).toBe('Milch Brot');
+      await expect.poll(() => sichtbar(page), { timeout: 3_000 }).not.toMatch(/\*/);
+      await erwarteStil(page, 'Brot', 'fett', true);
       if (feld === 'erfassen') await pruefeAblage(page, 'Brot', { fett: ['Brot'], kursiv: [], strich: [], code: [] });
     });
 
@@ -263,7 +269,7 @@ for (const feld of ['erfassen', 'notiz'] as const) {
     test('Taste direkt nach Enter bleibt (K7)', async ({ page }) => {
       await tippeTasten(page, '- eins');
       await enterDannTasten(page, 'zw');
-      expect(await sichtbar(page)).toMatch(/eins[^\n]*\n[^\n]*zw/);
+      await expect.poll(() => sichtbar(page), { timeout: 3_000 }).toMatch(/eins[^\n]*\n[^\n]*zw/);
     });
 
     test('Kopieren gibt keine Formatzeichen weiter (H9)', async ({ page }) => {
@@ -281,8 +287,8 @@ for (const feld of ['erfassen', 'notiz'] as const) {
       });
       await klickeAn(page, FELD);
       await page.keyboard.press('Control+v');
-      expect(await sichtbar(page)).not.toMatch(/\*/);
-      expect((await stil(page, 'Brot')).fett).toBe(true);
+      await expect.poll(() => sichtbar(page), { timeout: 3_000 }).not.toMatch(/\*/);
+      await erwarteStil(page, 'Brot', 'fett', true);
       expect(await istListenzeile(page, 'Milch')).toBe(true);
     });
 
@@ -291,8 +297,8 @@ for (const feld of ['erfassen', 'notiz'] as const) {
       await waehleSichtbar(page, 0, 99);
       await knopfKlick(page, 'Bold');
       await page.keyboard.press('Control+z');
-      expect(flach(await sichtbar(page))).toBe('eins zwei drei');
-      expect((await stil(page, 'drei')).fett).toBe(false);
+      await expect.poll(async () => flach(await sichtbar(page)), { timeout: 3_000 }).toBe('eins zwei drei');
+      await erwarteStil(page, 'drei', 'fett', false);
       await page.keyboard.press('Control+z');
       expect(flach(await modellText(page))).toBe('eins zwei');
     });
