@@ -1,9 +1,12 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import { meldeAn } from '../anmelden.ts';
 import { warteBereit } from '../lokal.ts';
 import {
   FELD,
   type Feld,
+  ablegenOderSpeichern,
+  editorJson,
+  enterDann,
   gboard,
   invarianten,
   knopf,
@@ -12,7 +15,10 @@ import {
   sichtbar,
   stil,
   tippeAn,
+  tippeBeschriftung,
+  istListenzeile,
   waehleSichtbar,
+  waehleSichtbarenText,
 } from './hilfen.ts';
 
 test('Feld oeffnet, Haken liefert Klartext', async ({ page }) => {
@@ -46,6 +52,33 @@ const KUERZEL = [
   ['~~weg~~ x', 'weg', 'strich'],
   ['`code` x', 'code', 'mono'],
 ] as const;
+
+async function oeffneFeld(page: Page, feld: 'erfassen' | 'notiz'): Promise<{ f: Feld; id: number | null }> {
+  await meldeAn(page);
+  let id: number | null = null;
+  if (feld === 'erfassen') {
+    await page.goto('/');
+  } else {
+    const antwort = await page.request.post('/api/notes', { data: { text: 'Seite' } });
+    expect(antwort.ok()).toBe(true);
+    id = ((await antwort.json()) as { id: number }).id;
+    await page.goto(`/library/note?id=${id}`);
+    await warteBereit(page);
+    await tippeAn(page, 'header button[aria-label="Edit"]');
+  }
+  await warteBereit(page);
+  await expect(page.locator(FELD)).toBeVisible();
+  await tippeAn(page, FELD);
+  if (feld === 'notiz') {
+    await leereAuswahl(page);
+    await expect.poll(async () => (await modellText(page)).trim()).toBe('');
+  }
+  return { f: { page, cdp: await page.context().newCDPSession(page) }, id };
+}
+
+function flach(text: string): string {
+  return text.replace(/\u00a0/g, ' ').replace(/\s+/g, ' ').trim();
+}
 
 for (const feld of ['erfassen', 'notiz'] as const) {
   test.describe(`${feld} – Handy-Abnahme`, { tag: '@F1' }, () => {
@@ -135,6 +168,144 @@ for (const feld of ['erfassen', 'notiz'] as const) {
       for (let i = 0; i < 4; i += 1) await page.keyboard.press('ArrowLeft');
       await gboard(f, 'Y');
       expect(await sichtbar(page)).toBe('feYtt x');
+    });
+
+    test('Ruecktaste loescht den Buchstaben und laesst das Format (K6)', async ({ page }) => {
+      await gboard(f, '**fett**');
+      await page.keyboard.press('Backspace');
+      await page.keyboard.press('Backspace');
+      expect(flach(await sichtbar(page))).toBe('fe');
+      expect(flach(await modellText(page))).toBe('fe');
+      expect((await stil(page, 'fe')).fett).toBe(true);
+    });
+
+    test('Mehrzeilig loeschen hinterlaesst keine Zeichen (K5)', async ({ page }) => {
+      await gboard(f, 'aaa **bbb**\n~~ccc~~ ddd\neee fff');
+      await waehleSichtbarenText(page, 'bbb', 'eee ');
+      await page.keyboard.press('Backspace');
+      const text = await sichtbar(page);
+      expect(flach(text)).toBe('aaa fff');
+      expect(text).not.toMatch(/\*/);
+    });
+
+    test('Enter-Enter verlaesst die Liste (H7)', async ({ page }) => {
+      await gboard(f, '- eins');
+      await page.keyboard.press('Enter');
+      await gboard(f, 'zwei');
+      await page.keyboard.press('Enter');
+      await page.keyboard.press('Enter');
+      await gboard(f, 'raus');
+      expect(await modellText(page)).not.toMatch(/\n- raus\s*$/);
+      expect(await istListenzeile(page, 'eins')).toBe(true);
+      expect(await istListenzeile(page, 'zwei')).toBe(true);
+      expect(await istListenzeile(page, 'raus')).toBe(false);
+      expect(await sichtbar(page)).toContain('raus');
+    });
+
+    test('Nummernliste laeuft weiter (H8)', async ({ page }) => {
+      await gboard(f, '1. eins');
+      await page.keyboard.press('Enter');
+      await gboard(f, 'zwei');
+      expect(await modellText(page)).not.toMatch(/^1\.\s/m);
+      expect(await istListenzeile(page, 'eins')).toBe(true);
+      expect(await istListenzeile(page, 'zwei')).toBe(true);
+    });
+
+    test('Sternchen am Listenanfang bleiben vollstaendig (K4)', async ({ page }) => {
+      await gboard(f, '- Milch');
+      await page.keyboard.press('Enter');
+      await gboard(f, '**Brot**');
+      const text = await sichtbar(page);
+      expect(flach(text)).toBe('Milch Brot');
+      expect(text).not.toMatch(/\*/);
+      expect((await stil(page, 'Brot')).fett).toBe(true);
+    });
+
+    test('Taste direkt nach Enter bleibt (K7)', async ({ page }) => {
+      await gboard(f, '- eins');
+      await enterDann(f, 'zw');
+      expect(await sichtbar(page)).toMatch(/eins[^\n]*\n[^\n]*zw/);
+    });
+
+    test('Kopieren gibt keine Formatzeichen weiter (H9)', async ({ page }) => {
+      await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
+      await gboard(f, 'a **fett** b');
+      await waehleSichtbar(page, 0, 99);
+      await page.keyboard.press('Control+c');
+      expect(await page.evaluate(() => navigator.clipboard.readText())).toBe('a fett b');
+    });
+
+    test('Einfuegen formatiert Markdown (H10)', async ({ page }) => {
+      await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
+      await page.evaluate(async () => {
+        await navigator.clipboard.writeText('**Brot** und\n- Milch');
+      });
+      await tippeAn(page, FELD);
+      await page.keyboard.press('Control+v');
+      expect(await sichtbar(page)).not.toMatch(/\*/);
+      expect((await stil(page, 'Brot')).fett).toBe(true);
+      expect(await istListenzeile(page, 'Milch')).toBe(true);
+    });
+
+    test('Rueckgaengig nimmt Format und Wort einzeln zurueck (M2)', async ({ page }) => {
+      await gboard(f, 'eins zwei drei');
+      await waehleSichtbar(page, 0, 99);
+      await knopf(page, 'Bold');
+      await page.keyboard.press('Control+z');
+      expect(flach(await sichtbar(page))).toBe('eins zwei drei');
+      expect((await stil(page, 'drei')).fett).toBe(false);
+      await page.keyboard.press('Control+z');
+      expect(flach(await modellText(page))).toBe('eins zwei');
+    });
+  });
+
+  test.describe(`${feld} – Ablegen`, { tag: '@F2' }, () => {
+    let f!: Feld;
+    let notizId: number | null = null;
+
+    test.beforeEach(async ({ page }) => {
+      const offen = await oeffneFeld(page, feld);
+      f = offen.f;
+      notizId = offen.id;
+    });
+
+    test('Speichern und Wiederoeffnen: Server-JSON gleich Editor-JSON', async ({ page }) => {
+      await gboard(f, 'Einkauf\n');
+      await knopf(page, 'Bulleted list');
+      await gboard(f, 'Milch\n\n**wichtig** und ~~alt~~');
+      const editorDoc = await editorJson(page);
+      const id = await ablegenOderSpeichern(page, feld, notizId, 'Einkauf');
+      const server = (await (await page.request.get(`/api/notes/${id}`)).json()) as { doc?: unknown };
+      expect(server.doc).toEqual(editorDoc);
+      await page.goto(`/library/note?id=${id}`);
+      await warteBereit(page);
+      await tippeAn(page, 'header button[aria-label="Edit"]');
+      await warteBereit(page);
+      await expect(page.locator(FELD)).toBeVisible();
+      expect(await editorJson(page)).toEqual(editorDoc);
+    });
+
+    test('Offline ablegen, online gleich Server-JSON', async ({ page, context }) => {
+      await context.setOffline(true);
+      await gboard(f, 'Milch');
+      const editorDoc = await editorJson(page);
+      if (feld === 'erfassen') {
+        await tippeBeschriftung(page, 'File');
+        await expect(page.getByRole('status')).toHaveText('Filed offline · syncs later');
+      }
+      const warten = page.waitForResponse((r) => {
+        if (!r.ok() || r.request().method() !== 'POST') return false;
+        const pfad = new URL(r.url()).pathname;
+        const passend = feld === 'erfassen' ? pfad === '/api/notes' : pfad === `/api/notes/${notizId}`;
+        if (!passend) return false;
+        return (r.request().postData() ?? '').includes('Milch');
+      });
+      await context.setOffline(false);
+      const antwort = await warten;
+      const koerper = (await antwort.json()) as { id?: number };
+      const id = koerper.id ?? notizId;
+      const server = (await (await page.request.get(`/api/notes/${id}`)).json()) as { doc?: unknown };
+      expect(server.doc).toEqual(editorDoc);
     });
   });
 }
