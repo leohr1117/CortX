@@ -1,5 +1,5 @@
 import fs from 'node:fs';
-import { expect, test, type Locator, type Page } from '@playwright/test';
+import { expect, festeZeit, test, type Locator, type Page } from './ruhe.ts';
 import { meldeAn } from './anmelden.ts';
 import { liesQuelle, richteSicht, setzeQuelle, setzeSicht, tippe, wische } from './feld.ts';
 import { leereLokal } from './lokal.ts';
@@ -23,8 +23,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 function heute(minute: number): string {
-  const jetzt = new Date();
-  return new Date(jetzt.getFullYear(), jetzt.getMonth(), jetzt.getDate(), 8, minute, 0, 0).toISOString();
+  return festeZeit(0, 8, minute);
 }
 
 function bestand(): SaatThema[] {

@@ -1,5 +1,5 @@
 import fs from 'node:fs';
-import { expect, test, type Locator, type Page } from '@playwright/test';
+import { expect, festeZeit, test, type Locator, type Page } from './ruhe.ts';
 import { meldeAn } from './anmelden.ts';
 import { leereLokal } from './lokal.ts';
 import { setzeSchauspiel, sichereBestand, stelleBestand } from './schau.ts';
@@ -13,8 +13,7 @@ const TEXT = [TITEL, '', OFFEN, BLEIBT, ZU].join('\n');
 const GEPRUEFT = [TITEL, '', '- [x] confirm Thursday', BLEIBT, ZU].join('\n');
 
 function versatz(tage: number, stunde: number, minute: number): string {
-  const jetzt = new Date();
-  return new Date(jetzt.getFullYear(), jetzt.getMonth(), jetzt.getDate() + tage, stunde, minute, 0, 0).toISOString();
+  return festeZeit(tage, stunde, minute);
 }
 
 async function notizText(page: Page): Promise<string> {

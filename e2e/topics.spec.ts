@@ -1,5 +1,5 @@
 import fs from 'node:fs';
-import { expect, test, type Page } from '@playwright/test';
+import { expect, FESTE_UHR, festeZeit, festesDatum, test, type Page } from './ruhe.ts';
 import { tagesLabel } from '../shared/features/library/index.ts';
 import { meldeAn } from './anmelden.ts';
 import { leereLokal } from './lokal.ts';
@@ -14,13 +14,11 @@ const JONAS = 'Lunch with Jonas went well. He\u2019s open to sharing their desig
 const BUCH = 'Read chapter 4 of \u201cShape Up\u201d on betting tables before the planning meeting.';
 
 function am(monat: number, tag: number, stunde: number, minute: number): string {
-  const jahr = new Date().getFullYear();
-  return new Date(jahr, monat - 1, tag, stunde, minute, 0, 0).toISOString();
+  return festesDatum(monat, tag, stunde, minute);
 }
 
 function versatz(tage: number, stunde: number, minute: number): string {
-  const jetzt = new Date();
-  return new Date(jetzt.getFullYear(), jetzt.getMonth(), jetzt.getDate() + tage, stunde, minute, 0, 0).toISOString();
+  return festeZeit(tage, stunde, minute);
 }
 
 function stapel(name: string, anzahl: number, neueste: string): SaatNotiz[] {
@@ -82,7 +80,7 @@ test('topic menu renames with validation and lists merge targets', async ({ page
   try {
     bibliothek(arbeitsNotizen());
     await oeffneWork(page);
-    await expect(page.getByRole('heading', { level: 2 })).toHaveText(['Today', 'Yesterday', tagesLabel(oktober, new Date())]);
+    await expect(page.getByRole('heading', { level: 2 })).toHaveText(['Today', 'Yesterday', tagesLabel(oktober, FESTE_UHR)]);
     await expect(page.locator('.notiz .ti')).toHaveText([MARA, FREITAG, SERVER, JONAS, BUCH]);
     await page.getByRole('button', { name: 'Note actions' }).first().click();
     await page.keyboard.press('Escape');

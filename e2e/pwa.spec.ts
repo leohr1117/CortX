@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './ruhe.ts';
 
 const BILDER = 'tmp-test/screens';
 const ICONS = [

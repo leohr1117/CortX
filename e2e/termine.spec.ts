@@ -1,5 +1,5 @@
 import fs from 'node:fs';
-import { expect, test } from '@playwright/test';
+import { expect, FESTE_UHR, test } from './ruhe.ts';
 import { tagesLabel } from '../shared/features/library/index.ts';
 import { erkenneTermin, terminText } from '../shared/features/termine/index.ts';
 import { meldeAn } from './anmelden.ts';
@@ -20,7 +20,7 @@ const SCHUBLADE = 'Lantern bulbs are in the drawer.';
 function zeile(text: string, created: string): string {
   const termin = erkenneTermin(text, new Date(created));
   if (!termin) throw new Error(`No date in: ${text}`);
-  const label = terminText(termin, new Date());
+  const label = terminText(termin, FESTE_UHR);
   if (!/^\d{1,2} [A-Z][a-z]{2}(?: \d{4})? · \d{2}:\d{2}$/.test(label)) throw new Error(label);
   return label;
 }
@@ -64,12 +64,12 @@ test('reading shows a date on a topic, in Inbox, and in search', async ({ page }
     const notiz = page.locator('.notiz', { hasText: 'Review tomorrow' });
     await expect(notiz.locator('.ti')).toHaveText('Review tomorrow at 3pm');
     await expect(notiz.locator('.termin, h3, li, strong, .haken')).toHaveCount(0);
-    await expect(notiz.locator('.zeit')).toHaveText(tagesLabel(ERSTELLT, new Date()));
+    await expect(notiz.locator('.zeit')).toHaveText(tagesLabel(ERSTELLT, FESTE_UHR));
     await expect(notiz.locator('button', { hasText: /calendar|todoist/i })).toHaveCount(0);
     const schlicht = page.locator('.notiz', { hasText: 'Lunch with Jonas' });
     await expect(schlicht.locator('.ti')).toHaveText(OHNE);
     await expect(schlicht.locator('.termin, h3, li, strong, .haken')).toHaveCount(0);
-    await expect(schlicht.locator('.zeit')).toHaveText(tagesLabel('2026-10-31T11:00:00.000Z', new Date()));
+    await expect(schlicht.locator('.zeit')).toHaveText(tagesLabel('2026-10-31T11:00:00.000Z', FESTE_UHR));
     await page.screenshot({ path: `${BILDER}/${testInfo.project.name}-date-topic.png` });
 
     await notiz.locator('a.tx').click();
@@ -88,7 +88,7 @@ test('reading shows a date on a topic, in Inbox, and in search', async ({ page }
     const post = page.locator('.notiz', { hasText: 'spare key' });
     await expect(post.locator('.ti')).toHaveText(EINGANG);
     await expect(post.locator('.termin')).toHaveCount(0);
-    await expect(post.locator('.zeit')).toHaveText(tagesLabel(ERSTELLT, new Date()));
+    await expect(post.locator('.zeit')).toHaveText(tagesLabel(ERSTELLT, FESTE_UHR));
     await page.screenshot({ path: `${BILDER}/${testInfo.project.name}-date-inbox.png` });
     await post.locator('a.tx').click();
     await expect(page.locator('.termin')).toHaveText(eingang);

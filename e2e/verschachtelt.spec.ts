@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './ruhe.ts';
 import { meldeAn } from './anmelden.ts';
 import { erwarteQuelle, setzeAuswahl, setzeCursor, setzeQuelle } from './feld.ts';
 import { leereLokal } from './lokal.ts';

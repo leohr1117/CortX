@@ -1,5 +1,5 @@
 import fs from 'node:fs';
-import { expect, test, type Page } from '@playwright/test';
+import { expect, festeZeit, test, type Page } from './ruhe.ts';
 import { meldeAn } from './anmelden.ts';
 import { absatzHoehe, erwarteQuelle, hakenKante, liesQuelle, listenKanten, setzeAuswahl, setzeCursor, setzeQuelle } from './feld.ts';
 import { leereLokal, warteBereit } from './lokal.ts';
@@ -13,8 +13,7 @@ const ZWEI = '__alpha__\n__beta__\ngamma';
 const KASTEN = '- [ ] a\nkeep';
 
 function versatz(stunde: number, minute: number): string {
-  const jetzt = new Date();
-  return new Date(jetzt.getFullYear(), jetzt.getMonth(), jetzt.getDate(), stunde, minute, 0, 0).toISOString();
+  return festeZeit(0, stunde, minute);
 }
 
 async function imEditor(page: Page, text: string): Promise<void> {

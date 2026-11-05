@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
+import { FESTE_UHR } from './ruhe.ts';
 
 interface Lauf {
   datenbank: string;
@@ -158,7 +159,7 @@ export function setzeSchauspiel(themen: readonly SaatThema[]): void {
       | { id: number }
       | undefined;
     if (!inbox) throw new Error('Inbox is missing.');
-    const jetzt = new Date().toISOString();
+    const jetzt = FESTE_UHR.toISOString();
     for (const eintrag of themen) {
       const schluessel = eintrag.name.toLocaleLowerCase();
       let id = inbox.id;
@@ -198,7 +199,7 @@ export function setzeThema(name: string, notizen: readonly SaatNotiz[]): void {
 export function legeFremdeNotiz(text: string): void {
   schreib((db) => {
     const konto = 'other-account';
-    const jetzt = new Date().toISOString();
+    const jetzt = FESTE_UHR.toISOString();
     const vorhanden = db.prepare(`SELECT id FROM "topic" WHERE name_key = 'inbox' AND account_id = ?`).get(konto) as
       | { id: number }
       | undefined;

@@ -1,5 +1,5 @@
 import fs from 'node:fs';
-import { expect, test, type Page } from '@playwright/test';
+import { expect, festeZeit, test, type Page } from './ruhe.ts';
 import { meldeAn } from './anmelden.ts';
 import { cursorKopf, erwarteQuelle, setzeAuswahl, setzeCursor, setzeQuelle } from './feld.ts';
 import { leereLokal } from './lokal.ts';
@@ -25,8 +25,7 @@ const EINGANG = [
 const FUND = '= Lantern **heading** keeps #studio';
 
 function versatz(tage: number, stunde: number, minute: number): string {
-  const jetzt = new Date();
-  return new Date(jetzt.getFullYear(), jetzt.getMonth(), jetzt.getDate() + tage, stunde, minute, 0, 0).toISOString();
+  return festeZeit(tage, stunde, minute);
 }
 
 async function oeffneEdit(page: Page): Promise<void> {

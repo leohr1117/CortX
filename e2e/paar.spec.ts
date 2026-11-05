@@ -1,4 +1,4 @@
-import { test, type Locator, type Page } from '@playwright/test';
+import { test, type Locator, type Page } from './ruhe.ts';
 import { meldeAn } from './anmelden.ts';
 import { erwarteQuelle, setzeCursor, setzeQuelle } from './feld.ts';
 import { leereLokal } from './lokal.ts';

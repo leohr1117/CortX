@@ -1,5 +1,5 @@
 import fs from 'node:fs';
-import { expect, test, type Page } from '@playwright/test';
+import { expect, festeZeit, test, type Page } from './ruhe.ts';
 import { meldeAn } from './anmelden.ts';
 import { leereLokal } from './lokal.ts';
 import { legeFremdeNotiz, setzeSchauspiel, sichereBestand, stelleBestand, type SaatNotiz } from './schau.ts';
@@ -8,8 +8,7 @@ const BILDER = 'tmp-test/screens';
 const FREMD = 'lantern hidden quicksilver ledger';
 
 function versatz(tage: number, stunde: number, minute: number): string {
-  const jetzt = new Date();
-  return new Date(jetzt.getFullYear(), jetzt.getMonth(), jetzt.getDate() + tage, stunde, minute, 0, 0).toISOString();
+  return festeZeit(tage, stunde, minute);
 }
 
 function fueller(anzahl: number): SaatNotiz[] {

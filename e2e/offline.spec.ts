@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from './ruhe.ts';
 import { meldeAn } from './anmelden.ts';
 import { erwarteQuelle, setzeQuelle } from './feld.ts';
 import { leereLokal, liesEntwurf, warteBereit, warteschlangeLaenge } from './lokal.ts';

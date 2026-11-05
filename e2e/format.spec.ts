@@ -1,5 +1,5 @@
 import fs from 'node:fs';
-import { expect, test } from '@playwright/test';
+import { expect, festeZeit, test } from './ruhe.ts';
 import { meldeAn } from './anmelden.ts';
 import { erwarteQuelle, setzeQuelle } from './feld.ts';
 import { leereLokal } from './lokal.ts';
@@ -32,8 +32,7 @@ const ZU = '[x] share the folio agenda';
 const ROH = 'See <b>Mara</b> and keep #work on the folio';
 
 function versatz(tage: number, stunde: number, minute: number): string {
-  const jetzt = new Date();
-  return new Date(jetzt.getFullYear(), jetzt.getMonth(), jetzt.getDate() + tage, stunde, minute, 0, 0).toISOString();
+  return festeZeit(tage, stunde, minute);
 }
 
 test.beforeAll(() => {

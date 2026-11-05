@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from './ruhe.ts';
 import { HINWEIS_TEXT } from '../shared/features/version/index.ts';
 import { AKTUELLE_VERSION } from '../shared/versionen.ts';
 import { KARTE_TEXT } from '../client/src/ui/kartenregister.ts';

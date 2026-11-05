@@ -1,5 +1,5 @@
 import fs from 'node:fs';
-import { expect, test, type Page } from '@playwright/test';
+import { expect, festeZeit, test, type Page } from './ruhe.ts';
 import { meldeAn } from './anmelden.ts';
 import { erwarteQuelle, setzeAuswahl, setzeCursor, setzeQuelle } from './feld.ts';
 import { leereLokal } from './lokal.ts';
@@ -18,8 +18,7 @@ const TEXT = [
 ].join('\n');
 
 function versatz(stunde: number, minute: number): string {
-  const jetzt = new Date();
-  return new Date(jetzt.getFullYear(), jetzt.getMonth(), jetzt.getDate(), stunde, minute, 0, 0).toISOString();
+  return festeZeit(0, stunde, minute);
 }
 
 async function oeffne(page: Page): Promise<void> {

@@ -1,5 +1,5 @@
 import fs from 'node:fs';
-import { expect, test, type Page } from '@playwright/test';
+import { expect, festeZeit, test, type Page } from './ruhe.ts';
 import { meldeAn } from './anmelden.ts';
 import { erwarteQuelle, setzeAuswahl, setzeQuelle } from './feld.ts';
 import { leereLokal, warteBereit } from './lokal.ts';
@@ -10,8 +10,7 @@ const BILDER = 'tmp-test/screens';
 const KOMBI = ['***Test***', '**_x_**', '_**y**_', '~~**z**~~', '**!!w!!**', '!!**v**!!', '!!!! **fett**'].join('\n');
 
 function versatz(stunde: number, minute: number): string {
-  const jetzt = new Date();
-  return new Date(jetzt.getFullYear(), jetzt.getMonth(), jetzt.getDate(), stunde, minute, 0, 0).toISOString();
+  return festeZeit(0, stunde, minute);
 }
 
 interface Kante {

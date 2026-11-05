@@ -1,5 +1,5 @@
 import fs from 'node:fs';
-import { expect, test, type Page } from '@playwright/test';
+import { expect, FESTE_UHR, festeZeit, festesDatum, test, type Page } from './ruhe.ts';
 import { letzteNotizZeile, tagesLabel } from '../shared/features/library/index.ts';
 import { meldeAn } from './anmelden.ts';
 import { leereLokal } from './lokal.ts';
@@ -15,13 +15,11 @@ const JONAS = 'Lunch with Jonas went well. He\u2019s open to sharing their desig
 const BUCH = 'Read chapter 4 of \u201cShape Up\u201d on betting tables before the planning meeting.';
 
 function am(monat: number, tag: number, stunde: number, minute: number): string {
-  const jahr = new Date().getFullYear();
-  return new Date(jahr, monat - 1, tag, stunde, minute, 0, 0).toISOString();
+  return festesDatum(monat, tag, stunde, minute);
 }
 
 function versatz(tage: number, stunde: number, minute: number): string {
-  const jetzt = new Date();
-  return new Date(jetzt.getFullYear(), jetzt.getMonth(), jetzt.getDate() + tage, stunde, minute, 0, 0).toISOString();
+  return festeZeit(tage, stunde, minute);
 }
 
 function stapel(name: string, anzahl: number, neueste: string): SaatNotiz[] {
@@ -68,7 +66,7 @@ test('a filed note can be read from its topic', async ({ page }, testInfo) => {
 test('library, topic, and empty states', async ({ page }, testInfo) => {
   test.setTimeout(60_000);
   const bestand = sichereBestand();
-  const jetzt = new Date();
+  const jetzt = FESTE_UHR;
   const gestern = versatz(-1, 18, 0);
   const heute = versatz(0, 11, 4);
   const ideen = am(10, 29, 12, 0);

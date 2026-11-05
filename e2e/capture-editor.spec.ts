@@ -1,5 +1,5 @@
 import fs from 'node:fs';
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from './ruhe.ts';
 import { meldeAn } from './anmelden.ts';
 import { absatzHoehe, erwarteQuelle, hakenKante, listenKanten, setzeAuswahl, setzeQuelle } from './feld.ts';
 import { leereLokal } from './lokal.ts';

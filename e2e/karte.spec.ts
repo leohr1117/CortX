@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, FESTE_UHR, test, type Page } from './ruhe.ts';
 import { meldeAn } from './anmelden.ts';
 import { erwarteQuelle, richteSicht, setzeQuelle, setzeSicht } from './feld.ts';
 import { leereLokal, liesEntwurf } from './lokal.ts';
@@ -80,7 +80,7 @@ test('focus holds the card and typing does not dismiss it', async ({ page }) => 
 
 test('a card without an action fades after five seconds', async ({ page }) => {
   test.setTimeout(60_000);
-  await page.clock.install({ time: Date.now() });
+  await page.clock.pauseAt(new Date(FESTE_UHR.getTime() + 20 * 60 * 1000));
   await setzeQuelle(page, 'Queued offline');
   await page.context().setOffline(true);
   await page.getByRole('button', { name: 'File' }).click();

@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from './ruhe.ts';
 import { ANMELDE_NAME, ANMELDE_PASSWORT } from './anmelden.ts';
 import { liesEntwurf, warteBereit, warteschlangeLaenge } from './lokal.ts';
 

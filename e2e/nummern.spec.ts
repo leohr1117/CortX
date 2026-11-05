@@ -1,5 +1,5 @@
 import fs from 'node:fs';
-import { expect, test, type Page } from '@playwright/test';
+import { expect, festeZeit, test, type Page } from './ruhe.ts';
 import { meldeAn } from './anmelden.ts';
 import { absatzHoehe, erwarteQuelle, hakenKante, leseKanten, listenKanten, setzeAuswahl, setzeQuelle } from './feld.ts';
 import { leereLokal, warteBereit } from './lokal.ts';
@@ -16,8 +16,7 @@ const FAELLE = [
 ] as const;
 
 function versatz(): string {
-  const jetzt = new Date();
-  return new Date(jetzt.getFullYear(), jetzt.getMonth(), jetzt.getDate(), 9, 12, 0, 0).toISOString();
+  return festeZeit(0, 9, 12);
 }
 
 async function imEditor(page: Page, text: string): Promise<void> {
