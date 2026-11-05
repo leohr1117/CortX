@@ -23,7 +23,7 @@ function ersetze(text: string, von: number, bis: number, einsetzen: string, curs
   return { text: text.slice(0, von) + einsetzen + text.slice(bis), start: cursor, ende: cursor };
 }
 
-function naechsterMarker(marker: string, abgehakt: boolean | undefined): string {
+export function naechsterMarker(marker: string, abgehakt: boolean | undefined): string {
   if (!abgehakt) return marker;
   if (marker.startsWith('[x]')) return `[]${marker.slice(3)}`;
   return marker.replace('[x]', '[ ]');

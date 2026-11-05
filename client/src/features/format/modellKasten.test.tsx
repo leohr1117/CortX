@@ -125,7 +125,7 @@ describe('checkbox in the model editor', () => {
       expect(sitz.view.state.selection.anchor).toBe(vorher);
       expect(document.activeElement).toBe(fokus);
       expect(undoDepth(sitz.view.state)).toBe(1);
-      expect(speichere(sitz.view.state.doc).split('\n')[1]).toBe('[x] b');
+      expect(speichere(sitz.view.state.doc)).toBe('[x] a\n[x] b');
       expect(meldungen).toHaveLength(1);
       expect(taste(sitz.view)).toBe(true);
       expect(haekchen(sitz.view)).toEqual([false, true]);
@@ -148,7 +148,7 @@ describe('checkbox in the model editor', () => {
       feuer(kasten[0]!, 'click');
       expect(haekchen(sitz.view)).toEqual([true]);
       expect(undoDepth(sitz.view.state)).toBe(1);
-      expect(speichere(sitz.view.state.doc).endsWith('keep')).toBe(true);
+      expect(speichere(sitz.view.state.doc)).toBe('[x] a\nkeep');
       feuer(kasten[0]!, 'click');
       expect(haekchen(sitz.view)).toEqual([false]);
       expect(speichere(sitz.view.state.doc)).toBe(text);

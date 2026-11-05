@@ -1,10 +1,12 @@
 import { inputRules, InputRule, undoInputRule } from 'prosemirror-inputrules';
 import { keymap } from 'prosemirror-keymap';
 import type { Attrs, Node, NodeType } from 'prosemirror-model';
-import { Plugin, type Command, type EditorState, type Transaction } from 'prosemirror-state';
+import { Plugin, TextSelection, type Command, type EditorState, type Transaction } from 'prosemirror-state';
 import type { EditorView } from 'prosemirror-view';
 import { ART } from '../../../../shared/features/format/baum.ts';
+import { lade } from '../../../../shared/features/format/laden.ts';
 import { modell } from '../../../../shared/features/format/modell.ts';
+import { istNummerArt } from '../../../../shared/features/format/nummer.ts';
 import { formatVon } from '../../../../shared/features/format/register.ts';
 import { kopfZeichen } from '../../../../shared/features/format/zeile.ts';
 import { kuerzelAn } from './kuerzelSpeicher.ts';
@@ -70,11 +72,45 @@ function wandle(state: EditorState, start: number, end: number, ziel: Ziel): Tra
   return tr;
 }
 
+const NUMMER_ZEILE = /^\d{1,9}\. $/;
+
+function nummerKnoten(text: string): Node | null {
+  if (!NUMMER_ZEILE.test(text)) return null;
+  let doc: Node;
+  try {
+    doc = lade(text);
+  } catch {
+    return null;
+  }
+  if (doc.childCount !== 1) return null;
+  const knoten = doc.child(0);
+  if (knoten.type.name !== 'punkt' || knoten.attrs.art !== ART.nummer) return null;
+  if (!istNummerArt(String(knoten.attrs.nummerArt ?? ''))) return null;
+  return knoten;
+}
+
+function wandleNummer(state: EditorState): Transaction | null {
+  const { $from } = state.selection;
+  if (!$from.parent.isTextblock || $from.parent.type.spec.code) return null;
+  if ($from.parentOffset !== $from.parent.content.size) return null;
+  const knoten = nummerKnoten($from.parent.textContent);
+  if (!knoten || $from.parent.attrs.art === ART.nummer) return null;
+  const vor = $from.before();
+  const tr = state.tr.replaceWith(vor, $from.after(), knoten);
+  return tr.setSelection(TextSelection.create(tr.doc, vor + 1));
+}
+
 function zeilenRegeln(an: () => boolean): InputRule[] {
-  return ziele().map((ziel) => new InputRule(muster(ziel.muster), (state, _treffer, start, end) => {
+  const nummer = new InputRule(NUMMER_ZEILE, (state, _treffer, start) => {
+    if (!an()) return null;
+    if (state.doc.resolve(start).parentOffset !== 0) return null;
+    return wandleNummer(state);
+  });
+  const zeilen = ziele().map((ziel) => new InputRule(muster(ziel.muster), (state, _treffer, start, end) => {
     if (!an()) return null;
     return wandle(state, start, end, ziel);
   }));
+  return [nummer, ...zeilen];
 }
 
 const ZURUECK = 'zeilenZurueck';
@@ -90,6 +126,12 @@ function nachtrag(transactions: readonly Transaction[], neu: EditorState, eingab
   const { $head } = neu.selection;
   if (!$head.parent.isTextblock || $head.parent.type.spec.code) return null;
   if ($head.parentOffset !== $head.parent.content.size) return null;
+  const nummer = wandleNummer(neu);
+  if (nummer) {
+    const start = $head.start();
+    nummer.setMeta(eingabe, { transform: nummer, from: start, to: start, text: '' });
+    return nummer;
+  }
   const ziel = ziele().find((eintrag) => eintrag.muster === $head.parent.textContent);
   if (!ziel) return null;
   const start = $head.start();

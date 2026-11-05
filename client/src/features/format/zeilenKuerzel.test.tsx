@@ -117,6 +117,7 @@ async function taste(view: EditorView, art: 'Backspace' | 'before'): Promise<voi
 const KUERZEL = [
   { name: 'list', text: '- ', knoten: 'punkt', art: 'liste' },
   { name: 'task', text: '[] ', knoten: 'punkt', art: 'haken' },
+  { name: 'number', text: '1. ', knoten: 'punkt', art: 'nummer' },
   { name: 'heading', text: '# ', knoten: 'ueberschrift', art: '' },
 ] as const;
 

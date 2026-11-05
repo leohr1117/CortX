@@ -191,6 +191,18 @@ describe('list keys in the model editor', () => {
     }
   });
 
+  it('a second enter leaves the list', async () => {
+    const sitz = await oeffne('- a');
+    try {
+      setze(sitz.view, 3);
+      expect(druecke(sitz.view, 'enter')).toBe(true);
+      expect(druecke(sitz.view, 'enter')).toBe(true);
+      expect(speichere(sitz.view.state.doc)).toBe('- a\n');
+    } finally {
+      await zu(sitz);
+    }
+  });
+
   it('applies enter once and swallows only the duplicate of that same text', async () => {
     const sitz = await oeffne('- a');
     try {
@@ -323,6 +335,21 @@ describe('list keys in the model editor', () => {
       sitz.view.dispatch(sitz.view.state.tr.setSelection(TextSelection.create(doc, von, bis)));
       druecke(sitz.view, 'zurueck');
       expect(speichere(sitz.view.state.doc)).toBe('- lk');
+    } finally {
+      await zu(sitz);
+    }
+  });
+
+  it('does not carry a mark onto the next line', async () => {
+    const sitz = await oeffne('eins **zwei**');
+    try {
+      setze(sitz.view, 'eins **zwei**'.length);
+      druecke(sitz.view, 'enter');
+      sitz.view.dispatch(sitz.view.state.tr.insertText('danach'));
+      expect(speichere(sitz.view.state.doc)).toBe('eins **zwei**\ndanach');
+      const zeile = sitz.view.state.doc.lastChild;
+      expect(zeile?.textContent).toBe('danach');
+      expect(zeile?.firstChild?.marks ?? []).toHaveLength(0);
     } finally {
       await zu(sitz);
     }

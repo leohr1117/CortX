@@ -4,7 +4,7 @@ import { FLUCHTZEICHEN } from './inline.ts';
 import { lade } from './laden.ts';
 import { formatVon, inlineFormate, type FormatId } from './register.ts';
 import { prefixNummer } from './nummer.ts';
-import { LISTEN_EINFUEGEN, kopfZeichen } from './zeile.ts';
+import { LISTEN_EINFUEGEN, hakenVon, kopfZeichen, listenLaenge } from './zeile.ts';
 
 interface Stueck {
   text: string;
@@ -279,8 +279,23 @@ function istFortsetzung(knoten: Node): boolean {
   return knoten.type.name === 'punkt' && ohneEnde(String(knoten.attrs.quelle ?? '')).startsWith(' ');
 }
 
+function markerAusQuelle(knoten: Node): string | null {
+  const kern = ohneEnde(String(knoten.attrs.quelle ?? ''));
+  if (kern.length === 0 || kern.startsWith(' ')) return null;
+  const haken = hakenVon(kern);
+  if (haken) {
+    if (haken.abgehakt !== (knoten.attrs.abgehakt === true)) return null;
+    return kern.slice(0, haken.laenge);
+  }
+  const laenge = listenLaenge(kern);
+  if (laenge > 0) return kern.slice(0, laenge);
+  return null;
+}
+
 function punktPrefix(knoten: Node): string {
   if (istFortsetzung(knoten)) return /^ +/.exec(ohneEnde(String(knoten.attrs.quelle ?? '')))?.[0] ?? '';
+  const marker = markerAusQuelle(knoten);
+  if (marker) return marker;
   const art = String(knoten.attrs.art ?? ART.liste);
   if (art === ART.haken) return prefixMit(ART.haken, knoten.attrs.abgehakt === true ? 1 : 0);
   if (art === ART.nummer) return prefixNummer(String(knoten.attrs.nummerArt ?? ''), knoten.attrs.nummer) ?? prefixMit(ART.nummer, 0);

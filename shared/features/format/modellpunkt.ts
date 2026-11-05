@@ -5,7 +5,8 @@ import { ART, type Beleg } from './baum.ts';
 import { lade } from './laden.ts';
 import { leseDokument } from './lesen.ts';
 import { istNummerArt } from './nummer.ts';
-import { punktInhalt, punktTaste, type PunktArt } from './punkt.ts';
+import { enterTrenntFormat, listenTaste } from './listenbefehl.ts';
+import { punktInhalt, type PunktArt } from './punkt.ts';
 import { speichere } from './speichern.ts';
 
 interface Spanne {
@@ -165,20 +166,10 @@ function wende(zustand: EditorState, text: string, doc: Node, index: number): Ed
 }
 
 export function punktModell(zustand: EditorState, art: PunktArt): EditorState | null {
-  if (!zustand.selection.empty) return null;
-  const text = speichere(zustand.doc);
-  const index = stelleInQuelle(zustand.doc, text, zustand.selection);
-  if (index === null) return null;
-  const wahl = punktTaste(text, index, index, art);
-  if (!wahl) return null;
-  let doc: Node;
-  try {
-    doc = lade(wahl.text);
-  } catch {
-    return null;
-  }
-  return wende(zustand, wahl.text, doc, wahl.start);
+  return listenTaste(zustand, art);
 }
+
+export { enterTrenntFormat };
 
 function istNummer(node: Node): boolean {
   return node.type.name === 'punkt' && node.attrs.art === ART.nummer && istNummerArt(String(node.attrs.nummerArt ?? ''));
