@@ -8,7 +8,9 @@ import 'prosemirror-view/style/prosemirror.css';
 import { lade } from '../../../../shared/features/format/laden.ts';
 import { speichere } from '../../../../shared/features/format/speichern.ts';
 import { NOTE_TEXT_MAX } from '../../../../shared/kern/grenzen.ts';
+import { TEXTE } from '../../../../shared/kern/texte.ts';
 import { eingabePlugins } from './eingabeKuerzel.ts';
+import { ablageTastePlugin, platzhalterPlugin, type EditorModus } from './editorSchale.ts';
 import { modellAblage } from './modellAblage.ts';
 import { modellEingabe } from './modellEingabe.ts';
 import { inlinePlugins } from './inlineKuerzel.ts';
@@ -31,6 +33,9 @@ export function ModellEditor({
   onText,
   onAuswahl,
   onLink,
+  onAblegen,
+  modus = 'notiz',
+  platzhalter,
   ungueltig = false,
   ref,
 }: {
@@ -38,6 +43,9 @@ export function ModellEditor({
   onText: (text: string) => void;
   onAuswahl?: () => void;
   onLink?: () => void;
+  onAblegen?: () => void;
+  modus?: EditorModus;
+  platzhalter?: string;
   ungueltig?: boolean;
   ref?: Ref<EditorView | null>;
 }) {
@@ -46,14 +54,20 @@ export function ModellEditor({
   const onTextRef = useRef(onText);
   const onAuswahlRef = useRef(onAuswahl);
   const onLinkRef = useRef(onLink);
+  const onAblegenRef = useRef(onAblegen);
   const textRef = useRef(text);
   const gemeldet = useRef(text);
   const refWeiter = useRef(ref);
+  const modusRef = useRef(modus);
+  const platzhalterRef = useRef(platzhalter);
   onTextRef.current = onText;
   onAuswahlRef.current = onAuswahl;
   onLinkRef.current = onLink;
+  onAblegenRef.current = onAblegen;
   textRef.current = text;
   refWeiter.current = ref;
+  modusRef.current = modus;
+  platzhalterRef.current = platzhalter;
 
   useLayoutEffect(() => {
     const el = host.current;
@@ -64,6 +78,7 @@ export function ModellEditor({
       doc: lade(anfang),
       plugins: [
         history(),
+        platzhalterPlugin(() => platzhalterRef.current ?? TEXTE.platzhalter),
         ...eingabePlugins(),
         ...zeilenPlugins(),
         ...inlinePlugins(),
@@ -72,6 +87,7 @@ export function ModellEditor({
         keymap(formatTasten(() => onLinkRef.current?.())),
         ...modellEingabe(),
         modellAblage(),
+        ...(modusRef.current === 'erfassen' ? [ablageTastePlugin(() => onAblegenRef.current?.())] : []),
         keymap(baseKeymap),
         schichtenPlugin(),
       ],
@@ -103,6 +119,7 @@ export function ModellEditor({
       },
     });
     viewRef.current = view;
+    if (modusRef.current === 'erfassen') view.dom.classList.add('cm-content');
     haengeGriff(view);
     haengeModell(view);
     merkeEnde(view, anfang);
@@ -134,5 +151,14 @@ export function ModellEditor({
     else dom.removeAttribute('aria-invalid');
   }, [ungueltig]);
 
+  if (modus === 'erfassen') {
+    return (
+      <div className="erfassen">
+        <div className="schreib">
+          <div ref={host} className="cm-editor modell-host" />
+        </div>
+      </div>
+    );
+  }
   return <div ref={host} className="schreib modell-host" />;
 }

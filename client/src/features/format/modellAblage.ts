@@ -1,9 +1,59 @@
-import { closeHistory } from 'prosemirror-history';
-import { DOMParser, DOMSerializer, Fragment, Slice, type Node } from 'prosemirror-model';
-import { Plugin } from 'prosemirror-state';
+import { closeHistory, isHistoryTransaction } from 'prosemirror-history';
+import { DOMParser, DOMSerializer, Fragment, Slice, type Mark, type Node } from 'prosemirror-model';
+import { Plugin, PluginKey, type EditorState, type Transaction } from 'prosemirror-state';
 import type { EditorView } from 'prosemirror-view';
 import { lade } from '../../../../shared/features/format/laden.ts';
 import { modell } from '../../../../shared/features/format/modell.ts';
+
+interface RandBild {
+  text: string;
+  offset: number;
+  marks: readonly Mark[];
+}
+
+const anfangRandKey = new PluginKey<RandBild | null>('anfangRand');
+
+function randBildVon(state: EditorState): RandBild | null {
+  const $pos = state.selection.$from;
+  const danach = $pos.nodeAfter;
+  if (!state.selection.empty || $pos.textOffset || !$pos.parent.isTextblock || !danach?.isText) return null;
+  if (state.storedMarks && state.storedMarks.length > 0) return null;
+  const davor = $pos.nodeBefore?.marks ?? [];
+  const erlaubt = davor.filter((mark) => mark.isInSet(danach.marks));
+  const marks = danach.marks.filter((mark) => mark.type.spec.inclusive !== false && !mark.isInSet(erlaubt));
+  if (marks.length === 0 || $pos.parentOffset >= $pos.parent.textContent.length) return null;
+  return { text: $pos.parent.textContent, offset: $pos.parentOffset, marks };
+}
+
+function randPasst(text: string, bild: RandBild): boolean {
+  const kopf = bild.text.slice(0, bild.offset);
+  const schwanz = bild.text.slice(bild.offset);
+  return text.length > bild.text.length && text.startsWith(kopf) && text.endsWith(schwanz);
+}
+
+function randGesperrt(tr: Transaction): boolean {
+  if (isHistoryTransaction(tr) || tr.getMeta('programm') === true) return true;
+  const ereignis = tr.getMeta('uiEvent');
+  return tr.getMeta('paste') === true || ereignis === 'paste' || ereignis === 'drop';
+}
+
+function nimmAnfangRand(state: EditorState, bild: RandBild): Transaction | null {
+  const $pos = state.selection.$from;
+  if (!state.selection.empty || !$pos.parent.isTextblock) return null;
+  const text = $pos.parent.textContent;
+  if (!randPasst(text, bild)) return null;
+  const bis = text.length - (bild.text.length - bild.offset);
+  if (bis <= bild.offset) return null;
+  const von = $pos.start() + bild.offset;
+  const ende = $pos.start() + bis;
+  if (von < 0 || ende > state.doc.content.size || ende <= von) return null;
+  let tr: Transaction | null = null;
+  for (const mark of bild.marks) {
+    if (!state.doc.rangeHasMark(von, ende, mark.type)) continue;
+    tr = (tr ?? state.tr).removeMark(von, ende, mark);
+  }
+  return tr;
+}
 
 const parser = DOMParser.fromSchema(modell);
 const serializer = DOMSerializer.fromSchema(modell);
@@ -160,7 +210,26 @@ function schreibe(view: EditorView, event: Event, ausschneiden: boolean): boolea
 }
 
 export function modellAblage(): Plugin {
-  return new Plugin({
+  return new Plugin<RandBild | null>({
+    key: anfangRandKey,
+    state: {
+      init(_config, state) {
+        return randBildVon(state);
+      },
+      apply(tr, wert, _alt, neu) {
+        if (randGesperrt(tr)) return wert;
+        if (!tr.docChanged) return tr.selectionSet || tr.storedMarksSet ? randBildVon(neu) : wert;
+        const $pos = neu.selection.$from;
+        if (wert && neu.selection.empty && $pos.parent.isTextblock && randPasst($pos.parent.textContent, wert)) return wert;
+        return randBildVon(neu);
+      },
+    },
+    appendTransaction(transactions, alt, neu) {
+      if (transactions.some((tr) => randGesperrt(tr))) return null;
+      const bild = anfangRandKey.getState(alt);
+      if (!bild) return null;
+      return nimmAnfangRand(neu, bild);
+    },
     props: {
       clipboardTextParser(text, $context) {
         return sliceAusText(text, $context.parent);

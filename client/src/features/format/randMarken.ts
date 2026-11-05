@@ -16,6 +16,9 @@ interface Haltung {
   sperre: boolean;
   tot: boolean;
   timer: ReturnType<typeof setTimeout> | null;
+  schluss: ReturnType<typeof setTimeout> | null;
+  gehalten: readonly Mark[];
+  anfang: number | null;
 }
 
 const NACH_KOMPOSITION_MS = 40;
@@ -195,6 +198,103 @@ function zusatzMarken(view: EditorView, gemerkt: Vorher): Transaction | null {
   return zusatzAuf(view.state, null, gemerkt);
 }
 
+const HALT_EXKLUSIV = 'exklusivGehalten';
+
+function bereichDanach(
+  transactions: readonly Transaction[],
+  trIndex: number,
+  stepIndex: number,
+  von: number,
+  bis: number,
+): { von: number; bis: number } {
+  let start = von;
+  let ende = bis;
+  const schritte = transactions[trIndex]!.steps;
+  for (let i = stepIndex + 1; i < schritte.length; i += 1) {
+    start = schritte[i]!.getMap().map(start, -1);
+    ende = schritte[i]!.getMap().map(ende, 1);
+  }
+  for (let i = trIndex + 1; i < transactions.length; i += 1) {
+    start = transactions[i]!.mapping.map(start, -1);
+    ende = transactions[i]!.mapping.map(ende, 1);
+  }
+  return { von: start, bis: ende };
+}
+function exklusiv(marks: readonly Mark[] | null | undefined): readonly Mark[] {
+  return (marks ?? []).filter((mark) => mark.type.spec.inclusive === false);
+}
+function merkeGehalten(transactions: readonly Transaction[], alt: EditorState): boolean {
+  if (!aktiv) return false;
+  const gesetzt = transactions.find((tr) => tr.storedMarksSet && tr.getMeta('composition') == null);
+  if (gesetzt) {
+    aktiv.gehalten = exklusiv(gesetzt.storedMarks);
+    return false;
+  }
+  if (transactions.some((tr) => tr.getMeta('composition') != null)) {
+    const marks = exklusiv(alt.storedMarks);
+    if (marks.length) aktiv.gehalten = marks;
+    return true;
+  }
+  if (transactions.some((tr) => !tr.docChanged && tr.selectionSet && !tr.selection.eq(alt.selection))) aktiv.gehalten = [];
+  return false;
+}
+function schliesseExklusiv(view: EditorView, haltung: Haltung): void {
+  if (haltung.schluss) clearTimeout(haltung.schluss);
+  const von = haltung.anfang;
+  haltung.schluss = setTimeout(() => {
+    haltung.schluss = null;
+    const marks = haltung.gehalten;
+    const state = view.state;
+    const bis = state.selection.from;
+    if (haltung.tot || haltung.sperre || haltung.offen || von == null || !marks.length || !state.selection.empty) return;
+    if (bis <= von || bis > state.doc.content.size) return;
+    let tr = state.tr.setMeta('addToHistory', false);
+    for (const mark of marks) tr = tr.addMark(von, bis, mark);
+    const bisher = [...(state.storedMarks ?? [])];
+    for (const mark of marks) if (!bisher.some((da) => da.eq(mark))) bisher.push(mark);
+    tr.setStoredMarks(bisher).setMeta(HALT_EXKLUSIV, true);
+    haltung.sperre = true;
+    view.dispatch(tr);
+    haltung.sperre = false;
+  }, 0);
+}
+function halteExklusiv(
+  transactions: readonly Transaction[],
+  alt: EditorState,
+  neu: EditorState,
+  basis: Transaction | null,
+): Transaction | null {
+  if (transactions.some((tr) => tr.getMeta(HALT_EXKLUSIV) === true)) return basis;
+  if (merkeGehalten(transactions, alt)) return basis;
+  if (!alt.selection.empty || !alt.storedMarks?.length) return basis;
+  if (!transactions.some((tr) => tr.docChanged)) return basis;
+  if (transactions.some((tr) => isHistoryTransaction(tr) || tr.getMeta('programm') === true)) return basis;
+  const marks = exklusiv(alt.storedMarks);
+  if (!marks.length || !neu.selection.empty) return basis;
+  let aus = basis;
+  transactions.forEach((tr, trIndex) => {
+    tr.steps.forEach((step, stepIndex) => {
+      if (!(step instanceof ReplaceStep) || step.slice.size === 0) return;
+      let bereich = bereichDanach(transactions, trIndex, stepIndex, step.from, step.from + step.slice.size);
+      if (aus?.steps.length) {
+        bereich = {
+          von: aus.mapping.map(bereich.von, -1),
+          bis: aus.mapping.map(bereich.bis, 1),
+        };
+      }
+      const doc = aus?.doc ?? neu.doc;
+      if (bereich.von < 0 || bereich.bis > doc.content.size || bereich.bis <= bereich.von) return;
+      for (const mark of marks) aus = (aus ?? neu.tr).addMark(bereich.von, bereich.bis, mark);
+    });
+  });
+  const bisher = [...(neu.storedMarks ?? [])];
+  for (const mark of marks) {
+    if (!bisher.some((da) => da.eq(mark))) bisher.push(mark);
+  }
+  aus = (aus ?? neu.tr).setStoredMarks(bisher).setMeta(HALT_EXKLUSIV, true);
+  return aus;
+}
+
 function wende(view: EditorView, haltung: Haltung, tr: Transaction | null): void {
   if (haltung.sperre || haltung.tot || !tr?.docChanged) return;
   haltung.sperre = true;
@@ -236,10 +336,15 @@ export function randPlugins(): Plugin[] {
         if (bild && aktiv && !aktiv.offen && !historie) {
           ergebnis = zusatzAuf(neu, ergebnis, bild);
         }
-        return ergebnis && ergebnis.steps.length ? ergebnis : null;
+        if (!historie) ergebnis = halteExklusiv(transactions, alt, neu, ergebnis);
+        if (!ergebnis) return null;
+        if (ergebnis.steps.length > 0 || ergebnis.storedMarksSet) return ergebnis;
+        return null;
       },
       view(editorView) {
-        const haltung: Haltung = { bild: null, offen: false, sperre: false, tot: false, timer: null };
+        const haltung: Haltung = {
+          bild: null, offen: false, sperre: false, tot: false, timer: null, schluss: null, gehalten: [], anfang: null,
+        };
         haltungen.set(editorView, haltung);
         aktiv = haltung;
         return {
@@ -261,6 +366,8 @@ export function randPlugins(): Plugin[] {
             haltung.tot = true;
             if (haltung.timer) clearTimeout(haltung.timer);
             haltung.timer = null;
+            if (haltung.schluss) clearTimeout(haltung.schluss);
+            haltung.schluss = null;
             haltungen.delete(editorView);
             if (aktiv === haltung) aktiv = null;
           },
@@ -273,6 +380,9 @@ export function randPlugins(): Plugin[] {
             if (!haltung) return false;
             if (!haltung.bild) haltung.bild = schnappschuss(view.state);
             haltung.offen = true;
+            const marks = exklusiv(view.state.storedMarks);
+            if (marks.length) haltung.gehalten = marks;
+            if (haltung.gehalten.length && view.state.selection.empty) haltung.anfang = view.state.selection.from;
             return false;
           },
           compositionend(view) {
@@ -280,6 +390,7 @@ export function randPlugins(): Plugin[] {
             if (!haltung) return false;
             haltung.offen = false;
             if (haltung.bild) nachziehen(view, haltung, haltung.bild, NACHZUEGE);
+            schliesseExklusiv(view, haltung);
             return false;
           },
         },

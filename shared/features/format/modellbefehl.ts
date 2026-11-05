@@ -1,6 +1,6 @@
 import { closeHistory } from 'prosemirror-history';
 import { type Mark, type MarkType, type Node, type NodeType, type Schema } from 'prosemirror-model';
-import { EditorState, type Transaction } from 'prosemirror-state';
+import { EditorState, TextSelection, type Transaction } from 'prosemirror-state';
 import { ART } from './baum.ts';
 import { formatVon, inlineFormate, leistenEintraege, type FormatId } from './register.ts';
 
@@ -102,13 +102,11 @@ function istArt(node: Node, id: FormatId): boolean {
   if (eintrag.knoten === 'punkt') return node.attrs.art === id;
   return true;
 }
-
 function knotenTyp(schema: Schema, name: string): NodeType {
   const typ = schema.nodes[name];
   if (!typ) throw new Error('missing block');
   return typ;
 }
-
 function blockAttrs(node: Node, id: FormatId): Record<string, unknown> {
   const eintrag = formatVon(id);
   const attrs: Record<string, unknown> = { quelle: '' };
@@ -126,12 +124,10 @@ function blockAttrs(node: Node, id: FormatId): Record<string, unknown> {
   if (eintrag.knoten === 'codeblock') attrs.zaun = eintrag.zeichen[0] ?? '';
   return attrs;
 }
-
 function textZiel(schema: Schema, node: Node): { type: NodeType; attrs: { quelle: string } } {
   if (node.textContent.length === 0) return { type: knotenTyp(schema, 'leerzeile'), attrs: { quelle: '' } };
   return { type: knotenTyp(schema, 'absatz'), attrs: { quelle: '' } };
 }
-
 function schalteBlock(zustand: EditorState, id: FormatId): EditorState {
   const name = formatVon(id).knoten;
   if (!name) return zustand;
@@ -139,6 +135,16 @@ function schalteBlock(zustand: EditorState, id: FormatId): EditorState {
   if (zeilen.length === 0) return zustand;
   const hats = zeilen.map((zeile) => istArt(zeile.node, id));
   const alle = hats.every(Boolean);
+  const erste = zeilen[0];
+  const $pos = zustand.selection.$from;
+  const ende = zustand.selection.empty && $pos.parent.isTextblock && $pos.parentOffset > 0 && $pos.parentOffset === $pos.parent.content.size;
+  if (erste && alle && zeilen.length === 1 && ende && (id === ART.ueberschrift || id === ART.wichtig)) {
+    const nach = erste.pos + erste.node.nodeSize;
+    const tr = zustand.tr.insert(nach, knotenTyp(zustand.schema, 'absatz').create({ quelle: '' }));
+    tr.setSelection(TextSelection.create(tr.doc, nach + 1));
+    tr.setStoredMarks([]);
+    return wende(zustand, tr);
+  }
   const tr = zustand.tr;
   zeilen.forEach((zeile, i) => {
     const an = hats[i] === true;
@@ -152,7 +158,6 @@ function schalteBlock(zustand: EditorState, id: FormatId): EditorState {
   });
   return wende(zustand, tr);
 }
-
 function schalteMarke(zustand: EditorState, id: FormatId): EditorState {
   if (nurCodeblock(zustand)) return zustand;
   const typ = zustand.schema.marks[id];
@@ -391,10 +396,5 @@ export function modellSchalt(id: FormatId): ModellSchalt {
 }
 
 for (const eintrag of leistenEintraege()) {
-  Object.defineProperty(eintrag, 'modell', {
-    enumerable: true,
-    get() {
-      return modellSchalt(eintrag.id);
-    },
-  });
+  Object.defineProperty(eintrag, 'modell', { enumerable: true, get() { return modellSchalt(eintrag.id); } });
 }

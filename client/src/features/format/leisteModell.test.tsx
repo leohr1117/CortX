@@ -3,14 +3,16 @@ import { act } from 'react';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { TextSelection } from 'prosemirror-state';
 import type { EditorView } from 'prosemirror-view';
+import type { Mark } from 'prosemirror-model';
 import type { Root } from 'react-dom/client';
 import { ART } from '../../../../shared/features/format/baum.ts';
 import { NUMMER_KNOPF } from '../../../../shared/features/format/nummer.ts';
-import { leistenEintraege } from '../../../../shared/features/format/register.ts';
+import { formatVon, leistenEintraege } from '../../../../shared/features/format/register.ts';
 import { speichere } from '../../../../shared/features/format/speichern.ts';
 import { TEXTE } from '../../../../shared/kern/texte.ts';
 import { Leiste } from './Leiste.tsx';
 import { ModellEditor } from './ModellEditor.tsx';
+import { wendeModell } from './modellLauf.ts';
 import { entfernePruefDom, richtePruefDom } from './modellPruef.ts';
 
 let wurzel: (container: Element) => Root;
@@ -115,6 +117,14 @@ async function druecke(host: HTMLElement, label: string) {
   });
 }
 
+function markenVon(view: EditorView, text: string): string[] {
+  let marks: readonly Mark[] = [];
+  view.state.doc.descendants((node) => {
+    if (node.isText && node.text === text) marks = node.marks;
+  });
+  return marks.map((mark) => mark.type.name);
+}
+
 function arten(view: EditorView): string[] {
   const aus: string[] = [];
   view.state.doc.forEach((node) => {
@@ -149,6 +159,76 @@ describe('format bar on the model editor', () => {
       expect(speichere(sitz.view.state.doc)).toBe('a\nb\nc d e');
       expect(gepresst(sitz.host, TEXTE.fett)).toBe('false');
       expect(meldungen).toEqual(['**a**\n**b**\n**c d e**', 'a\nb\nc d e']);
+    } finally {
+      await zu(sitz);
+    }
+  });
+
+  it('turns bold on for the next typed text and off again without changing the word', async () => {
+    const sitz = await oeffne('eins ', () => undefined);
+    try {
+      const ende = TextSelection.atEnd(sitz.view.state.doc);
+      await act(async () => {
+        sitz.view.dispatch(sitz.view.state.tr.setSelection(ende));
+      });
+      expect(sitz.view.state.selection.empty).toBe(true);
+      expect(gepresst(sitz.host, TEXTE.fett)).toBe('false');
+      await druecke(sitz.host, TEXTE.fett);
+      expect(sitz.view.state.storedMarks?.map((mark) => mark.type.name)).toEqual([ART.fett]);
+      expect(speichere(sitz.view.state.doc)).toBe('eins ');
+      await act(async () => {
+        sitz.view.dispatch(sitz.view.state.tr.insertText('zwei'));
+      });
+      expect(markenVon(sitz.view, 'zwei')).toEqual([ART.fett]);
+      const aus = formatVon(ART.fett).modell;
+      await act(async () => {
+        wendeModell(sitz.view, aus);
+      });
+      expect(sitz.view.state.storedMarks ?? []).toEqual([]);
+      await act(async () => {
+        sitz.view.dispatch(sitz.view.state.tr.insertText('x'));
+      });
+      expect(markenVon(sitz.view, 'zwei')).toEqual([ART.fett]);
+      expect(markenVon(sitz.view, 'x')).toEqual([]);
+    } finally {
+      await zu(sitz);
+    }
+  });
+
+  it('keeps an exclusive code mark across composition until the button turns it off', async () => {
+    const sitz = await oeffne('eins ', () => undefined);
+    try {
+      const ende = TextSelection.atEnd(sitz.view.state.doc);
+      await act(async () => {
+        sitz.view.dispatch(sitz.view.state.tr.setSelection(ende));
+      });
+      await druecke(sitz.host, TEXTE.code);
+      expect(sitz.view.state.storedMarks?.map((mark) => mark.type.name)).toEqual([ART.code]);
+      const start = sitz.view.state.selection.from;
+      for (const stueck of ['z', 'zw', 'zwe', 'zwei']) {
+        await act(async () => {
+          const bis = sitz.view.state.selection.from;
+          const text = sitz.view.state.schema.text(stueck);
+          sitz.view.dispatch(sitz.view.state.tr.replaceWith(start, bis, text));
+        });
+      }
+      const treffer: string[] = [];
+      sitz.view.state.doc.descendants((node) => {
+        if (node.isText && node.text?.includes('zwei')) treffer.push(node.text);
+      });
+      expect(treffer).toEqual(['zwei']);
+      expect(markenVon(sitz.view, 'zwei')).toEqual([ART.code]);
+      expect(sitz.view.state.storedMarks?.map((mark) => mark.type.name)).toEqual([ART.code]);
+      const aus = formatVon(ART.code).modell;
+      await act(async () => {
+        wendeModell(sitz.view, aus);
+      });
+      expect(sitz.view.state.storedMarks ?? []).toEqual([]);
+      await act(async () => {
+        sitz.view.dispatch(sitz.view.state.tr.insertText('x'));
+      });
+      expect(markenVon(sitz.view, 'zwei')).toEqual([ART.code]);
+      expect(markenVon(sitz.view, 'x')).toEqual([]);
     } finally {
       await zu(sitz);
     }

@@ -186,6 +186,41 @@ describe('model commands', () => {
     expect(speichere(wort.doc)).toBe('!!Hinweis!!');
   });
 
+  it('steps out of a heading or an important line at the end and keeps the block', () => {
+    const anfang = lade('eins ');
+    let kopf = cursor(anfang, TextSelection.atEnd(anfang).from);
+    kopf = lauf(ART.ueberschrift, kopf);
+    expect(kopf.doc.childCount).toBe(1);
+    expect(speichere(kopf.doc)).toBe('= eins ');
+    kopf = lauf(ART.ueberschrift, kopf);
+    expect(kopf.doc.child(0).type.name).toBe('ueberschrift');
+    expect(kopf.doc.child(1).type.name).toBe('absatz');
+    expect(kopf.doc.child(1).textContent).toBe('');
+    expect(kopf.selection.$from.parent.type.name).toBe('absatz');
+    expect(kopf.storedMarks ?? []).toEqual([]);
+
+    const innen = lade('= eins ');
+    const mitten = lauf(ART.ueberschrift, cursor(innen, fund(innen, 'eins') + 1));
+    expect(speichere(mitten.doc)).toBe('eins ');
+
+    let wichtig = cursor(anfang, TextSelection.atEnd(anfang).from);
+    wichtig = lauf(ART.wichtig, wichtig);
+    expect(wichtig.doc.child(0).type.name).toBe('wichtigZeile');
+    expect(speichere(wichtig.doc)).toBe('!!!! eins ');
+    wichtig = lauf(ART.wichtig, wichtig);
+    expect(wichtig.doc.child(0).type.name).toBe('wichtigZeile');
+    expect(wichtig.doc.child(1).type.name).toBe('absatz');
+    expect(wichtig.selection.$from.parent.type.name).toBe('absatz');
+  });
+
+  it('still turns a list off at the end of the line', () => {
+    const doc = lade('- milk');
+    const aus = lauf(ART.liste, cursor(doc, TextSelection.atEnd(doc).from));
+    expect(aus.doc.childCount).toBe(1);
+    expect(aus.doc.child(0).type.name).toBe('absatz');
+    expect(speichere(aus.doc)).toBe('milk');
+  });
+
   it('sets, changes, and removes a link', () => {
     let zustand = ausText('Wort');
     expect(lauf(ART.link, zustand)).toBe(zustand);

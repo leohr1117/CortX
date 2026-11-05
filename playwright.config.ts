@@ -58,6 +58,7 @@ export default defineConfig({
     env: {
       CORTX_TEST: '1',
       CORTX_DB: datenbank,
+      CORTX_CLIENT_DIST: path.resolve('client', 'dist'),
       PORT: String(E2E_PORT),
       LOG_LEVEL: 'warn',
     },

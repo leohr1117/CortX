@@ -33,6 +33,7 @@ export function NotizEditor({
   return (
     <>
       <ModellEditor
+        modus="notiz"
         text={text}
         ungueltig={ungueltig}
         onText={onText}

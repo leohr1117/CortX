@@ -31,7 +31,10 @@ export function logLevel(): string {
 
 export function clientDist(env: NodeJS.ProcessEnv = process.env): string {
   const gesetzt = env.CORTX_CLIENT_DIST;
-  if (gesetzt === undefined || gesetzt === '') return path.join(WURZEL, 'client', 'dist');
+  // Standard: Live-Ordner neben dem Repo (Leonardo 05.11.). Build und e2e setzen CORTX_CLIENT_DIST=client/dist.
+  if (gesetzt === undefined || gesetzt === '') {
+    return path.join(WURZEL, '..', 'cortx-betrieb', 'dist-live');
+  }
   if (path.isAbsolute(gesetzt)) return gesetzt;
   return path.resolve(WURZEL, gesetzt);
 }

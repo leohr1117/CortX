@@ -77,7 +77,8 @@ function absatzDom(): Pick<NodeSpec, 'toDOM' | 'parseDOM'> {
         tag: 'p',
         getAttrs(dom) {
           const el = alsElement(dom);
-          if (!el || leerBlock(el) || istListenP(el)) return false;
+          if (!el || istListenP(el)) return false;
+          if (el.getAttribute('data-empty') === '1' && leerBlock(el)) return false;
           return null;
         },
       },
@@ -171,7 +172,7 @@ function leerzeileDom(): Pick<NodeSpec, 'toDOM' | 'parseDOM'> {
         priority: 61,
         getAttrs(dom) {
           const el = alsElement(dom);
-          if (!el || istListenP(el) || !leerBlock(el)) return false;
+          if (!el || istListenP(el) || el.getAttribute('data-empty') !== '1' || !leerBlock(el)) return false;
           return null;
         },
       },

@@ -59,12 +59,12 @@ describe('config', () => {
     expect(istTestlauf({})).toBe(false);
   });
 
-  it('serves client/dist when the client folder is not set', () => {
-    expect(clientDist({})).toBe(path.join(WURZEL, 'client', 'dist'));
+  it('serves the live folder when the client folder is not set', () => {
+    expect(clientDist({})).toBe(path.join(WURZEL, '..', 'cortx-betrieb', 'dist-live'));
   });
 
-  it('serves client/dist when the client folder is empty', () => {
-    expect(clientDist({ CORTX_CLIENT_DIST: '' })).toBe(path.join(WURZEL, 'client', 'dist'));
+  it('serves the live folder when the client folder is empty', () => {
+    expect(clientDist({ CORTX_CLIENT_DIST: '' })).toBe(path.join(WURZEL, '..', 'cortx-betrieb', 'dist-live'));
   });
 
   it('resolves a relative client folder from the project root', () => {
