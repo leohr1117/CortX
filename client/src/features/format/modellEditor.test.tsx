@@ -86,13 +86,14 @@ function hatKlasse(knoten: Node, name: string): boolean {
   return [...knoten.childNodes].some((kind) => hatKlasse(kind, name));
 }
 
-function ablage(text = ''): {
+function ablage(text = '', html = ''): {
   getData: (art: string) => string;
   setData: (art: string, wert: string) => void;
   clearData: () => void;
 } {
   const werte = new Map<string, string>();
   if (text) werte.set('text/plain', text);
+  if (html) werte.set('text/html', html);
   return {
     getData: (art) => werte.get(art) ?? '',
     setData: (art, wert) => { werte.set(art, wert); },
@@ -291,6 +292,8 @@ describe('model editor', () => {
       zwischenablage(sitz.view, 'copy', daten);
       expect(daten.getData('text/plain')).toBe('a b - c');
       expect(daten.getData('text/plain')).not.toMatch(/[*_~`]/);
+      expect(daten.getData('text/html')).toMatch(/<strong>/i);
+      expect(daten.getData('text/html')).not.toMatch(/\*\*/);
       expect(taste(sitz.view, 'z', 90)).toBe(true);
       expect(speichere(sitz.view.state.doc)).toBe('');
     } finally {
@@ -354,6 +357,21 @@ describe('model editor', () => {
       expect(mitKlasse(zahl.view.dom, 'nummerart')).toEqual([]);
     } finally {
       await zu(zahl);
+    }
+  });
+
+  it('pastes html through the schema parser', async () => {
+    const sitz = await oeffne('', () => undefined);
+    try {
+      zwischenablage(sitz.view, 'paste', ablage('', '<p><strong>Brot</strong> und</p><ul><li>Milch</li></ul>'));
+      expect(sitz.view.dom.textContent).toBe('Brot undMilch');
+      expect(sitz.view.dom.textContent).not.toMatch(/[*_]/);
+      expect(tagNamen(sitz.view.dom)).toContain('STRONG');
+      expect(sitz.view.state.doc.child(1).type.name).toBe('punkt');
+      expect(sitz.view.state.doc.child(1).textContent).toBe('Milch');
+      expect(speichere(sitz.view.state.doc)).toBe('**Brot** und\n- Milch');
+    } finally {
+      await zu(sitz);
     }
   });
 

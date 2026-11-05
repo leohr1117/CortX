@@ -1,5 +1,6 @@
 import { Schema, type MarkSpec, type NodeSpec } from 'prosemirror-model';
 import { ART } from './baum.ts';
+import { markeDom, zeileDom } from './modelldom.ts';
 import { formatVon, inlineFormate, type FormatId } from './register.ts';
 
 const ZEILE = 'zeile';
@@ -73,7 +74,7 @@ function attrsVon(angaben: Readonly<Record<string, AttributQuelle>>): NonNullabl
 
 function zeilenKnoten(): Record<string, NodeSpec> {
   const spec: Record<string, NodeSpec> = {
-    doc: { content: `${ZEILE}*` },
+    doc: { content: `${ZEILE}*`, toDOM: () => ['div', 0] },
     text: { group: 'inline' },
   };
   for (const zeile of ZEILEN) {
@@ -86,6 +87,7 @@ function zeilenKnoten(): Record<string, NodeSpec> {
     if (zeile.attribute) knoten.attrs = attrsVon(zeile.attribute);
     knoten.attrs = { ...knoten.attrs, quelle: { default: '' } };
     if (!zeile.inhalt) knoten.atom = true;
+    Object.assign(knoten, zeileDom(zeile.name));
     spec[zeile.name] = knoten;
   }
   return spec;
@@ -97,6 +99,7 @@ function marken(): Record<string, MarkSpec> {
     const mark: MarkSpec = {};
     if (formatVon(format.id).einschliessend === false) mark.inclusive = false;
     if (format.marken) mark.attrs = attrsVon(format.marken);
+    Object.assign(mark, markeDom(format.id));
     spec[format.id] = mark;
   }
   return spec;

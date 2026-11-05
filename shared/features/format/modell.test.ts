@@ -92,6 +92,13 @@ describe('format model', () => {
     expect(leer.childCount).toBe(0);
     expect(modell.nodeFromJSON(doc.toJSON()).eq(doc)).toBe(true);
     expect(modell.nodeFromJSON(leer.toJSON()).eq(leer)).toBe(true);
+
+    expect(modell.nodes.absatz?.spec.toDOM?.(modell.nodes.absatz.create())).toEqual(['p', 0]);
+    expect(modell.nodes.codeblock?.spec.toDOM?.(modell.nodes.codeblock.create())).toEqual(['pre', ['code', 0]]);
+    expect(modell.marks.fett?.spec.toDOM?.(modell.marks.fett.create(), true)).toEqual(['strong', 0]);
+    expect(modell.nodes.absatz?.spec.parseDOM?.some((regel) => regel.tag === 'p')).toBe(true);
+    expect(modell.marks.fett?.spec.parseDOM?.some((regel) => regel.tag === 'strong')).toBe(true);
+    expect(modell.marks.link?.spec.parseDOM?.some((regel) => regel.tag === 'a')).toBe(true);
   });
 
   it('returns each inline format once, in register order', () => {

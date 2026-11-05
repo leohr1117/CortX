@@ -1,3 +1,5 @@
+import { leseHtml, schreibeHtml } from './modellPruefHtml.ts';
+
 const ELEMENT = 1;
 const TEXT = 3;
 const COMMENT = 8;
@@ -157,6 +159,35 @@ class ElementKnoten extends Knoten {
   getAttribute(name: string) { return this.attrs.get(name) ?? null; }
   removeAttribute(name: string) { this.attrs.delete(name); }
   hasAttribute(name: string) { return this.attrs.has(name); }
+  matches(selector: string): boolean {
+    const teile = selector.trim().toLowerCase().split(/\s+/);
+    if (teile.length === 2) {
+      if (!this.matches(teile[1]!)) return false;
+      let ahne = this.parentNode;
+      while (ahne) {
+        if (ahne.nodeType === ELEMENT && (ahne as ElementKnoten).matches(teile[0]!)) return true;
+        ahne = ahne.parentNode;
+      }
+      return false;
+    }
+    const m = /^([a-z][\w-]*)?(?:\.([\w-]+))?(?:\[([\w-]+)(?:=["']?([^"'\]]+)["']?)?\])?$/.exec(teile[0] ?? '');
+    if (!m) return this.tagName.toLowerCase() === selector.toLowerCase();
+    if (m[1] && m[1] !== this.tagName.toLowerCase()) return false;
+    if (m[2] && !this.klassen.includes(m[2])) return false;
+    if (m[3]) {
+      const wert = this.getAttribute(m[3]);
+      if (wert == null) return false;
+      if (m[4] !== undefined && wert !== m[4]) return false;
+    }
+    return true;
+  }
+  get innerHTML() { return this.childNodes.map((kind) => schreibeHtml(kind as never)).join(''); }
+  set innerHTML(wert: string) {
+    this.childNodes = [];
+    const dok = this.ownerDocument;
+    if (!dok) return;
+    leseHtml(this as never, dok as never, wert ?? '');
+  }
   get contentEditable() { return this.getAttribute('contenteditable') ?? 'inherit'; }
   set contentEditable(wert: string) { this.setAttribute('contenteditable', wert); }
   focus() { this.dokumentAktiv(this); }
@@ -164,6 +195,8 @@ class ElementKnoten extends Knoten {
   getBoundingClientRect() {
     return { top: 0, left: 0, bottom: 0, right: 0, width: 0, height: 0, x: 0, y: 0 };
   }
+  querySelector() { return null; }
+  querySelectorAll() { return []; }
   private dokumentAktiv(el: ElementKnoten | null) {
     const dokument = this.ownerDocument;
     if (dokument) dokument.activeElement = el;
@@ -180,6 +213,8 @@ class Dokument extends Knoten {
   head: ElementKnoten;
   activeElement: ElementKnoten | null = null;
   defaultView: Fenster | null = null;
+  styleSheets: unknown[] = [];
+  implementation = { createHTMLDocument: () => new Dokument() };
   constructor() {
     super(null, DOCUMENT, '#document');
     this.ownerDocument = this;
@@ -195,6 +230,8 @@ class Dokument extends Knoten {
   createTextNode(text: string) { return new TextKnoten(this, text); }
   createComment(text: string) { return new TextKnoten(this, text); }
   createDocumentFragment() { return new FragmentKnoten(this); }
+  querySelector() { return null; }
+  querySelectorAll() { return []; }
   createRange() {
     const kasten = { top: 0, left: 0, bottom: 0, right: 0, width: 0, height: 0 };
     return { setStart() {}, setEnd() {}, collapse() {}, getClientRects: () => [], getBoundingClientRect: () => kasten };
