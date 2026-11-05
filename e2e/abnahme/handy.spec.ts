@@ -351,3 +351,27 @@ for (const feld of ['erfassen', 'notiz'] as const) {
     });
   });
 }
+
+const TREFFER_MIN = 48;
+
+test('Handy-Knoepfe Trefferflaeche >= 48 px', { tag: '@F4' }, async ({ page }) => {
+  const fehler: string[] = [];
+  for (const feld of ['erfassen', 'notiz'] as const) {
+    await oeffneFeld(page, feld);
+    const leiste = page.getByRole('toolbar', { name: 'Format' });
+    await expect(leiste).toBeVisible();
+    const knoepfe = await leiste.getByRole('button').evaluateAll((els) =>
+      els.map((el) => {
+        const kasten = el.getBoundingClientRect();
+        return { name: el.getAttribute('aria-label') ?? '', breite: kasten.width, hoehe: kasten.height };
+      }),
+    );
+    if (knoepfe.length === 0) fehler.push(`${feld}: keine Knoepfe`);
+    for (const taste of knoepfe) {
+      if (taste.breite < TREFFER_MIN || taste.hoehe < TREFFER_MIN) {
+        fehler.push(`${feld} ${taste.name} ${Math.round(taste.breite)}x${Math.round(taste.hoehe)} mindestens 48 px`);
+      }
+    }
+  }
+  expect(fehler, 'mindestens 48 px').toEqual([]);
+});

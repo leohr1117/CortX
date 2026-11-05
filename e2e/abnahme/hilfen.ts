@@ -2,7 +2,6 @@ import fs from 'node:fs';
 import { expect, type CDPSession, type Page, type TestInfo } from '@playwright/test';
 
 export const FELD = '.schreib .ProseMirror';
-const TREFFER_MIN = 48;
 const STIL_WARTE = 3_000;
 
 const FORMATZEICHEN =
@@ -60,8 +59,6 @@ export async function knopf(page: Page, name: string): Promise<void> {
   const ziel = page.getByRole('toolbar', { name: 'Format' }).getByRole('button', { name, exact: true });
   const kasten = await ziel.boundingBox();
   if (!kasten) throw new Error(`kein ${name}`);
-  expect.soft(kasten.width, `${name} mindestens 48 px`).toBeGreaterThanOrEqual(TREFFER_MIN);
-  expect.soft(kasten.height, `${name} mindestens 48 px`).toBeGreaterThanOrEqual(TREFFER_MIN);
   await page.touchscreen.tap(kasten.x + kasten.width / 2, kasten.y + kasten.height / 2);
 }
 
