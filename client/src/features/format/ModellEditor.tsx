@@ -4,6 +4,7 @@ import { closeHistory, history, redo, undo } from 'prosemirror-history';
 import { keymap } from 'prosemirror-keymap';
 import { EditorState, Plugin, TextSelection } from 'prosemirror-state';
 import { EditorView } from 'prosemirror-view';
+import 'prosemirror-view/style/prosemirror.css';
 import { wandleKuerzel } from '../../../../shared/features/format/kuerzel.ts';
 import { lade } from '../../../../shared/features/format/laden.ts';
 import { speichere } from '../../../../shared/features/format/speichern.ts';

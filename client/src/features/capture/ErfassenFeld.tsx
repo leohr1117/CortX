@@ -4,6 +4,7 @@ import { closeHistory, history, redo, undo } from 'prosemirror-history';
 import { keymap } from 'prosemirror-keymap';
 import { EditorState } from 'prosemirror-state';
 import { EditorView } from 'prosemirror-view';
+import 'prosemirror-view/style/prosemirror.css';
 import type { Thema } from '../../../../shared/kern/modell.ts';
 import { VORSCHLAG_BREITE } from '../../../../shared/kern/grenzen.ts';
 import type { SeiteKurz } from '../../../../shared/features/seiten/pfad.ts';

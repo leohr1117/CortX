@@ -1422,6 +1422,7 @@ input.feld::placeholder { color: var(--leise); }
   align-items: flex-start;
 }
 .modell-host .ProseMirror {
+  position: static;
   box-sizing: border-box;
   height: 100%;
   min-height: 0;
@@ -1436,6 +1437,9 @@ input.feld::placeholder { color: var(--leise); }
   color: var(--haupt);
   caret-color: var(--fokus);
   font: inherit;
+  font-variant-ligatures: normal;
+  -webkit-font-variant-ligatures: normal;
+  font-feature-settings: normal;
   padding: 0;
   counter-reset: nummer;
 }
@@ -1444,6 +1448,22 @@ input.feld::placeholder { color: var(--leise); }
 .modell-host .ProseMirror div,
 .modell-host .ProseMirror pre {
   margin: 0;
+}
+.modell-host .ProseMirror pre {
+  white-space: break-spaces;
+}
+.schreib .ProseMirror-selectednode {
+  outline: none;
+}
+.schreib img.ProseMirror-separator {
+  display: inline !important;
+  border: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  width: 0 !important;
+  height: 0 !important;
+  max-width: none !important;
+  vertical-align: baseline !important;
 }
 .modell-host .cm-wichtig-zeile {
   padding-left: var(--abstand-10);
