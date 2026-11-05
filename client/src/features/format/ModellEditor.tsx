@@ -1,37 +1,29 @@
 import { type Ref, useLayoutEffect, useRef } from 'react';
 import { baseKeymap } from 'prosemirror-commands';
-import { closeHistory, history, redo, undo } from 'prosemirror-history';
+import { history, redo, undo } from 'prosemirror-history';
 import { keymap } from 'prosemirror-keymap';
-import { EditorState, Plugin, TextSelection } from 'prosemirror-state';
+import { EditorState, TextSelection } from 'prosemirror-state';
 import { EditorView } from 'prosemirror-view';
 import 'prosemirror-view/style/prosemirror.css';
-import { wandleKuerzel } from '../../../../shared/features/format/kuerzel.ts';
 import { lade } from '../../../../shared/features/format/laden.ts';
 import { speichere } from '../../../../shared/features/format/speichern.ts';
 import { NOTE_TEXT_MAX } from '../../../../shared/kern/grenzen.ts';
-import { kuerzelAn } from './kuerzelSpeicher.ts';
+import { eingabePlugins } from './eingabeKuerzel.ts';
 import { modellAblage } from './modellAblage.ts';
 import { modellEingabe } from './modellEingabe.ts';
 import { inlinePlugins } from './inlineKuerzel.ts';
+import { randPlugins } from './randMarken.ts';
 import { zeilenPlugins } from './zeilenKuerzel.ts';
-import { haengeGriff, merkeEnde, merkeWahl } from './modellGriff.ts';
+import { haengeGriff, merkeEnde } from './modellGriff.ts';
 import { haengeModell, loeseModell } from './modellHaken.ts';
 import { zustandNach } from './modellLauf.ts';
 import { knotenAnsichten, markenAnsichten, schichtenPlugin } from './modellSicht.ts';
-import { grenzen, offsetFuer } from './modellStelle.ts';
 import { formatTasten } from './modellTasten.ts';
 
 function schreibeRef(ziel: Ref<EditorView | null> | undefined, wert: EditorView | null) {
   if (!ziel) return;
   if (typeof ziel === 'function') ziel(wert);
   else ziel.current = wert;
-}
-
-function cursorPos(doc: EditorState['doc'], text: string, index: number): number {
-  const grenze = grenzen(doc, text);
-  const safe = Math.max(0, Math.min(index, text.length));
-  const pos = grenze[safe] ?? 0;
-  return Math.max(0, Math.min(pos, doc.content.size));
 }
 
 export function ModellEditor({
@@ -66,29 +58,22 @@ export function ModellEditor({
   useLayoutEffect(() => {
     const el = host.current;
     if (!el) return;
-    let tippt = false;
     const anfang = textRef.current;
     gemeldet.current = anfang;
     const basis = EditorState.create({
       doc: lade(anfang),
       plugins: [
         history(),
+        ...eingabePlugins(),
         ...zeilenPlugins(),
         ...inlinePlugins(),
+        ...randPlugins(),
         keymap({ 'Mod-z': undo, 'Mod-y': redo, 'Shift-Mod-z': redo }),
         keymap(formatTasten(() => onLinkRef.current?.())),
         ...modellEingabe(),
         modellAblage(),
         keymap(baseKeymap),
         schichtenPlugin(),
-        new Plugin({
-          props: {
-            handleTextInput() {
-              tippt = true;
-              return false;
-            },
-          },
-        }),
       ],
     });
     const ende = TextSelection.atEnd(basis.doc);
@@ -102,40 +87,18 @@ export function ModellEditor({
         const vorher = view.state;
         const ersetzt = zustandNach(tr);
         const next = ersetzt ?? vorher.apply(tr);
-        const wert = speichere(next.doc);
-        if (wert.length > NOTE_TEXT_MAX) {
-          tippt = false;
-          return;
-        }
         const docGeaendert = ersetzt ? !next.doc.eq(vorher.doc) : tr.docChanged;
         const auswahlGeaendert = !next.selection.eq(vorher.selection);
-        view.updateState(next);
-        const warTipp = tippt;
-        tippt = false;
-        if (docGeaendert && !tr.getMeta('programm') && !ersetzt && warTipp && kuerzelAn()) {
-          const kopf = offsetFuer(next.doc, wert, next.selection.head);
-          const wahl = wandleKuerzel(wert, kopf);
-          if (wahl && wahl.text !== wert) {
-            queueMicrotask(() => {
-              if (!view.dom.isConnected) return;
-              if (speichere(view.state.doc) !== wert) return;
-              const doc = lade(wahl.text);
-              if (speichere(doc).length > NOTE_TEXT_MAX) return;
-              let naechste = view.state.tr.replaceWith(0, view.state.doc.content.size, doc.content);
-              const pos = cursorPos(naechste.doc, wahl.text, wahl.ende);
-              naechste = closeHistory(naechste);
-              naechste = naechste.setSelection(TextSelection.near(naechste.doc.resolve(pos)));
-              view.dispatch(naechste.setMeta('programm', true));
-              merkeWahl(view, wahl.ende, wahl.ende);
-            });
-          }
-        }
         if (!docGeaendert) {
+          view.updateState(next);
           if (auswahlGeaendert) onAuswahlRef.current?.();
           return;
         }
-        gemeldet.current = speichere(view.state.doc);
-        onTextRef.current(gemeldet.current);
+        const wert = speichere(next.doc);
+        if (wert.length > NOTE_TEXT_MAX) return;
+        view.updateState(next);
+        gemeldet.current = wert;
+        onTextRef.current(wert);
         onAuswahlRef.current?.();
       },
     });
