@@ -1,149 +1,149 @@
+import { createElement, type ReactNode } from 'react';
+import { act } from 'react';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { baseKeymap } from 'prosemirror-commands';
-import { history, redo, undo } from 'prosemirror-history';
-import { keymap } from 'prosemirror-keymap';
-import { EditorState } from 'prosemirror-state';
-import { EditorView } from 'prosemirror-view';
-import { auswahlAn, dokumentFuer, textAusDokument } from '../capture/erfassenDokument.ts';
-import { feldPlugins, type FeldAktion } from '../capture/erfassenEingabe.ts';
-import { erfassenSchmuck } from '../capture/erfassenSchmuck.ts';
+import type { EditorView } from 'prosemirror-view';
+import type { Root } from 'react-dom/client';
+import { speichere } from '../../../../shared/features/format/speichern.ts';
+import { ModellEditor } from './ModellEditor.tsx';
 import { entfernePruefDom, richtePruefDom } from './modellPruef.ts';
-import { knotenAnsichten, markenAnsichten } from './modellSicht.ts';
+import { klartextVon } from './modellHaken.ts';
 
-const still: FeldAktion = {
-  ablegen() {},
-  offen: () => false,
-  waehlen() {},
-  hoch() {},
-  runter() {},
-  zu() {},
-};
+let wurzel: (container: Element) => Root;
 
-beforeAll(() => {
+beforeAll(async () => {
   richtePruefDom();
+  wurzel = (await import('react-dom/client')).createRoot;
 });
 
 afterAll(() => {
   entfernePruefDom();
 });
 
-function oeffne(text: string, kopf = text.length): EditorView {
+interface Sitz {
+  view: EditorView;
+  root: Root;
+  host: HTMLElement;
+}
+
+interface Griff {
+  dispatch: (spec: {
+    changes?: { from: number; to: number; insert: string };
+    selection?: { anchor: number; head?: number };
+  }) => void;
+  readonly state: { doc: { length: number; toString: () => string } };
+}
+
+async function oeffne(text: string, modus: 'erfassen' | 'notiz'): Promise<Sitz> {
+  const ref: { current: EditorView | null } = { current: null };
   const host = document.createElement('div');
   document.body.appendChild(host);
-  const doc = dokumentFuer(text);
-  const basis = EditorState.create({
-    doc,
-    plugins: [
-      history(),
-      erfassenSchmuck(() => ''),
-      keymap({ 'Mod-z': undo, 'Mod-y': redo, 'Shift-Mod-z': redo }),
-      ...feldPlugins(() => still, () => undefined),
-      keymap(baseKeymap),
-    ],
+  const root = wurzel(host);
+  await act(async () => {
+    root.render(createElement(ModellEditor, { text, onText: () => undefined, modus, ref }) as ReactNode);
   });
-  const auswahl = basis.tr.setSelection(auswahlAn(doc, text, kopf)).setMeta('addToHistory', false);
-  return new EditorView(host, {
-    state: basis.apply(auswahl),
-    nodeViews: knotenAnsichten(),
-    markViews: markenAnsichten(),
-  });
+  const view = ref.current;
+  if (!view) throw new Error('missing editor');
+  return { view, root, host };
 }
 
-function zu(view: EditorView): void {
-  const host = view.dom.parentElement;
-  view.destroy();
-  host?.remove();
+async function zu(sitz: Sitz): Promise<void> {
+  await act(async () => {
+    sitz.root.unmount();
+  });
+  sitz.host.remove();
 }
 
-function taste(view: EditorView, key: string, extra: { ctrl?: boolean; inputType?: string } = {}): boolean {
-  const ereignis = {
-    type: extra.inputType ? 'beforeinput' : 'keydown',
-    key,
-    code: key,
-    keyCode: key === 'Backspace' ? 8 : key === 'Delete' ? 46 : key === 'z' ? 90 : 0,
-    ctrlKey: extra.ctrl === true,
-    metaKey: false,
-    altKey: false,
-    shiftKey: false,
-    isComposing: false,
-    inputType: extra.inputType,
-    data: null,
-    defaultPrevented: false,
-    cancelBubble: false,
-    preventDefault() {
-      this.defaultPrevented = true;
-    },
-    stopPropagation() {
-      this.cancelBubble = true;
-    },
+function griff(view: EditorView): Griff {
+  const cm = (view.dom as HTMLElement & { cm?: Griff }).cm;
+  if (!cm) throw new Error('missing grip');
+  return cm;
+}
+
+function marken(view: EditorView): string[] {
+  const namen = new Set<string>();
+  view.state.doc.descendants((knoten) => {
+    for (const mark of knoten.marks) namen.add(mark.type.name);
+  });
+  return [...namen];
+}
+
+function mitKlasse(knoten: globalThis.Node, name: string): string[] {
+  const aus: string[] = [];
+  const lauf = (aktuell: globalThis.Node) => {
+    if (aktuell.nodeType !== 1) return;
+    const el = aktuell as HTMLElement;
+    if (el.classList.contains(name)) aus.push(el.textContent ?? '');
+    for (const kind of [...el.childNodes]) lauf(kind);
   };
-  view.dom.dispatchEvent(ereignis as unknown as Event);
-  return ereignis.defaultPrevented;
+  lauf(knoten);
+  return aus;
 }
 
-describe('pair delete in the editor', () => {
-  it('removes both markers in one backspace or delete', () => {
-    const ende = oeffne('*test*');
-    try {
-      taste(ende, 'Backspace');
-      expect(textAusDokument(ende.state.doc)).toBe('test');
-    } finally {
-      zu(ende);
-    }
-    const innen = oeffne('*test*', 1);
-    try {
-      taste(innen, 'Backspace');
-      expect(textAusDokument(innen.state.doc)).toBe('test');
-    } finally {
-      zu(innen);
-    }
-    const vorn = oeffne('*test*', 0);
-    try {
-      taste(vorn, 'Delete');
-      expect(textAusDokument(vorn.state.doc)).toBe('test');
-    } finally {
-      zu(vorn);
-    }
-    const fett = oeffne('**x**');
-    try {
-      taste(fett, 'Backspace');
-      expect(textAusDokument(fett.state.doc)).toBe('x');
-    } finally {
-      zu(fett);
+async function sende(view: EditorView, art: 'taste' | 'eingabe'): Promise<void> {
+  await act(async () => {
+    view.focus();
+    const ereignis = {
+      type: art === 'taste' ? 'keydown' : 'beforeinput',
+      key: 'Backspace',
+      code: 'Backspace',
+      keyCode: 8,
+      inputType: 'deleteContentBackward',
+      data: null,
+      ctrlKey: false,
+      metaKey: false,
+      altKey: false,
+      shiftKey: false,
+      isComposing: false,
+      defaultPrevented: false,
+      cancelBubble: false,
+      preventDefault() { this.defaultPrevented = true; },
+      stopPropagation() { this.cancelBubble = true; },
+    };
+    view.dom.dispatchEvent(ereignis as unknown as Event);
+  });
+}
+
+const FELDER = ['erfassen', 'notiz'] as const;
+
+describe('format lives in the model on both fields', () => {
+  it('imports markdown and exports it without storing marker characters', async () => {
+    for (const modus of FELDER) {
+      const sitz = await oeffne('*test*', modus);
+      try {
+        const cm = griff(sitz.view);
+        expect(cm.state.doc.toString(), modus).toBe('*test*');
+        expect(speichere(sitz.view.state.doc), modus).toBe('*test*');
+        expect(klartextVon(sitz.view.state.doc), modus).toBe('test');
+        expect(sitz.view.dom.textContent, modus).toBe('test');
+        expect(marken(sitz.view), modus).toEqual(['kursiv']);
+        expect(mitKlasse(sitz.view.dom, 'cm-kursiv'), modus).toContain('test');
+        cm.dispatch({
+          changes: { from: 0, to: cm.state.doc.length, insert: '**x**' },
+          selection: { anchor: '**x**'.length },
+        });
+        expect(cm.state.doc.toString(), modus).toBe('**x**');
+        expect(klartextVon(sitz.view.state.doc), modus).toBe('x');
+        expect(sitz.view.dom.textContent, modus).toBe('x');
+        expect(marken(sitz.view), modus).toEqual(['fett']);
+        expect(mitKlasse(sitz.view.dom, 'cm-fett'), modus).toContain('x');
+      } finally {
+        await zu(sitz);
+      }
     }
   });
 
-  it('leaves a normal backspace for the field to delete one character', () => {
-    const wort = oeffne('hello');
-    try {
-      expect(taste(wort, 'Backspace', { inputType: 'deleteContentBackward' })).toBe(false);
-      expect(textAusDokument(wort.state.doc)).toBe('hello');
-      expect(taste(wort, 'Backspace')).toBe(false);
-      expect(textAusDokument(wort.state.doc)).toBe('hello');
-    } finally {
-      zu(wort);
-    }
-  });
-
-  it('undoes the pair in one step and keeps the earlier text', () => {
-    const view = oeffne('*test*');
-    try {
-      taste(view, 'Backspace');
-      expect(textAusDokument(view.state.doc)).toBe('test');
-      taste(view, 'z', { ctrl: true });
-      expect(textAusDokument(view.state.doc)).toBe('*test*');
-    } finally {
-      zu(view);
-    }
-  });
-
-  it('removes both markers from a phone backspace', () => {
-    const view = oeffne('*test*');
-    try {
-      taste(view, 'Backspace', { inputType: 'deleteContentBackward' });
-      expect(textAusDokument(view.state.doc)).toBe('test');
-    } finally {
-      zu(view);
+  it('backspace on the capture field deletes a letter and keeps the mark', async () => {
+    for (const art of ['taste', 'eingabe'] as const) {
+      const sitz = await oeffne('*test*', 'erfassen');
+      try {
+        await sende(sitz.view, art);
+        expect(klartextVon(sitz.view.state.doc), art).toBe('tes');
+        expect(speichere(sitz.view.state.doc), art).toBe('*tes*');
+        expect(sitz.view.dom.textContent, art).toBe('tes');
+        expect(marken(sitz.view), art).toEqual(['kursiv']);
+      } finally {
+        await zu(sitz);
+      }
     }
   });
 });

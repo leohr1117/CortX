@@ -101,20 +101,29 @@ class Knoten {
     }
     return false;
   }
-  addEventListener(art: string, fn: (ereignis: Ereignis) => void) {
-    const liste = this.hoerer.get(art) ?? [];
+  addEventListener(art: string, fn: (ereignis: Ereignis) => void, fang?: boolean) {
+    const schluessel = fang === true ? `fang:${art}` : art;
+    const liste = this.hoerer.get(schluessel) ?? [];
     liste.push(fn);
-    this.hoerer.set(art, liste);
+    this.hoerer.set(schluessel, liste);
   }
-  removeEventListener(art: string, fn: (ereignis: Ereignis) => void) {
-    const liste = this.hoerer.get(art) ?? [];
-    this.hoerer.set(art, liste.filter((eintrag) => eintrag !== fn));
+  removeEventListener(art: string, fn: (ereignis: Ereignis) => void, fang?: boolean) {
+    const schluessel = fang === true ? `fang:${art}` : art;
+    const liste = this.hoerer.get(schluessel) ?? [];
+    this.hoerer.set(schluessel, liste.filter((eintrag) => eintrag !== fn));
   }
-  dispatchEvent(ereignis: Ereignis) {
+  dispatchEvent(ereignis: Ereignis, blase = false) {
     ereignis.target ??= this;
     ereignis.currentTarget = this;
-    for (const fn of [...(this.hoerer.get(ereignis.type) ?? [])]) fn(ereignis);
-    if (!ereignis.cancelBubble && this.parentNode) this.parentNode.dispatchEvent(ereignis);
+    const rufe = (schluessel: string) => {
+      for (const fn of [...(this.hoerer.get(schluessel) ?? [])]) {
+        if (ereignis.sofort) return;
+        fn(ereignis);
+      }
+    };
+    if (!blase) rufe(`fang:${ereignis.type}`);
+    rufe(ereignis.type);
+    if (!ereignis.cancelBubble && !ereignis.sofort && this.parentNode) this.parentNode.dispatchEvent(ereignis, true);
     return !ereignis.defaultPrevented;
   }
   private dokument() {
@@ -246,8 +255,10 @@ interface Ereignis {
   currentTarget?: Knoten | null;
   cancelBubble?: boolean;
   defaultPrevented?: boolean;
+  sofort?: boolean;
   preventDefault?: () => void;
   stopPropagation?: () => void;
+  stopImmediatePropagation?: () => void;
 }
 
 interface Fenster {

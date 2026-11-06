@@ -30,7 +30,7 @@ function platzhalterStelle(doc: Node): number {
   return 1;
 }
 
-export function platzhalterPlugin(lies: () => string): Plugin {
+export function platzhalterPlugin(lies: () => string, unsichtbar = false): Plugin {
   return new Plugin({
     props: {
       decorations(state) {
@@ -39,10 +39,16 @@ export function platzhalterPlugin(lies: () => string): Plugin {
         const stelle = platzhalterStelle(state.doc);
         const widget = Decoration.widget(stelle, () => {
           const knoten = document.createElement('span');
-          knoten.className = 'cm-placeholder';
           knoten.setAttribute('aria-hidden', 'true');
           knoten.style.pointerEvents = 'none';
-          knoten.textContent = lies();
+          if (unsichtbar) {
+            knoten.setAttribute('data-zeile', 'platz');
+            knoten.style.position = 'absolute';
+            knoten.style.height = '1.2em';
+          } else {
+            knoten.className = 'cm-placeholder';
+            knoten.textContent = lies();
+          }
           return knoten;
         }, { side: -1, ignoreSelection: true, key: 'platzhalter' });
         return DecorationSet.create(state.doc, [widget]);

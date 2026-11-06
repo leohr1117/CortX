@@ -21,6 +21,9 @@ import { haengeModell, loeseModell } from './modellHaken.ts';
 import { zustandNach } from './modellLauf.ts';
 import { knotenAnsichten, markenAnsichten, schichtenPlugin } from './modellSicht.ts';
 import { formatTasten } from './modellTasten.ts';
+import { buchstabenBleibenText } from '../capture/buchstabeAbsatz.ts';
+import { erfassenTasten } from '../capture/erfassenTaste.ts';
+import { tagDekoPlugin } from '../capture/tagDeko.ts';
 
 function schreibeRef(ziel: Ref<EditorView | null> | undefined, wert: EditorView | null) {
   if (!ziel) return;
@@ -77,8 +80,9 @@ export function ModellEditor({
     const basis = EditorState.create({
       doc: lade(anfang),
       plugins: [
+        ...(modusRef.current === 'erfassen' ? erfassenTasten() : []),
         history(),
-        platzhalterPlugin(() => platzhalterRef.current ?? TEXTE.platzhalter),
+        platzhalterPlugin(() => platzhalterRef.current ?? TEXTE.platzhalter, modusRef.current === 'erfassen'),
         ...eingabePlugins(),
         ...zeilenPlugins(),
         ...inlinePlugins(),
@@ -87,7 +91,7 @@ export function ModellEditor({
         keymap(formatTasten(() => onLinkRef.current?.())),
         ...modellEingabe(),
         modellAblage(),
-        ...(modusRef.current === 'erfassen' ? [ablageTastePlugin(() => onAblegenRef.current?.())] : []),
+        ...(modusRef.current === 'erfassen' ? [ablageTastePlugin(() => onAblegenRef.current?.()), buchstabenBleibenText(), tagDekoPlugin()] : []),
         keymap(baseKeymap),
         schichtenPlugin(),
       ],
@@ -97,7 +101,7 @@ export function ModellEditor({
     const view = new EditorView(el, {
       state: start,
       nodeViews: knotenAnsichten(),
-      markViews: markenAnsichten(),
+      markViews: markenAnsichten(modusRef.current === 'erfassen'),
       attributes: { role: 'textbox', 'aria-multiline': 'true', 'aria-label': 'Note' },
       dispatchTransaction(tr) {
         const vorher = view.state;
@@ -152,10 +156,16 @@ export function ModellEditor({
   }, [ungueltig]);
 
   if (modus === 'erfassen') {
+    const hinweis = platzhalter ?? TEXTE.platzhalter;
     return (
       <div className="erfassen">
         <div className="schreib">
           <div ref={host} className="cm-editor modell-host" />
+          {text.length === 0 && hinweis.length > 0 ? (
+            <span className="cm-placeholder" aria-hidden="true" style={{ pointerEvents: 'none' }}>
+              {hinweis}
+            </span>
+          ) : null}
         </div>
       </div>
     );

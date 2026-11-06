@@ -4,7 +4,6 @@ import { Decoration, DecorationSet, type EditorView } from 'prosemirror-view';
 import {
   PUNKT_TASTEN,
   leistenEintraege,
-  loeschePaar,
   punktArt,
   punktTaste,
   wandleKuerzel,
@@ -113,21 +112,6 @@ function menuePlugin(aktion: () => FeldAktion): Plugin {
   });
 }
 
-function zeichenBereich(
-  text: string,
-  von: number,
-  bis: number,
-  rueckwaerts: boolean,
-): { von: number; bis: number } | null {
-  if (von !== bis) return von < bis ? { von, bis } : { von: bis, bis: von };
-  if (rueckwaerts) {
-    if (von <= 0) return null;
-    return { von: von - 1, bis: von };
-  }
-  if (von >= text.length) return null;
-  return { von, bis: von + 1 };
-}
-
 function tagDeko(state: EditorState): DecorationSet {
   try {
     const text = textAusDokument(state.doc);
@@ -178,17 +162,8 @@ function wendePunkt(view: EditorView, art: PunktArt, sprung: Sprung): boolean {
   return true;
 }
 
-function wendePaar(view: EditorView, rueckwaerts: boolean): boolean {
-  if (view.composing) return false;
-  const text = textAusDokument(view.state.doc);
-  const anchor = rohOffset(view.state.doc, text, view.state.selection.anchor);
-  const head = rohOffset(view.state.doc, text, view.state.selection.head);
-  const bereich = zeichenBereich(text, anchor, head, rueckwaerts);
-  if (!bereich) return false;
-  const wahl = loeschePaar(text, bereich.von, bereich.bis);
-  if (!wahl) return false;
-  setzeErfassenText(view, wahl.text, wahl.start, wahl.ende);
-  return true;
+function wendePaar(_view: EditorView, _rueckwaerts: boolean): boolean {
+  return false;
 }
 
 function listenTasten(sprung: Sprung): Record<string, Command> {

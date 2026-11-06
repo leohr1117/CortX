@@ -56,6 +56,8 @@ interface ModellLeiste {
   stand: number;
   modell: true;
   onZiel?: () => void;
+  onModell?: (befehl: FormatBefehl) => void;
+  nummern?: boolean;
 }
 
 type LeistenProps = SpiegelLeiste | ModellLeiste;
@@ -213,6 +215,11 @@ export function Leiste(props: LeistenProps) {
                   props.onZiel?.();
                   return;
                 }
+                if (props.onModell) {
+                  props.onModell(eintrag.id);
+                  setTick((wert) => wert + 1);
+                  return;
+                }
                 void ladeModell().then((modul) => {
                   modul.wendeModell(ansicht, eintrag.modell);
                   setTick((wert) => wert + 1);
@@ -226,7 +233,7 @@ export function Leiste(props: LeistenProps) {
           </button>
         );
       })}
-      {props.modell && props.view
+      {props.modell && props.nummern !== false && props.view
         ? NUMMER_KNOPF.map((eintrag) => {
             const ansicht = props.view;
             if (!ansicht) return null;

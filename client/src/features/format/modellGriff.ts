@@ -1,8 +1,10 @@
+import { closeHistory } from 'prosemirror-history';
 import { TextSelection } from 'prosemirror-state';
 import type { EditorView } from 'prosemirror-view';
 import { lade } from '../../../../shared/features/format/laden.ts';
 import { speichere } from '../../../../shared/features/format/speichern.ts';
 import { grenzen } from './modellStelle.ts';
+import { klartextVon } from './modellHaken.ts';
 
 interface Aenderung {
   from: number;
@@ -86,15 +88,48 @@ function waehle(view: EditorView, text: string, anchor: number, head: number): v
   merkeWahl(view, anchor, head);
 }
 
-function ersetze(view: EditorView, text: string, anchor: number, head: number): void {
+export function quellWahl(view: EditorView): { text: string; anchor: number; head: number } {
+  const text = speichere(view.state.doc);
+  return {
+    text,
+    anchor: offset(view, text, view.state.selection.anchor, 'anchor'),
+    head: offset(view, text, view.state.selection.head, 'head'),
+  };
+}
+
+export function setzeGriff(view: EditorView, text: string, anchor: number, head: number): void {
+  ersetze(view, text, anchor, head, true);
+}
+
+function ersetze(view: EditorView, text: string, anchor: number, head: number, neuGruppe = false): void {
   const doc = lade(text);
   let tr = view.state.tr.replaceWith(0, view.state.doc.content.size, doc.content);
   const grenze = grenzen(tr.doc, text);
   const von = stelle(tr.doc, grenze[klemme(anchor, text.length)] ?? 0);
   const bis = stelle(tr.doc, grenze[klemme(head, text.length)] ?? von);
   tr = tr.setSelection(TextSelection.between(tr.doc.resolve(von), tr.doc.resolve(bis)));
+  if (neuGruppe) tr = closeHistory(tr);
   view.dispatch(tr.setMeta('programm', true));
   merkeWahl(view, anchor, head);
+}
+
+function quelleLeererMarken(view: EditorView): string | null {
+  if (!view.dom.classList.contains('cm-content')) return null;
+  const marks = view.state.storedMarks;
+  if (!marks || marks.length === 0) return null;
+  if (klartextVon(view.state.doc) !== '') return null;
+  const absatz = view.state.schema.nodes.absatz;
+  if (!absatz) return null;
+  try {
+    const probe = view.state.schema.text('x', [...marks]);
+    const knoten = absatz.create({ quelle: '' }, probe);
+    const doc = view.state.schema.topNodeType.create(null, knoten);
+    const seriell = speichere(doc);
+    if (seriell.split('x').length !== 2) return null;
+    return seriell.replace('x', '');
+  } catch {
+    return null;
+  }
 }
 
 export function haengeGriff(view: EditorView): void {
@@ -109,7 +144,7 @@ export function haengeGriff(view: EditorView): void {
         const neu = alt.slice(0, spec.changes.from) + spec.changes.insert + alt.slice(spec.changes.to);
         const anker = spec.selection ? spec.selection.anchor : neu.length;
         const kopf = spec.selection?.head ?? anker;
-        ersetze(view, neu, anker, kopf);
+        ersetze(view, neu, anker, kopf, true);
         return;
       }
       if (!spec.selection) return;
@@ -123,7 +158,9 @@ export function haengeGriff(view: EditorView): void {
             return speichere(view.state.doc).length;
           },
           toString() {
-            return speichere(view.state.doc);
+            const text = speichere(view.state.doc);
+            if (text.length > 0) return text;
+            return quelleLeererMarken(view) ?? text;
           },
         },
         selection: {

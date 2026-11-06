@@ -169,10 +169,11 @@ function zeile(node: Node, view: EditorView, getPos: () => number | undefined): 
   };
 }
 
-function marke(mark: Mark): MarkView {
+function marke(mark: Mark, flach: boolean): MarkView {
   const ziel = mark.attrs.ziel;
   const sicht = vorschauVon(mark.type.name);
-  const tag = typeof ziel === 'string' ? 'a' : (sicht.tag ?? 'span');
+  const vorlage = typeof ziel === 'string' ? 'a' : (sicht.tag ?? 'span');
+  const tag = flach && vorlage !== 'a' ? 'span' : vorlage;
   const dom = document.createElement(tag);
   const sichtbar = sicht.klasse;
   if (sichtbar) dom.classList.add(sichtbar);
@@ -242,8 +243,8 @@ export function knotenAnsichten(): Record<string, NodeViewConstructor> {
   return aus;
 }
 
-export function markenAnsichten(): Record<string, (mark: Mark) => MarkView> {
+export function markenAnsichten(flach = false): Record<string, (mark: Mark) => MarkView> {
   const aus: Record<string, (mark: Mark) => MarkView> = {};
-  for (const name of Object.keys(modell.marks)) aus[name] = marke;
+  for (const name of Object.keys(modell.marks)) aus[name] = (mark) => marke(mark, flach);
   return aus;
 }

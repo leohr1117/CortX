@@ -1,21 +1,22 @@
 import { useEffect, useRef, useState } from 'react';
-import { TEXTE } from '../../../../shared/kern/texte.ts';
-import { Link } from 'react-router';
+import { closeHistory } from 'prosemirror-history';
+import { TextSelection, type EditorState } from 'prosemirror-state';
 import type { EditorView } from 'prosemirror-view';
+import { Link } from 'react-router';
+import { ART, leistenEintraege, type FormatBefehl } from '../../../../shared/features/format/index.ts';
 import { pfadText, seitentitel, type SeiteKurz } from '../../../../shared/features/seiten/index.ts';
 import { planeAblage } from '../../../../shared/features/tags/index.ts';
-import { type FormatBefehl } from '../../../../shared/features/format/index.ts';
 import { NOTE_TEXT_MAX } from '../../../../shared/kern/grenzen.ts';
+import { TEXTE } from '../../../../shared/kern/texte.ts';
 import type { Thema } from '../../../../shared/kern/modell.ts';
 import { aktionRueckgaengig, KARTE_TEXT, schliesseKarte, textHinzugefuegt, zeigeKarte } from '../../ui/karte.tsx';
 import { BibliothekIcon } from '../../ui/icons.tsx';
 import { Leiste } from '../format/Leiste.tsx';
 import { LinkFeld } from '../format/LinkFeld.tsx';
+import { setzeZustand, wendeModell } from '../format/modellLauf.ts';
 import { legeInWarteschlange, schreibEntwurf, spuele } from '../offline/index.ts';
 import { ApiFehler, ladeSeiten, ladeThemen, legeNotizAb, macheRueckgaengig } from './api.ts';
 import { ErfassenFeld } from './ErfassenFeld.tsx';
-import { rohOffset, rohPos, textAusDokument } from './erfassenDokument.ts';
-import { wendeBefehl } from './erfassenBefehl.ts';
 import { textNachAblageRueck } from './rueck.ts';
 import { leeresAnhaengen, ZielText } from './Ziel.tsx';
 
@@ -23,56 +24,44 @@ type Meldung =
   | { art: 'abgelegt'; id: number; ziel: string; undo: string; text: string }
   | { art: 'offline'; clientId: string };
 
-interface SpiegelKern {
-  readonly dom: HTMLElement;
-  readonly state: {
-    doc: { length: number; toString: () => string };
-    selection: { main: { empty: boolean; head: number; anchor: number; from: number; to: number } };
-  };
-  coordsAtPos: (stelle: number) => { left: number; right: number; top: number; bottom: number } | null;
-  focus: () => void;
+function ganzeAuswahl(state: EditorState): boolean {
+  if (state.selection.empty || state.doc.content.size < 2) return false;
+  const start = TextSelection.atStart(state.doc).from;
+  const ende = TextSelection.atEnd(state.doc).from;
+  return state.selection.from <= start && state.selection.to >= ende;
 }
 
-function baueSpiegel(hole: () => EditorView | null): SpiegelKern {
-  const textVon = () => {
-    const view = hole();
-    return view ? textAusDokument(view.state.doc) : '';
-  };
-  return {
-    get dom() {
-      return hole()?.dom ?? document.documentElement;
-    },
-    get state() {
-      const view = hole();
-      const text = textVon();
-      if (!view) {
-        return {
-          doc: { length: 0, toString: () => '' },
-          selection: { main: { empty: true, head: 0, anchor: 0, from: 0, to: 0 } },
-        };
-      }
-      const anchor = rohOffset(view.state.doc, text, view.state.selection.anchor);
-      const head = rohOffset(view.state.doc, text, view.state.selection.head);
-      const from = Math.min(anchor, head);
-      const to = Math.max(anchor, head);
-      return {
-        doc: { length: text.length, toString: () => textVon() },
-        selection: { main: { empty: from === to, head, anchor, from, to } },
-      };
-    },
-    coordsAtPos(stelle: number) {
-      const view = hole();
-      if (!view) return null;
-      try {
-        return view.coordsAtPos(rohPos(view.state.doc, textVon(), stelle));
-      } catch {
-        return null;
-      }
-    },
-    focus() {
-      hole()?.focus();
-    },
-  };
+function waehleGanz(view: EditorView): void {
+  const doc = view.state.doc;
+  if (doc.content.size < 2) return;
+  const start = TextSelection.atStart(doc).from;
+  const ende = TextSelection.atEnd(doc).from;
+  if (start >= ende) return;
+  const tr = view.state.tr
+    .setSelection(TextSelection.between(doc.resolve(start), doc.resolve(ende)))
+    .setMeta('addToHistory', false);
+  view.dispatch(tr);
+}
+
+function sichereSchreibmarke(view: EditorView): void {
+  const { state } = view;
+  if (state.selection instanceof TextSelection && state.selection.$from.parent.inlineContent) return;
+  if (state.doc.childCount > 0) return;
+  const absatz = state.schema.nodes.absatz;
+  if (!absatz) return;
+  const tr = state.tr.replaceWith(0, state.doc.content.size, absatz.create({ quelle: '' }));
+  view.dispatch(tr.setSelection(TextSelection.create(tr.doc, 1)));
+}
+
+function schalteLeereWichtig(zustand: EditorState): EditorState {
+  const typ = zustand.schema.marks[ART.wichtig];
+  if (!typ) return zustand;
+  const marks = zustand.storedMarks ?? zustand.selection.$from.marks();
+  const tr = zustand.tr;
+  if (typ.isInSet(marks)) tr.removeStoredMark(typ);
+  else tr.addStoredMark(typ.create());
+  if (!tr.storedMarksSet) return zustand;
+  return zustand.apply(closeHistory(tr));
 }
 
 export function CaptureAnsicht() {
@@ -90,8 +79,27 @@ export function CaptureAnsicht() {
   const [link, setLink] = useState(false);
   const sichtRef = useRef<EditorView | null>(null);
   const sperre = useRef(false);
-  const spiegel = useRef<SpiegelKern | null>(null);
-  if (spiegel.current === null) spiegel.current = baueSpiegel(() => sichtRef.current);
+
+  function beiModell(name: FormatBefehl) {
+    const view = sichtRef.current;
+    if (!view) return;
+    const eintrag = leistenEintraege().find((kandidat) => kandidat.id === name);
+    const schalt = eintrag?.modell;
+    if (!schalt) return;
+    sichereSchreibmarke(view);
+    const ganz = ganzeAuswahl(view.state);
+    const leer = view.state.selection.empty && view.state.doc.textContent.length === 0;
+    if (name === ART.wichtig && leer) {
+      const naechster = schalt.run(view.state);
+      if (naechster === view.state) wendeModell(view, { run: schalteLeereWichtig, isActive: schalt.isActive });
+      else setzeZustand(view, naechster);
+    } else {
+      wendeModell(view, schalt);
+    }
+    if (ganz && view.state.selection.empty) waehleGanz(view);
+    setStand((zahl) => zahl + 1);
+    view.focus();
+  }
 
   function setzeText(wert: string) {
     textRef.current = wert;
@@ -215,8 +223,7 @@ export function CaptureAnsicht() {
   }, [meldung]);
 
   async function ablegen(rohEingabe?: string) {
-    const view = sichtRef.current;
-    const roh = rohEingabe ?? (view ? textAusDokument(view.state.doc) : textRef.current);
+    const roh = rohEingabe ?? textRef.current;
     const zielPlan = planeAblage(roh, themen, seiten);
     if (sperre.current || roh.trim().length === 0) return;
     if (zielPlan?.ungueltig) {
@@ -272,26 +279,21 @@ export function CaptureAnsicht() {
     }
   }
 
-  function befehl(name: FormatBefehl) {
-    const editor = sichtRef.current;
-    if (!editor) return;
-    if (wendeBefehl(editor, name, null) === 'ziel') setLink(true);
-    setStand((zahl) => zahl + 1);
-  }
-
   function fertig(ziel: string) {
     const editor = sichtRef.current;
     setLink(false);
     if (!editor) return;
-    wendeBefehl(editor, 'link', ziel);
+    const eintrag = leistenEintraege().find((kandidat) => kandidat.knopf.ziel);
+    const naechster = eintrag?.modell?.run(editor.state, ziel);
+    if (!naechster || naechster === editor.state) return;
+    setzeZustand(editor, naechster);
     setStand((zahl) => zahl + 1);
+    editor.focus();
   }
 
   const plan = text.trim().length === 0 ? null : planeAblage(text, themen, seiten);
   const leer = text.trim().length === 0;
   const gesperrt = leer || speichert || plan?.ungueltig === true;
-  const leiste = ansicht ? spiegel.current : null;
-
   return (
     <div className="app">
       <header className="kopf leer">
@@ -318,7 +320,7 @@ export function CaptureAnsicht() {
             setAnsicht(view);
           }}
         />
-        <Leiste view={leiste} stand={stand} onBefehl={befehl} />
+        <Leiste view={ansicht} stand={stand} modell nummern={false} onZiel={() => setLink(true)} onModell={beiModell} />
         {link ? <LinkFeld onClose={() => setLink(false)} onFertig={fertig} /> : null}
       </main>
       <footer className="fuss">

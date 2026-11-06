@@ -152,7 +152,17 @@ test('reading shows a list, checkboxes, and bold while the stored text stays pla
     const rohtext = '- **bold** [] <b>x</b>';
     await setzeQuelle(page, rohtext);
     await expect(page.locator('.spiegel')).toHaveCount(0);
-    await expect(page.locator('.schreib b, .schreib strong')).toHaveCount(0);
+    await expect(page.locator('.schreib .cm-fett')).toHaveText('bold');
+    await expect(page.locator('.schreib .ProseMirror')).toContainText('<b>x</b>');
+    await expect(page.locator('.schreib .ProseMirror')).not.toContainText('**');
+    const klar = await page.evaluate(() => {
+      const leser = (window as unknown as { __cortxModell?: { klartext: () => string } }).__cortxModell;
+      return leser?.klartext() ?? '';
+    });
+    expect(klar).toContain('bold');
+    expect(klar).toContain('<b>x</b>');
+    expect(klar).not.toContain('**');
+    await erwarteQuelle(page, rohtext);
   } finally {
     stelleBestand(bestand);
   }

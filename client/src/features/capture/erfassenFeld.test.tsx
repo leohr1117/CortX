@@ -4,13 +4,22 @@ import { TextSelection } from 'prosemirror-state';
 import type { EditorView } from 'prosemirror-view';
 import type { Root } from 'react-dom/client';
 import type { Thema } from '../../../../shared/kern/modell.ts';
+import type { Node as PmNode } from 'prosemirror-model';
 import { posFuer } from '../../../../shared/features/format/stelle.ts';
+import { speichere } from '../../../../shared/features/format/speichern.ts';
 import { planeAblage } from '../../../../shared/features/seiten/pfad.ts';
 import { setzeVorschlag, zielAmCursor } from '../../../../shared/features/seiten/zielvorschlag.ts';
+import { klartextVon } from '../format/modellHaken.ts';
 import { entfernePruefDom, richtePruefDom } from '../format/modellPruef.ts';
 import { ErfassenFeld } from './ErfassenFeld.tsx';
-import { setzeErfassenText } from './erfassenBefehl.ts';
-import { hatUeberschrift, textAusDokument } from './erfassenDokument.ts';
+
+function hatKopf(doc: PmNode): boolean {
+  let gefunden = false;
+  doc.descendants((knoten) => {
+    if (knoten.type.name === 'ueberschrift') gefunden = true;
+  });
+  return gefunden;
+}
 
 const speicher = vi.hoisted(() => ({ text: '', schrieb: [] as string[] }));
 
@@ -116,7 +125,8 @@ async function tippe(view: EditorView, text: string) {
   for (const zeichen of text) {
     await act(async () => {
       const { from, to } = view.state.selection;
-      view.dispatch(view.state.tr.insertText(zeichen, from, to));
+      const behandelt = view.someProp('handleTextInput', (fn) => fn(view, from, to, zeichen, () => view.state.tr) === true);
+      if (!behandelt) view.dispatch(view.state.tr.insertText(zeichen));
     });
   }
 }
@@ -135,15 +145,27 @@ async function druck(view: EditorView, key: string, extra: { ctrl?: boolean; met
       isComposing: false,
       defaultPrevented: false,
       cancelBubble: false,
+      sofort: false,
       preventDefault() {
         this.defaultPrevented = true;
       },
       stopPropagation() {
         this.cancelBubble = true;
       },
+      stopImmediatePropagation() {
+        this.sofort = true;
+      },
     };
     view.dom.dispatchEvent(ereignis as unknown as Event);
   });
+}
+
+function erstesElement(knoten: globalThis.Node | null | undefined): HTMLElement | null {
+  if (!knoten) return null;
+  for (const kind of [...knoten.childNodes]) {
+    if (kind.nodeType === 1) return kind as HTMLElement;
+  }
+  return null;
 }
 
 function elemente(knoten: Node): HTMLElement[] {
@@ -177,15 +199,22 @@ function setzeHandy(an: boolean) {
 
 describe('capture field', () => {
   it('files the same bytes as the plain text field for the same typing', async () => {
-    const proben = ['Buy milk', '#school/Seite', '#tag', '# ', '#thema/seite', 'Remember #wo\nnoch #tag'];
+    const proben = ['Buy milk', '#school/Seite', '#tag', '#thema/seite', 'Remember #wo\nnoch #tag'];
     for (const probe of proben) {
       const sitz = await oeffne();
       await tippe(sitz.stand.view!, probe);
       expect(sitz.stand.text).toBe(probe);
-      expect(textAusDokument(sitz.stand.view!.state.doc)).toBe(probe);
-      expect(hatUeberschrift(sitz.stand.view!.state.doc)).toBe(false);
+      expect(speichere(sitz.stand.view!.state.doc)).toBe(probe);
+      expect(klartextVon(sitz.stand.view!.state.doc)).toBe(probe);
+      expect(hatKopf(sitz.stand.view!.state.doc)).toBe(false);
       await zu(sitz);
     }
+    const kopf = await oeffne();
+    await tippe(kopf.stand.view!, '# ');
+    expect(kopf.stand.text).toBe('# ');
+    expect(hatKopf(kopf.stand.view!.state.doc)).toBe(true);
+    expect(klartextVon(kopf.stand.view!.state.doc)).toBe('');
+    await zu(kopf);
   });
 
   it('keeps target lines and hash tags as text when the text is loaded', async () => {
@@ -195,13 +224,14 @@ describe('capture field', () => {
       sitz.stand.setze(probe);
     });
     const view = sitz.stand.view!;
-    expect(hatUeberschrift(view.state.doc)).toBe(false);
-    expect(textAusDokument(view.state.doc)).toBe(probe);
+    expect(speichere(view.state.doc)).toBe(probe);
+    expect(hatKopf(view.state.doc)).toBe(true);
     expect(view.state.doc.child(0).type.name).toBe('absatz');
     expect(view.state.doc.child(0).textContent).toBe('#thema/seite');
     expect(view.state.doc.child(1).textContent).toBe('#tag');
-    expect(view.state.doc.child(2).type.name).toBe('absatz');
-    expect(view.state.doc.child(2).textContent).toBe('# Title');
+    expect(view.state.doc.child(2).type.name).toBe('ueberschrift');
+    expect(view.state.doc.child(2).textContent).toBe('Title');
+    expect(klartextVon(view.state.doc)).toBe('#thema/seite\n#tag\nTitle');
     expect(view.state.selection.head).toBe(posFuer(view.state.doc, probe, probe.length));
     expect(view.state.selection.head).toBe(TextSelection.atEnd(view.state.doc).from);
     await zu(sitz);
@@ -258,7 +288,7 @@ describe('capture field', () => {
       await druck(handy.stand.view!, 'Enter');
       expect(handyAblage).toEqual([]);
       expect(handy.stand.text).toBe('#sc\n');
-      expect(hatUeberschrift(handy.stand.view!.state.doc)).toBe(false);
+      expect(hatKopf(handy.stand.view!.state.doc)).toBe(false);
     } finally {
       setzeHandy(false);
       await zu(handy);
@@ -269,7 +299,8 @@ describe('capture field', () => {
     speicher.text = '#school/Seite';
     const sitz = await oeffne();
     expect(sitz.stand.text).toBe('#school/Seite');
-    expect(textAusDokument(sitz.stand.view!.state.doc)).toBe('#school/Seite');
+    expect(speichere(sitz.stand.view!.state.doc)).toBe('#school/Seite');
+    expect(klartextVon(sitz.stand.view!.state.doc)).toBe('#school/Seite');
     expect(sitz.stand.view!.state.selection.head).toBe(TextSelection.atEnd(sitz.stand.view!.state.doc).from);
     expect(speicher.schrieb.at(-1)).toBe('#school/Seite');
     await tippe(sitz.stand.view!, '!');
@@ -280,12 +311,13 @@ describe('capture field', () => {
 
   it('wraps a typed word marker and leaves a hash tag literal', async () => {
     const sitz = await oeffne();
-    await tippe(sitz.stand.view!, 'hello**');
+    await tippe(sitz.stand.view!, '**hello**');
     await act(async () => {
       await Promise.resolve();
     });
     expect(sitz.stand.text).toBe('**hello**');
-    expect(textAusDokument(sitz.stand.view!.state.doc)).toBe('**hello**');
+    expect(klartextVon(sitz.stand.view!.state.doc)).toBe('hello');
+    expect(elemente(sitz.stand.view!.dom).some((el) => el.classList.contains('cm-fett') && el.textContent === 'hello')).toBe(true);
     await zu(sitz);
 
     const hash = await oeffne();
@@ -297,40 +329,71 @@ describe('capture field', () => {
     await zu(hash);
   });
 
-  it('shows a formatted word with hidden markers and keeps the source', async () => {
+  it('shows a formatted word as marks and keeps the source', async () => {
     const sitz = await oeffne();
-    const view = sitz.stand.view!;
     await act(async () => {
-      setzeErfassenText(view, '**Hi**', 3, 3);
+      sitz.stand.setze('**Hi**');
     });
-    expect(textAusDokument(view.state.doc)).toBe('**Hi**');
+    const view = sitz.stand.view!;
+    expect(speichere(view.state.doc)).toBe('**Hi**');
+    expect(klartextVon(view.state.doc)).toBe('Hi');
     const fett = elemente(view.dom).filter((el) => el.classList.contains('cm-fett'));
     expect(fett.map((el) => el.textContent)).toContain('Hi');
-    expect(elemente(view.dom).filter((el) => el.classList.contains('cm-marker-weg'))).toHaveLength(2);
+    expect(view.dom.textContent ?? '').not.toContain('*');
     const quelle = '***~~!!`Hi`!!~~***';
-    const stelle = quelle.indexOf('Hi') + 1;
     await act(async () => {
-      setzeErfassenText(view, quelle, stelle, stelle);
+      sitz.stand.setze(quelle);
     });
-    expect(textAusDokument(view.state.doc)).toBe(quelle);
+    expect(speichere(view.state.doc)).toBe(quelle);
+    expect(klartextVon(view.state.doc)).toBe('Hi');
     const verschachtelt = elemente(view.dom).filter((el) =>
       ['cm-fett', 'cm-kursiv', 'cm-strich', 'cm-wichtig', 'cm-code'].every((name) => el.classList.contains(name)),
     );
     expect(verschachtelt.map((el) => el.textContent)).toContain('Hi');
+    expect(view.dom.textContent ?? '').toBe('Hi');
     await zu(sitz);
   });
 
   it('draws the empty hint inside the field', async () => {
     const sitz = await oeffne('', undefined, 'Start typing\u2026');
-    const hinweis = elemente(sitz.stand.view!.dom).find((el) => el.classList.contains('cm-placeholder'));
-    expect(hinweis?.textContent).toBe('Start typing\u2026');
-    let ahne: Node | null = hinweis ?? null;
-    let imFeld = false;
-    while (ahne) {
-      if (ahne.nodeType === 1 && (ahne as HTMLElement).classList.contains('cm-editor')) imFeld = true;
-      ahne = ahne.parentNode;
+    const view = sitz.stand.view!;
+    let lauf: globalThis.Node | null = view.dom;
+    let schreib: HTMLElement | null = null;
+    while (lauf) {
+      if (lauf.nodeType === 1 && (lauf as HTMLElement).classList.contains('schreib')) schreib = lauf as HTMLElement;
+      lauf = lauf.parentNode;
     }
-    expect(imFeld).toBe(true);
+    const halter = elemente(view.dom).find((el) => el.getAttribute('data-zeile') === 'platz');
+    expect(halter?.style.pointerEvents).toBe('none');
+    expect(halter?.style.position).toBe('absolute');
+    expect(halter?.classList.contains('cm-placeholder')).toBe(false);
+    expect(halter?.textContent ?? '').not.toContain('Start typing');
+    expect(view.dom.contains(halter ?? null)).toBe(true);
+    const sichtbar = schreib
+      ? elemente(schreib).find((el) => el.classList.contains('cm-placeholder'))
+      : undefined;
+    expect(sichtbar?.textContent).toBe('Start typing\u2026');
+    expect(schreib?.contains(sichtbar ?? null)).toBe(true);
+    expect(view.dom.contains(sichtbar ?? null)).toBe(false);
+    await zu(sitz);
+  });
+
+  it('marks the tag at the caret', async () => {
+    const sitz = await oeffne();
+    await act(async () => {
+      sitz.stand.setze('Call #wo');
+    });
+    const marke = elemente(sitz.stand.view!.dom).find((el) => el.classList.contains('hier'));
+    expect(marke?.classList.contains('tag')).toBe(true);
+    expect(marke?.textContent).toBe('#wo');
+    await zu(sitz);
+  });
+
+  it('keeps a single space after a typed checkbox shortcut', async () => {
+    const sitz = await oeffne();
+    await tippe(sitz.stand.view!, '[ ] milch');
+    expect(speichere(sitz.stand.view!.state.doc)).toBe('[] milch');
+    expect(klartextVon(sitz.stand.view!.state.doc)).toBe('milch');
     await zu(sitz);
   });
 
@@ -351,22 +414,21 @@ describe('capture field', () => {
       };
       view.dom.dispatchEvent(ereignis as unknown as Event);
     });
-    expect(textAusDokument(view.state.doc)).toBe(probe);
+    expect(speichere(view.state.doc)).toBe(probe);
     expect(sitz.stand.text).toBe(probe);
-    expect(hatUeberschrift(view.state.doc)).toBe(false);
-    expect(view.state.doc.child(2).type.name).toBe('absatz');
-    expect(view.state.doc.child(2).textContent).toBe('#thema/seite');
-    expect(view.state.doc.child(3).textContent).toBe('#tag');
+    expect(hatKopf(view.state.doc)).toBe(false);
+    expect(klartextVon(view.state.doc)).toBe('x\na\n#thema/seite\n#tag');
+    const kinder = Array.from({ length: view.state.doc.childCount }, (_, index) => view.state.doc.child(index));
+    const zielZeile = kinder.find((knoten) => knoten.textContent === '#thema/seite');
+    const tagZeile = kinder.find((knoten) => knoten.textContent === '#tag');
+    expect(zielZeile?.type.name).toBe('absatz');
+    expect(tagZeile?.type.name).toBe('absatz');
     const knoten = elemente(view.dom);
-    const weg = knoten.filter((el) => el.classList.contains('cm-marker-weg')).map((el) => el.textContent);
+    expect(view.dom.textContent ?? '').not.toContain('*');
     expect(knoten.filter((el) => el.classList.contains('cm-fett')).map((el) => el.textContent)).toContain('x');
-    expect(weg).toContain('**');
-    expect(weg).toContain('- ');
-    expect(weg.every((text) => !text?.includes('#'))).toBe(true);
-    const punkt = knoten.find((el) => el.classList.contains('cm-marker') && el.classList.contains('punkt'));
-    expect(punkt?.textContent).toBe('');
-    expect(knoten.some((el) => el.tagName === 'P' && el.classList.contains('cm-punkt'))).toBe(true);
-    const plan = planeAblage(textAusDokument(view.state.doc), themen);
+    const punktZeile = knoten.find((el) => el.classList.contains('cm-punkt') && el.textContent === 'a');
+    expect(erstesElement(punktZeile ?? null)?.classList.contains('cm-marker')).toBe(true);
+    const plan = planeAblage(speichere(view.state.doc), themen);
     expect(plan?.ungueltig).toBe(false);
     expect(plan?.ziele[1]).toMatchObject({ topicName: 'thema', seite: 'seite', text: '' });
     expect(plan?.ziele[2]).toMatchObject({ topicName: 'tag', seite: null, text: '' });
@@ -378,17 +440,23 @@ describe('capture field', () => {
     const view = sitz.stand.view!;
     const probe = '1. milk\nA. tea\n[] task';
     await act(async () => {
-      setzeErfassenText(view, probe, probe.length, probe.length);
+      sitz.stand.setze(probe);
     });
-    expect(textAusDokument(view.state.doc)).toBe(probe);
+    expect(speichere(view.state.doc)).toBe(probe);
+    expect(klartextVon(view.state.doc)).toBe('milk\nA. tea\ntask');
     const knoten = elemente(view.dom);
-    const zahl = knoten.find((el) => el.classList.contains('cm-marker') && el.classList.contains('cm-zahl'));
-    expect(zahl?.textContent).toBe('1.');
-    expect(knoten.filter((el) => el.tagName === 'P' && el.classList.contains('cm-nummer'))).toHaveLength(1);
+    const zahlZeile = knoten.find((el) => el.classList.contains('cm-nummer'));
+    const zahl = zahlZeile ? elemente(zahlZeile).find((el) => el.classList.contains('cm-marker')) : undefined;
+    expect(zahlZeile?.tagName).toBe('DIV');
+    expect(zahl?.classList.contains('nummer')).toBe(true);
+    expect(erstesElement(zahlZeile ?? null)).toBe(zahl);
+    expect(zahlZeile?.textContent).toContain('milk');
+    expect(knoten.some((el) => el.tagName === 'P' && el.textContent === 'A. tea')).toBe(true);
     expect(knoten.some((el) => el.classList.contains('nummerart'))).toBe(false);
     const haken = knoten.find((el) => el.classList.contains('cm-haken'));
-    expect(haken?.classList.contains('cm-marker')).toBe(false);
-    expect(knoten.some((el) => el.tagName === 'P' && el.classList.contains('cm-punkt'))).toBe(false);
+    expect(haken?.classList.contains('cm-marker')).toBe(true);
+    expect(erstesElement(haken?.parentNode ?? null)).toBe(haken);
+    expect(knoten.some((el) => el.classList.contains('cm-punkt'))).toBe(false);
     await zu(sitz);
   });
 
@@ -397,7 +465,13 @@ describe('capture field', () => {
     await tippe(liste.stand.view!, '- milk');
     await druck(liste.stand.view!, 'Enter');
     expect(liste.stand.text).toBe('- milk\n- ');
-    expect(hatUeberschrift(liste.stand.view!.state.doc)).toBe(false);
+    expect(hatKopf(liste.stand.view!.state.doc)).toBe(false);
+    expect(klartextVon(liste.stand.view!.state.doc)).toBe('milk\n');
+    const zeilen = elemente(liste.stand.view!.dom).filter((el) => el.classList.contains('cm-punkt'));
+    expect(zeilen).toHaveLength(2);
+    expect(zeilen[0]?.textContent).toBe('milk');
+    expect(zeilen[1]?.textContent).toBe('');
+    expect(erstesElement(zeilen[0] ?? null)?.classList.contains('cm-marker')).toBe(true);
     await zu(liste);
   });
 });

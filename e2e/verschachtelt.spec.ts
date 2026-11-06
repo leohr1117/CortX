@@ -1,7 +1,14 @@
-import { expect, test } from './ruhe.ts';
+import { expect, test, type Page } from './ruhe.ts';
 import { meldeAn } from './anmelden.ts';
 import { erwarteQuelle, setzeAuswahl, setzeCursor, setzeQuelle } from './feld.ts';
 import { leereLokal } from './lokal.ts';
+
+async function modellKlartext(page: Page): Promise<string> {
+  return page.evaluate(() => {
+    const leser = (window as unknown as { __cortxModell?: { klartext: () => string } }).__cortxModell;
+    return leser?.klartext() ?? '';
+  });
+}
 
 const KNOEPFE = ['Bold', 'Italic', 'Strikethrough', 'Important', 'Code'] as const;
 
@@ -20,7 +27,8 @@ test('nested formats toggle from the bar on a phone', async ({ page }, testInfo)
   await setzeCursor(page, 3);
   await expect(knopf('Bold')).toHaveAttribute('aria-pressed', 'true');
   await expect(page.locator('.schreib .cm-fett', { hasText: 'Hi' })).toBeVisible();
-  await expect(page.locator('.schreib .cm-marker-weg')).toHaveCount(2);
+  await expect(page.locator('.schreib .ProseMirror')).toHaveText('Hi');
+  expect(await modellKlartext(page)).toBe('Hi');
 
   await setzeQuelle(page, 'Hi');
   await setzeAuswahl(page, 0, 2);
@@ -50,7 +58,8 @@ test('nested formats toggle from the bar on a phone', async ({ page }, testInfo)
     await expect(knopf(name)).toHaveAttribute('aria-pressed', 'true');
   }
   await erwarteQuelle(page, '***~~!!``!!~~***');
-  await expect(page.locator('.schreib .cm-marker-weg')).toHaveCount(0);
+  await expect(page.locator('.schreib .ProseMirror')).toHaveText('');
+  expect(await modellKlartext(page)).toBe('');
 
   await knopf('Bold').click();
   await expect(knopf('Bold')).toHaveAttribute('aria-pressed', 'false');

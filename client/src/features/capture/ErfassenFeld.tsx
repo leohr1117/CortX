@@ -1,26 +1,23 @@
 import { useEffect, useLayoutEffect, useRef, useState, type Ref } from 'react';
-import { baseKeymap } from 'prosemirror-commands';
-import { closeHistory, history, redo, undo } from 'prosemirror-history';
-import { keymap } from 'prosemirror-keymap';
-import { EditorState } from 'prosemirror-state';
-import { EditorView } from 'prosemirror-view';
-import 'prosemirror-view/style/prosemirror.css';
+import { TextSelection } from 'prosemirror-state';
+import type { EditorView } from 'prosemirror-view';
 import type { Thema } from '../../../../shared/kern/modell.ts';
 import { VORSCHLAG_BREITE } from '../../../../shared/kern/grenzen.ts';
+import { lade } from '../../../../shared/features/format/laden.ts';
+import { speichere } from '../../../../shared/features/format/speichern.ts';
+import { offsetFuer, posFuer } from '../../../../shared/features/format/stelle.ts';
 import type { SeiteKurz } from '../../../../shared/features/seiten/pfad.ts';
 import { setzeVorschlag, zielAmCursor, type ZielAmCursor } from '../../../../shared/features/seiten/zielvorschlag.ts';
-import { haengeModell, loeseModell } from '../format/modellHaken.ts';
-import { knotenAnsichten, markenAnsichten } from '../format/modellSicht.ts';
 import { HINDERNIS, LAGE, beobachteSicht, liesSicht, listenPlatz } from '../../ui/lage.ts';
+import { tastaturIstHandy } from '../../ui/system.ts';
+import { ModellEditor } from '../format/ModellEditor.tsx';
 import { liesEntwurf, schreibEntwurf } from '../offline/index.ts';
-import { zustandOhneHistorie } from './erfassenBefehl.ts';
-import { auswahlAn, dokumentFuer, rohOffset, rohPos, textAusDokument } from './erfassenDokument.ts';
-import { feldPlugins, kuerzelWahl, wuchsUmEins, type FeldAktion } from './erfassenEingabe.ts';
-import { haengeErfassenGriff } from './erfassenGriff.ts';
-import { erfassenSchmuck } from './erfassenSchmuck.ts';
+import { hatBuchstabenZeile } from './buchstabeAbsatz.ts';
 import { Vorschlag } from './Vorschlag.tsx';
 
 const KEINE_SEITEN: SeiteKurz[] = [];
+
+type MitGriff = HTMLElement & { cm?: object };
 
 function schreibeRef(ziel: Ref<EditorView | null> | undefined, wert: EditorView | null) {
   if (!ziel) return;
@@ -46,7 +43,7 @@ function leisteKante(sichtVersatz: number, sichtHoehe: number): number {
 function menueLage(view: EditorView, text: string, start: number): Lage | null {
   let pos: { top: number; bottom: number; left: number } | null = null;
   try {
-    pos = view.coordsAtPos(rohPos(view.state.doc, text, start));
+    pos = view.coordsAtPos(posFuer(view.state.doc, text, start));
   } catch {
     return null;
   }
@@ -64,6 +61,41 @@ function menueLage(view: EditorView, text: string, start: number): Lage | null {
   const breite = typeof window.innerWidth === 'number' ? window.innerWidth : 0;
   const left = Math.round(Math.min(Math.max(8, pos.left), Math.max(8, breite - VORSCHLAG_BREITE - 8)));
   return { top: platz.top, left, maxHoehe: platz.maxHoehe };
+}
+
+function istHandy(): boolean {
+  if (typeof window.matchMedia !== 'function') return false;
+  try {
+    return tastaturIstHandy();
+  } catch {
+    return false;
+  }
+}
+
+function caretVon(view: EditorView, wert: string): number {
+  try {
+    return offsetFuer(view.state.doc, wert, view.state.selection.head);
+  } catch {
+    return wert.length;
+  }
+}
+
+function setzeImFeld(view: EditorView, wert: string, stelle: number) {
+  const doc = lade(wert);
+  let tr = view.state.tr.replaceWith(0, view.state.doc.content.size, doc.content);
+  const pos = posFuer(tr.doc, wert, stelle);
+  const safe = Math.max(0, Math.min(pos, tr.doc.content.size));
+  tr = tr.setSelection(TextSelection.near(tr.doc.resolve(safe), 1));
+  tr = tr.setMeta('programm', true).setMeta('addToHistory', false);
+  view.dispatch(tr);
+  view.focus();
+}
+
+function uebernehmeGriff(view: EditorView) {
+  const dom = view.dom as MitGriff;
+  const host = dom.parentElement as MitGriff | null;
+  if (host && dom.cm) host.cm = dom.cm;
+  dom.spellcheck = false;
 }
 
 export function ErfassenFeld({
@@ -89,30 +121,21 @@ export function ErfassenFeld({
   onZiel?: () => void;
   ref?: Ref<EditorView | null>;
 }) {
-  const host = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const onTextRef = useRef(onText);
   const onAblegenRef = useRef(onAblegen);
   const onAuswahlRef = useRef(onAuswahl);
   const onBereitRef = useRef(onBereit);
   const onZielRef = useRef(onZiel);
-  const textRef = useRef(text);
+  const rohRef = useRef(text);
   const caretRef = useRef(text.length);
   const zuRef = useRef<string | null>(null);
   const gemeldet = useRef(text);
   const beruehrt = useRef(false);
   const zuletztGeschrieben = useRef<string | null>(null);
+  const geprueft = useRef<object | null>(null);
   const refWeiter = useRef(ref);
-  const platzhalterRef = useRef(platzhalter);
-  platzhalterRef.current = platzhalter;
-  const aktionRef = useRef<FeldAktion>({
-    ablegen: () => undefined,
-    offen: () => false,
-    waehlen: () => undefined,
-    hoch: () => undefined,
-    runter: () => undefined,
-    zu: () => undefined,
-  });
+  const [sicht, setSicht] = useState<EditorView | null>(null);
   const [roh, setRoh] = useState(text);
   const [caret, setCaret] = useState(text.length);
   const [zu, setZu] = useState<string | null>(null);
@@ -125,7 +148,7 @@ export function ErfassenFeld({
   onAuswahlRef.current = onAuswahl;
   onBereitRef.current = onBereit;
   onZielRef.current = onZiel;
-  textRef.current = roh;
+  rohRef.current = roh;
   zuRef.current = zu;
   refWeiter.current = ref;
 
@@ -143,27 +166,12 @@ export function ErfassenFeld({
   schluesselRef.current = schluessel;
   zielStand.current = ziel;
 
-  function veroeffentliche(wert: string, stelle: number) {
-    textRef.current = wert;
+  function merke(wert: string, stelle: number) {
     gemeldet.current = wert;
+    rohRef.current = wert;
     caretRef.current = stelle;
     setRoh(wert);
     setCaret(stelle);
-    onTextRef.current?.(wert);
-    onAuswahlRef.current?.();
-  }
-
-  function wende(wert: string, stelle: number, melden: boolean) {
-    const view = viewRef.current;
-    textRef.current = wert;
-    gemeldet.current = wert;
-    caretRef.current = stelle;
-    setRoh(wert);
-    setCaret(stelle);
-    if (melden) onTextRef.current?.(wert);
-    if (!view) return;
-    zustandOhneHistorie(view, wert, stelle);
-    view.focus();
   }
 
   function waehle(index: number) {
@@ -171,133 +179,90 @@ export function ErfassenFeld({
     const aktuell = stand?.liste;
     if (!stand?.tag || !aktuell) return;
     beruehrt.current = true;
+    const view = viewRef.current;
     if (index < aktuell.treffer.length) {
       const einsetzen = aktuell.treffer[index]?.einsetzen;
       if (!einsetzen) return;
-      const neu = setzeVorschlag(textRef.current, caretRef.current, einsetzen);
+      const neu = setzeVorschlag(rohRef.current, caretRef.current, einsetzen);
       if (!neu) return;
       const naechster = `${stand.tag.start}:${neu.text.slice(stand.tag.start + 1, neu.caret)}`;
       zuRef.current = naechster;
       setZu(naechster);
-      wende(neu.text, neu.caret, true);
+      if (!view) {
+        merke(neu.text, neu.caret);
+        onTextRef.current?.(neu.text);
+        return;
+      }
+      setzeImFeld(view, neu.text, neu.caret);
       return;
     }
     zuRef.current = schluesselRef.current;
     setZu(schluesselRef.current);
-    viewRef.current?.focus();
+    view?.focus();
   }
 
-  aktionRef.current = {
-    ablegen: () => {
-      onAblegenRef.current?.(textRef.current);
-    },
-    offen: () => offenRef.current,
-    waehlen: () => waehle(aktivRef.current),
-    hoch: () => {
-      if (!offenRef.current) return;
-      setWahlFuer(schluesselRef.current);
-      setWahl(Math.max(0, aktivRef.current - 1));
-    },
-    runter: () => {
+  function beiTaste(event: KeyboardEvent) {
+    if (!offenRef.current) return;
+    if (event.ctrlKey || event.metaKey || event.altKey || event.isComposing) return;
+    if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp' && event.key !== 'Escape' && event.key !== 'Enter') return;
+    if (event.key === 'Enter' && istHandy()) return;
+    event.preventDefault();
+    event.stopPropagation();
+    (event as KeyboardEvent & { sofort?: boolean }).sofort = true;
+    if (typeof event.stopImmediatePropagation === 'function') event.stopImmediatePropagation();
+    if (event.key === 'ArrowDown') {
       const stand = zielStand.current?.liste;
-      if (!stand || !offenRef.current) return;
+      if (!stand) return;
       const letzte = stand.treffer.length + (stand.neu ? 1 : 0) - 1;
       setWahlFuer(schluesselRef.current);
       setWahl(Math.min(letzte, aktivRef.current + 1));
-    },
-    zu: () => {
+      return;
+    }
+    if (event.key === 'ArrowUp') {
+      setWahlFuer(schluesselRef.current);
+      setWahl(Math.max(0, aktivRef.current - 1));
+      return;
+    }
+    if (event.key === 'Escape') {
       if (!zielStand.current) return;
       zuRef.current = schluesselRef.current;
       setZu(schluesselRef.current);
-    },
-  };
+      return;
+    }
+    waehle(aktivRef.current);
+  }
 
-  useLayoutEffect(() => {
-    const el = host.current;
-    if (!el) return;
-    const anfang = textRef.current;
-    const doc = dokumentFuer(anfang);
-    const basis = EditorState.create({
-      doc,
-      plugins: [
-        history(),
-        erfassenSchmuck(() => platzhalterRef.current ?? ''),
-        keymap({ 'Mod-z': undo, 'Mod-y': redo, 'Shift-Mod-z': redo }),
-        ...feldPlugins(() => aktionRef.current, () => onZielRef.current?.()),
-        keymap(baseKeymap),
-      ],
-    });
-    const sel = auswahlAn(doc, anfang, anfang.length);
-    const view = new EditorView(el, {
-      state: basis.apply(basis.tr.setSelection(sel).setMeta('addToHistory', false)),
-      nodeViews: knotenAnsichten(),
-      markViews: markenAnsichten(),
-      attributes: {
-        role: 'textbox',
-        'aria-multiline': 'true',
-        'aria-label': 'Note',
-        spellcheck: 'false',
-      },
-      dispatchTransaction(tr) {
-        const next = view.state.apply(tr);
-        view.updateState(next);
-        const wert = textAusDokument(next.doc);
-        const stelle = rohOffset(next.doc, wert, next.selection.head);
-        if (!tr.docChanged) {
-          caretRef.current = stelle;
-          setCaret(stelle);
-          onAuswahlRef.current?.();
-          return;
-        }
-        beruehrt.current = true;
-        if (!tr.getMeta('programm') && !tr.getMeta('convert') && wuchsUmEins(textRef.current, wert)) {
-          const wahl = kuerzelWahl(wert, stelle);
-          if (wahl) {
-            textRef.current = wert;
-            caretRef.current = stelle;
-            queueMicrotask(() => {
-              if (!view.dom.isConnected) {
-                veroeffentliche(wert, stelle);
-                return;
-              }
-              if (textAusDokument(view.state.doc) !== wert) return;
-              const zielDoc = dokumentFuer(wahl.text);
-              let naechste = view.state.tr.replaceWith(0, view.state.doc.content.size, zielDoc.content);
-              const zielSel = auswahlAn(naechste.doc, wahl.text, wahl.ende);
-              naechste = closeHistory(naechste.setSelection(zielSel).setMeta('convert', true));
-              view.dispatch(naechste);
-            });
-            return;
-          }
-        }
-        veroeffentliche(wert, stelle);
-      },
-    });
-    caretRef.current = anfang.length;
-    view.dom.classList.add('cm-content');
-    if (host.current) haengeErfassenGriff(view, host.current);
-    haengeModell(view);
+  function merkeSicht(view: EditorView | null) {
     viewRef.current = view;
+    if (view) uebernehmeGriff(view);
+    setSicht(view);
     schreibeRef(refWeiter.current, view);
-    view.focus();
-    return () => {
-      loeseModell(view);
-      view.destroy();
-      viewRef.current = null;
-      schreibeRef(refWeiter.current, null);
-    };
-  }, []);
+  }
 
   useLayoutEffect(() => {
     if (text === gemeldet.current) return;
     gemeldet.current = text;
+    rohRef.current = text;
+    caretRef.current = text.length;
     zuRef.current = null;
+    setRoh(text);
+    setCaret(text.length);
     setZu(null);
-    wende(text, text.length, false);
   }, [text]);
 
   useLayoutEffect(() => {
-    const dom = viewRef.current?.dom;
+    const view = viewRef.current;
+    if (!view || geprueft.current === view.state.doc) return;
+    if (!hatBuchstabenZeile(view.state.doc)) {
+      geprueft.current = view.state.doc;
+      return;
+    }
+    view.dispatch(view.state.tr.setMeta('pruefeBuchstabe', true).setMeta('addToHistory', false));
+    geprueft.current = view.state.doc;
+  });
+
+  useLayoutEffect(() => {
+    const dom = sicht?.dom;
     if (!dom) return;
     dom.setAttribute('aria-autocomplete', 'list');
     dom.setAttribute('aria-expanded', offen ? 'true' : 'false');
@@ -308,14 +273,21 @@ export function ErfassenFeld({
     }
     dom.setAttribute('aria-controls', 'vorschlaege');
     dom.setAttribute('aria-activedescendant', `vorschlag-${aktiv}`);
-  }, [offen, aktiv]);
+  }, [sicht, offen, aktiv]);
+
+  useEffect(() => {
+    const dom = sicht?.dom;
+    if (!dom) return;
+    dom.addEventListener('keydown', beiTaste, true);
+    return () => dom.removeEventListener('keydown', beiTaste, true);
+  });
 
   const anker = ziel?.tag.start ?? -1;
   useLayoutEffect(() => {
     const view = viewRef.current;
     if (!offen || !view || anker < 0) return;
     const setze = () => {
-      const naechste = menueLage(view, textRef.current, anker);
+      const naechste = menueLage(view, rohRef.current, anker);
       if (!naechste) return;
       setLage((alt) =>
         alt.top === naechste.top && alt.left === naechste.left && alt.maxHoehe === naechste.maxHoehe ? alt : naechste,
@@ -335,7 +307,14 @@ export function ErfassenFeld({
     void liesEntwurf()
       .then((entwurf) => {
         if (!aktivLauf) return;
-        if (!beruehrt.current && textRef.current.length === 0 && entwurf.length > 0) wende(entwurf, entwurf.length, true);
+        if (!beruehrt.current && rohRef.current.length === 0 && entwurf.length > 0) {
+          gemeldet.current = entwurf;
+          rohRef.current = entwurf;
+          caretRef.current = entwurf.length;
+          setRoh(entwurf);
+          setCaret(entwurf.length);
+          onTextRef.current?.(entwurf);
+        }
         setBereit(true);
         onBereitRef.current?.();
       })
@@ -356,10 +335,35 @@ export function ErfassenFeld({
   }, [roh, bereit]);
 
   return (
-    <div className="erfassen">
-      <div className="schreib">
-        <div ref={host} className="cm-editor modell-host" />
-      </div>
+    <>
+      <ModellEditor
+        modus="erfassen"
+        text={text}
+        platzhalter={platzhalter}
+        onText={(wert) => {
+          beruehrt.current = true;
+          const view = viewRef.current;
+          merke(wert, view ? caretVon(view, wert) : wert.length);
+          onTextRef.current?.(wert);
+        }}
+        onAuswahl={() => {
+          const view = viewRef.current;
+          if (view) {
+            const wert = speichere(view.state.doc);
+            const stelle = caretVon(view, wert);
+            caretRef.current = stelle;
+            setCaret(stelle);
+          }
+          onAuswahlRef.current?.();
+        }}
+        onAblegen={() => {
+          const view = viewRef.current;
+          const wert = view ? speichere(view.state.doc) : rohRef.current;
+          onAblegenRef.current?.(wert);
+        }}
+        onLink={() => onZielRef.current?.()}
+        ref={merkeSicht}
+      />
       {offen && liste ? (
         <Vorschlag
           liste={liste}
@@ -372,6 +376,6 @@ export function ErfassenFeld({
           onWahl={waehle}
         />
       ) : null}
-    </div>
+    </>
   );
 }
