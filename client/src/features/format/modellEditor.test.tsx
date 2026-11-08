@@ -6,9 +6,12 @@ import { Fragment, Slice } from 'prosemirror-model';
 import { AllSelection, TextSelection } from 'prosemirror-state';
 import type { EditorView } from 'prosemirror-view';
 import type { Root } from 'react-dom/client';
+import { ART } from '../../../../shared/features/format/baum.ts';
 import { modell } from '../../../../shared/features/format/modell.ts';
+import { formatVon } from '../../../../shared/features/format/register.ts';
 import { speichere } from '../../../../shared/features/format/speichern.ts';
 import { ModellEditor } from './ModellEditor.tsx';
+import { wendeModell } from './modellLauf.ts';
 import { entfernePruefDom, richtePruefDom } from './modellPruef.ts';
 
 let wurzel: (container: Element) => Root;
@@ -28,13 +31,13 @@ interface Sitz {
   host: HTMLElement;
 }
 
-async function oeffne(text: string, onText: (wert: string) => void): Promise<Sitz> {
+async function oeffne(text: string, onText: (wert: string) => void, modus: 'notiz' | 'erfassen' = 'notiz'): Promise<Sitz> {
   const ref: { current: EditorView | null } = { current: null };
   const host = document.createElement('div');
   document.body.appendChild(host);
   const root = wurzel(host);
   await act(async () => {
-    root.render(createElement(ModellEditor, { text, onText, ref }) as ReactNode);
+    root.render(createElement(ModellEditor, { text, onText, modus, ref }) as ReactNode);
   });
   const view = ref.current;
   if (!view) throw new Error('missing editor');
@@ -130,6 +133,67 @@ function mitKlasse(knoten: Node, name: string): HTMLElement[] {
   if (knoten.nodeType === 1 && (knoten as HTMLElement).classList.contains(name)) aus.push(knoten as HTMLElement);
   knoten.childNodes.forEach((kind) => aus.push(...mitKlasse(kind, name)));
   return aus;
+}
+
+function flach(text: string): string {
+  return text.replace(/\u00a0/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function hatFett(view: EditorView): boolean {
+  let fett = false;
+  view.state.doc.descendants((node) => {
+    if (node.marks.some((mark) => mark.type.name === ART.fett)) fett = true;
+  });
+  return fett;
+}
+
+async function zeichen(view: EditorView, text: string): Promise<void> {
+  for (const teil of text) {
+    await act(async () => {
+      view.dispatch(view.state.tr.insertText(teil));
+    });
+  }
+}
+
+async function komponiere(view: EditorView, wort: string, id: number): Promise<void> {
+  let anfang: number | null = null;
+  for (let i = 1; i <= wort.length; i += 1) {
+    await act(async () => {
+      const text = wort.slice(0, i);
+      const tr = anfang == null
+        ? view.state.tr.insertText(text)
+        : view.state.tr.insertText(text, anfang, view.state.selection.from);
+      tr.setMeta('composition', id);
+      if (anfang != null) tr.setSelection(TextSelection.near(tr.doc.resolve(anfang + text.length)));
+      view.dispatch(tr);
+      if (anfang == null) anfang = view.state.selection.from - text.length;
+    });
+  }
+}
+
+async function markiereFett(view: EditorView): Promise<void> {
+  await act(async () => {
+    waehleAlles(view);
+    wendeModell(view, formatVon(ART.fett).modell);
+  });
+}
+
+async function erwarteWortUndo(view: EditorView, ganz = 'eins zwei drei'): Promise<void> {
+  expect(undoDepth(view.state)).toBe(3);
+  expect(flach(view.state.doc.textContent)).toBe(ganz);
+  await markiereFett(view);
+  expect(hatFett(view)).toBe(true);
+  expect(undoDepth(view.state)).toBe(4);
+  expect(taste(view, 'z', 90)).toBe(true);
+  expect(flach(view.state.doc.textContent)).toBe(ganz);
+  expect(hatFett(view)).toBe(false);
+  expect(undoDepth(view.state)).toBe(3);
+  expect(taste(view, 'z', 90)).toBe(true);
+  expect(flach(view.state.doc.textContent)).toBe('eins zwei');
+  expect(undoDepth(view.state)).toBe(2);
+  expect(taste(view, 'y', 89)).toBe(true);
+  expect(flach(view.state.doc.textContent)).toBe(ganz);
+  expect(hatFett(view)).toBe(false);
 }
 
 describe('model editor', () => {
@@ -370,6 +434,52 @@ describe('model editor', () => {
       expect(sitz.view.state.doc.child(1).type.name).toBe('punkt');
       expect(sitz.view.state.doc.child(1).textContent).toBe('Milch');
       expect(speichere(sitz.view.state.doc)).toBe('**Brot** und\n- Milch');
+    } finally {
+      await zu(sitz);
+    }
+  });
+
+  it('undoes bold first and then only the last typed word', async () => {
+    const sitz = await oeffne('', () => undefined);
+    try {
+      await zeichen(sitz.view, 'eins zwei drei');
+      await erwarteWortUndo(sitz.view);
+    } finally {
+      await zu(sitz);
+    }
+  });
+
+  it('undoes bold first and then only the last composition', async () => {
+    const sitz = await oeffne('', () => undefined, 'erfassen');
+    try {
+      await komponiere(sitz.view, 'eins', 1);
+      await zeichen(sitz.view, ' ');
+      await komponiere(sitz.view, 'zwei', 2);
+      await zeichen(sitz.view, ' ');
+      await komponiere(sitz.view, 'drei', 3);
+      await erwarteWortUndo(sitz.view);
+    } finally {
+      await zu(sitz);
+    }
+  });
+
+  it('undoes bold first and then only a word that starts with a supplementary letter', async () => {
+    const sitz = await oeffne('', () => undefined);
+    try {
+      const wort = `${String.fromCodePoint(0x10400)}bc`;
+      await zeichen(sitz.view, `eins zwei ${wort}`);
+      await erwarteWortUndo(sitz.view, `eins zwei ${wort}`);
+    } finally {
+      await zu(sitz);
+    }
+  });
+
+  it('undoes bold first and then only a supplementary word while capturing', async () => {
+    const sitz = await oeffne('', () => undefined, 'erfassen');
+    try {
+      const wort = `${String.fromCodePoint(0x10000)}bc`;
+      await zeichen(sitz.view, `eins zwei ${wort}`);
+      await erwarteWortUndo(sitz.view, `eins zwei ${wort}`);
     } finally {
       await zu(sitz);
     }

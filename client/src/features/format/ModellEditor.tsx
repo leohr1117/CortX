@@ -1,8 +1,9 @@
 import { type Ref, useLayoutEffect, useRef } from 'react';
 import { baseKeymap } from 'prosemirror-commands';
-import { history, redo, undo } from 'prosemirror-history';
+import { closeHistory, history, isHistoryTransaction, redo, undo } from 'prosemirror-history';
 import { keymap } from 'prosemirror-keymap';
-import { EditorState, TextSelection } from 'prosemirror-state';
+import { EditorState, TextSelection, type Transaction } from 'prosemirror-state';
+import { ReplaceStep } from 'prosemirror-transform';
 import { EditorView } from 'prosemirror-view';
 import 'prosemirror-view/style/prosemirror.css';
 import { lade } from '../../../../shared/features/format/laden.ts';
@@ -24,6 +25,34 @@ import { formatTasten } from './modellTasten.ts';
 import { buchstabenBleibenText } from '../capture/buchstabeAbsatz.ts';
 import { erfassenTasten } from '../capture/erfassenTaste.ts';
 import { tagDekoPlugin } from '../capture/tagDeko.ts';
+
+function wortgrenze(tr: Transaction, state: EditorState): boolean {
+  if (tr.steps.length !== 1) return false;
+  const step = tr.steps[0];
+  if (!(step instanceof ReplaceStep) || step.from !== step.to) return false;
+  const inhalt = step.slice.content;
+  if (inhalt.childCount !== 1) return false;
+  const text = inhalt.textBetween(0, inhalt.size);
+  const erste = text.match(/^./u)?.[0] ?? '';
+  if (!/^[\p{L}\p{N}]$/u.test(erste)) return false;
+  const $pos = state.doc.resolve(step.from);
+  if (!$pos.parent.isTextblock || $pos.parentOffset <= 0) return false;
+  const letzte = $pos.parent.textBetween(0, $pos.parentOffset).at(-1) ?? '';
+  return /^\s$/u.test(letzte);
+}
+
+function gruppeTastatur(tr: Transaction, state: EditorState, komposition: number): { tr: Transaction; komposition: number } {
+  if (!tr.docChanged || tr.getMeta('addToHistory') === false || isHistoryTransaction(tr)) return { tr, komposition };
+  const ui = tr.getMeta('uiEvent');
+  if (ui === 'paste' || ui === 'drop' || ui === 'cut' || tr.getMeta('paste') === true) return { tr, komposition };
+  const laufend = tr.getMeta('composition');
+  if (typeof laufend === 'number' && laufend > 0) {
+    const wechsel = laufend !== komposition;
+    return { tr: wechsel ? closeHistory(tr) : tr, komposition: laufend };
+  }
+  if (wortgrenze(tr, state)) return { tr: closeHistory(tr), komposition };
+  return { tr, komposition };
+}
 
 function schreibeRef(ziel: Ref<EditorView | null> | undefined, wert: EditorView | null) {
   if (!ziel) return;
@@ -98,24 +127,29 @@ export function ModellEditor({
     });
     const ende = TextSelection.atEnd(basis.doc);
     const start = basis.apply(basis.tr.setSelection(ende).setMeta('addToHistory', false));
+    let komposition = -1;
     const view = new EditorView(el, {
       state: start,
       nodeViews: knotenAnsichten(),
       markViews: markenAnsichten(modusRef.current === 'erfassen'),
       attributes: { role: 'textbox', 'aria-multiline': 'true', 'aria-label': 'Note' },
       dispatchTransaction(tr) {
+        const gruppe = gruppeTastatur(tr, view.state, komposition);
+        const eingehend = gruppe.tr;
         const vorher = view.state;
-        const ersetzt = zustandNach(tr);
-        const next = ersetzt ?? vorher.apply(tr);
-        const docGeaendert = ersetzt ? !next.doc.eq(vorher.doc) : tr.docChanged;
+        const ersetzt = zustandNach(eingehend);
+        const next = ersetzt ?? vorher.apply(eingehend);
+        const docGeaendert = ersetzt ? !next.doc.eq(vorher.doc) : eingehend.docChanged;
         const auswahlGeaendert = !next.selection.eq(vorher.selection);
         if (!docGeaendert) {
+          komposition = gruppe.komposition;
           view.updateState(next);
           if (auswahlGeaendert) onAuswahlRef.current?.();
           return;
         }
         const wert = speichere(next.doc);
         if (wert.length > NOTE_TEXT_MAX) return;
+        komposition = gruppe.komposition;
         view.updateState(next);
         gemeldet.current = wert;
         onTextRef.current(wert);
