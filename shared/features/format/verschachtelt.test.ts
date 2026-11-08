@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { leseBaum } from './lesen.ts';
-import { inlineAn, type InlineArt, type InlineStand } from './register.ts';
+import { inlineAn } from './befehl.ts';
+import { type InlineArt, type InlineStand } from './register.ts';
 import { schalteCode, schalteFett, schalteKursiv, schalteStrich, schalteWichtig } from './befehl.ts';
 import type { TextWahl } from './ueberschrift.ts';
 import { WICHTIG_ZEILE } from './zeile.ts';

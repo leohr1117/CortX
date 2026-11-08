@@ -1,7 +1,7 @@
 import { EditorState, TextSelection } from 'prosemirror-state';
 import { describe, expect, it } from 'vitest';
 import { lade } from './laden.ts';
-import { nummerBruch, nummerEnter, stelleImModell } from './modellpunkt.ts';
+import { nummerBruch, nummerEnter, punktModell, stelleImModell } from './modellpunkt.ts';
 import { NUMMER_ART } from './nummer.ts';
 import { speichere } from './speichern.ts';
 
@@ -13,6 +13,15 @@ function zustand(text: string, index: number, arten = true): EditorState {
   const $pos = basis.doc.resolve(pos);
   const auswahl = $pos.parent.inlineContent ? TextSelection.create(basis.doc, pos) : TextSelection.near($pos);
   return basis.apply(basis.tr.setSelection(auswahl));
+}
+
+function auswahl(text: string, von: number, bis: number): EditorState {
+  const doc = lade(text);
+  const start = stelleImModell(doc, text, von);
+  const ende = stelleImModell(doc, text, bis);
+  if (start === null || ende === null || start === ende) throw new Error(`no selection in ${JSON.stringify(text)}`);
+  const basis = EditorState.create({ doc });
+  return basis.apply(basis.tr.setSelection(TextSelection.create(basis.doc, start, ende)));
 }
 
 function enter(text: string, index: number): string {
@@ -77,5 +86,15 @@ describe('numbered enter', () => {
     const bruch = nummerBruch(roh);
     expect(bruch).not.toBeNull();
     expect(speichere(bruch!.doc)).toBe('1. milk\n\n');
+  });
+});
+
+describe('bullet keys', () => {
+  it('leaves a selection, a bare indent, and italic stars alone', () => {
+    expect(punktModell(auswahl('- milk', 2, 4), 'enter')).toBeNull();
+    expect(punktModell(auswahl('- milk', 2, 4), 'zurueck')).toBeNull();
+    expect(punktModell(zustand('  world', 3), 'enter')).toBeNull();
+    expect(punktModell(zustand('*test*', 6), 'enter')).toBeNull();
+    expect(punktModell(zustand('*test*', 0), 'zurueck')).toBeNull();
   });
 });

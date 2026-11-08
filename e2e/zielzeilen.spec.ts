@@ -1,8 +1,9 @@
 import fs from 'node:fs';
-import { expect, test, type Page } from './ruhe.ts';
+import { expect, FESTE_UHR, test, type Page } from './ruhe.ts';
 import { meldeAn } from './anmelden.ts';
 import { cursorKopf, erwarteQuelle, setzeQuelle } from './feld.ts';
 import { leereLokal, warteBereit } from './lokal.ts';
+import { merkeNotizZeiten, versionsNotizZeit } from './schau.ts';
 
 const BILDER = 'tmp-test/screens';
 const TEILEN = '#school/Thema1 text1\ntext1 text1\n#school/Thema2 text2\ntext2 text2';
@@ -141,6 +142,10 @@ test('an empty topic stays and the last page can be restored', async ({ page }, 
     const zeile = page.getByRole('link', { name: new RegExp(`^${thema}\\b`) });
     await expect(zeile).toContainText('0 pages');
     await expect(page.getByRole('status')).toContainText('Page deleted');
+    const geerbt = merkeNotizZeiten();
+    expect(geerbt.length).toBeGreaterThan(0);
+    expect(geerbt.every((eintrag) => eintrag.created === versionsNotizZeit())).toBe(false);
+    expect(geerbt.every((eintrag) => eintrag.created === FESTE_UHR.toISOString())).toBe(false);
     if (handy) await page.screenshot({ path: `${BILDER}/handy-leeres-thema.png` });
     await page.getByRole('button', { name: 'Undo' }).click();
     await expect(page.getByRole('status')).toHaveCount(0);

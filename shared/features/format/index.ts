@@ -20,19 +20,15 @@ export {
   schalteStrich,
   schalteVerknuepfung,
   schalteWichtig,
-  rufBefehl,
 } from './befehl.ts';
-export { liegtInCode, wandleKuerzel } from './kuerzel.ts';
 export {
   WIDGET,
   STIL_REGISTER,
   STIL_VAR,
   formatVon,
   kombiniereStil,
-  loeschePaar,
   PUNKT_TASTEN,
   punktArt,
-  punktTaste,
   leistenEintraege,
   nurMarker,
   stilAttribut,

@@ -229,6 +229,36 @@ describe('inline shortcuts in the note editor', () => {
     } finally {
       await zu(sitz);
     }
+    const suffix = await oeffne('```\n\n```');
+    try {
+      anfang(suffix.view, 1);
+      await tippe(suffix.view, 'hello**');
+      expect(speichere(suffix.view.state.doc)).toBe('```\nhello**\n```');
+      expect(suffix.view.state.doc.child(1).type.name).toBe('codeblock');
+    } finally {
+      await zu(suffix);
+    }
+  });
+
+  it('does not rewrite a word shortcut inside a code span', async () => {
+    schalter(true);
+    const span = await oeffne('`hello`');
+    try {
+      let pos = -1;
+      span.view.state.doc.descendants((node, offset) => {
+        if (!node.isText || !node.marks.some((mark) => mark.type.name === 'code')) return;
+        pos = offset + node.nodeSize;
+        return false;
+      });
+      if (pos < 0) throw new Error('no code');
+      await act(async () => {
+        span.view.dispatch(span.view.state.tr.setSelection(TextSelection.create(span.view.state.doc, pos)));
+      });
+      await tippe(span.view, '**');
+      expect(speichere(span.view.state.doc)).toBe('`hello**`');
+    } finally {
+      await zu(span);
+    }
   });
 
   it('still wraps a word when two stars are typed after it', async () => {

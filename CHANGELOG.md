@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.14.2
+
+Internal cleanup, nothing changes for you.
+
 ## 1.14.1
 
 List markers keep a gap before the words while you edit, same as when you read.

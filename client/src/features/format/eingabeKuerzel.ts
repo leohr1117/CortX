@@ -29,14 +29,33 @@ function esc(wert: string): string {
   return wert.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-function imCode(state: EditorState, von: number, bis: number): boolean {
-  const $von = state.doc.resolve(von);
-  if ($von.parent.type.spec.code) return true;
+function blockCode(state: EditorState, pos: number): boolean {
+  return state.doc.resolve(pos).parent.type.spec.code === true;
+}
+
+function istCodeMarke(mark: { type: { name: string; spec: { code?: unknown } } }): boolean {
+  return mark.type.name === ART.code || mark.type.spec.code === true;
+}
+
+function bereichHatCode(state: EditorState, von: number, bis: number): boolean {
+  if (bis <= von) return false;
   let code = false;
   state.doc.nodesBetween(von, bis, (node) => {
-    if (node.isInline && node.marks.some((mark) => mark.type.spec.code === true)) code = true;
+    if (node.isText && node.marks.some(istCodeMarke)) code = true;
   });
   return code;
+}
+
+function ganzCode(state: EditorState, von: number, bis: number): boolean {
+  if (bis <= von) return false;
+  let gesehen = false;
+  let luecke = false;
+  state.doc.nodesBetween(von, bis, (node) => {
+    if (!node.isText) return;
+    gesehen = true;
+    if (!node.marks.some(istCodeMarke)) luecke = true;
+  });
+  return gesehen && !luecke;
 }
 
 function schon(node: EditorState['doc'], ziel: Ziel, pos: number): boolean {
@@ -72,8 +91,14 @@ function wortGebaut(ende: string, marke: string): Gebaut {
     if (!typ) return null;
     const abstand = match[0].length - wort.length - ende.length;
     const von = start + abstand;
-    if (imCode(state, von, end)) return null;
+    if (blockCode(state, von)) return null;
     if (state.doc.textBetween(von, end) !== `${wort}${ende}`) return null;
+    if (bereichHatCode(state, von, von + wort.length)) {
+      if (ganzCode(state, von, end)) return null;
+      const code = state.schema.marks[ART.code];
+      if (!code) return null;
+      return state.tr.addMark(von, end, code.create()).setMeta('addToHistory', false).setMeta('codeRand', true);
+    }
     let tr = state.tr.insertText(wort, von, end);
     tr = tr.addMark(von, von + wort.length, typ.create());
     return closeHistory(tr.removeStoredMark(typ));
@@ -149,10 +174,11 @@ function nachtrag(
   spur: Plugin,
 ): Transaction | null {
   if (!kuerzelAn()) return null;
-  if (transactions.some((tr) => gesperrt(tr) || tr.getMeta(spur))) return null;
+  if (transactions.some((tr) => gesperrt(tr) || tr.getMeta(spur) || tr.getMeta('codeRand'))) return null;
   if (!transactions.some((tr) => tr.docChanged)) return null;
   const tr = wendePassend(neu, regeln);
   if (!tr) return null;
+  if (tr.getMeta('codeRand')) return tr;
   const kopf = neu.selection.head;
   tr.setMeta(spur, { transform: tr, from: kopf, to: kopf, text: '' });
   return tr;

@@ -1251,29 +1251,10 @@ input.feld::placeholder { color: var(--leise); }
   box-shadow: inset 0 -2px 0 var(--wichtig-strich);
 }
 .schreib .cm-link.cm-wichtig { color: var(--wichtig-schrift); text-decoration: underline; }
-.schreib .cm-marker-weg {
-  font-size: 0;
-  line-height: 0;
-  letter-spacing: 0;
-  color: transparent;
-  padding: 0;
-  margin: 0;
-}
-.schreib .cm-widgetBuffer {
-  display: inline-block;
-  width: 0;
-  height: 0;
-  margin: 0;
-  padding: 0;
-  border: 0;
-  overflow: hidden;
-  vertical-align: baseline;
-}
 .schreib .cm-editor .cm-line.cm-wichtig-zeile {
   padding-left: var(--abstand-10);
   box-shadow: inset 3px 0 0 var(--wichtig-balken);
 }
-.schreib .cm-wichtig-marker { color: var(--wichtig-marker); }
 .schreib .cm-punkt,
 .schreib .cm-nummer { color: var(--haupt); }
 .schreib .cm-haken {

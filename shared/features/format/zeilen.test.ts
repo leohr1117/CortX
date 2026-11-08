@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { rufBefehl, schalteCode, schalteFett, schalteWichtig } from './befehl.ts';
+import { schalteCode, schalteFett, schalteWichtig } from './befehl.ts';
 import { leseDokument } from './lesen.ts';
 import { formatVon, type FormatBefehl } from './register.ts';
 
@@ -36,7 +36,6 @@ describe('formats on several lines', () => {
     expect(lauf('fett', '__one__\n__two__').text).toBe('one\ntwo');
     expect(lauf('fett', 'one\n\ntwo').text).toBe('**one**\n\n**two**');
     expect(lauf('fett', 'hello\nworld', 1, 9).text).toBe('h**ello**\n**wor**ld');
-    expect(rufBefehl('fett', 'one\ntwo', 0, 7, null)).toEqual({ art: 'text', wahl: lauf('fett', 'one\ntwo') });
   });
 
   it('keeps bold when italic wraps each of several lines', () => {

@@ -16,17 +16,6 @@ import {
   ueberlappPx,
 } from '../../ui/lage.ts';
 
-export interface SpiegelAnsicht {
-  readonly dom: HTMLElement;
-  readonly state: {
-    readonly doc: { toString: () => string };
-    readonly selection: {
-      readonly main: { readonly empty: boolean; readonly head: number; readonly from: number; readonly to: number };
-    };
-  };
-  coordsAtPos(stelle: number): { readonly left: number; readonly top: number; readonly bottom: number } | null;
-}
-
 function LeistenIcon({ pfade }: { pfade: readonly string[] }) {
   return (
     <svg className="i" viewBox="0 0 24 24" aria-hidden="true">
@@ -44,14 +33,7 @@ interface Spanne {
   to: number;
 }
 
-interface SpiegelLeiste {
-  view: SpiegelAnsicht | null;
-  stand: number;
-  onBefehl: (befehl: FormatBefehl) => void;
-  modell?: false;
-}
-
-interface ModellLeiste {
+interface LeistenProps {
   view: ModellAnsicht | null;
   stand: number;
   modell: true;
@@ -59,8 +41,6 @@ interface ModellLeiste {
   onModell?: (befehl: FormatBefehl) => void;
   nummern?: boolean;
 }
-
-type LeistenProps = SpiegelLeiste | ModellLeiste;
 
 type ModellModul = typeof import('./modellLauf.ts');
 
@@ -74,20 +54,10 @@ function ladeModell(): Promise<ModellModul> {
   });
 }
 
-function spanneVon(props: LeistenProps): Spanne | null {
-  if (!props.view) return null;
-  if (props.modell) {
-    const sel = props.view.state.selection;
-    return { empty: sel.empty, head: sel.head, from: sel.from, to: sel.to };
-  }
-  const sel = props.view.state.selection.main;
+function spanneVon(view: ModellAnsicht | null): Spanne | null {
+  if (!view) return null;
+  const sel = view.state.selection;
   return { empty: sel.empty, head: sel.head, from: sel.from, to: sel.to };
-}
-
-function kastenBei(props: LeistenProps, stelle: number): { left: number; top: number; bottom: number } | null {
-  if (!props.view) return null;
-  if (props.modell) return props.view.coordsAtPos(stelle);
-  return props.view.coordsAtPos(stelle);
 }
 
 export function Leiste(props: LeistenProps) {
@@ -99,13 +69,12 @@ export function Leiste(props: LeistenProps) {
   const [tick, setTick] = useState(0);
 
   useLayoutEffect(() => {
-    if (props.modell !== true) return;
     let lebend = true;
     void ladeModell().then(() => {
       if (lebend) setTick((wert) => wert + 1);
     });
     return () => { lebend = false; };
-  }, [props.modell]);
+  }, []);
 
   useLayoutEffect(() => {
     const media = window.matchMedia('(max-width: 899px)');
@@ -160,14 +129,14 @@ export function Leiste(props: LeistenProps) {
   }, [mobil, view]);
 
   useEffect(() => {
-    const sel = spanneVon(props);
+    const sel = spanneVon(view);
     if (!view || !sel) return;
     if (mobil) return;
     if (sel.empty) {
       setPos(null);
       return;
     }
-    const coords = kastenBei(props, sel.head);
+    const coords = view.coordsAtPos(sel.head);
     if (!coords) {
       setPos(null);
       return;
@@ -176,13 +145,12 @@ export function Leiste(props: LeistenProps) {
     const left = Math.max(8, Math.min(coords.left, window.innerWidth - breite - 8));
     const top = coords.top > 64 ? coords.top - 52 : coords.bottom + 8;
     setPos({ top, left });
-  }, [view, stand, mobil, tick, props.modell]);
+  }, [view, stand, mobil, tick]);
 
   if (!view || (!mobil && !pos)) return null;
   const stil = mobil || !pos ? undefined : { top: pos.top, left: pos.left };
-  const sel = spanneVon(props);
+  const sel = spanneVon(view);
   if (!sel) return null;
-  const text = props.modell || !props.view ? '' : props.view.state.doc.toString();
   return (
     <div
       ref={leisteRef}
@@ -193,11 +161,7 @@ export function Leiste(props: LeistenProps) {
     >
       {leistenEintraege().map((eintrag) => {
         const knopf = eintrag.knopf;
-        const an = !knopf.gedrueckt
-          ? false
-          : props.modell
-            ? (props.view ? (eintrag.modell?.isActive(props.view.state) ?? false) : false)
-            : eintrag.isActive(text, sel.from, sel.to);
+        const an = !knopf.gedrueckt ? false : (eintrag.modell?.isActive(view.state) ?? false);
         return (
           <button
             key={eintrag.id}
@@ -208,32 +172,26 @@ export function Leiste(props: LeistenProps) {
             aria-pressed={knopf.gedrueckt ? an : undefined}
             onPointerDown={(event) => event.preventDefault()}
             onClick={() => {
-              if (props.modell) {
-                const ansicht = props.view;
-                if (!ansicht) return;
-                if (eintrag.knopf.ziel) {
-                  props.onZiel?.();
-                  return;
-                }
-                if (props.onModell) {
-                  props.onModell(eintrag.id);
-                  setTick((wert) => wert + 1);
-                  return;
-                }
-                void ladeModell().then((modul) => {
-                  modul.wendeModell(ansicht, eintrag.modell);
-                  setTick((wert) => wert + 1);
-                });
+              if (eintrag.knopf.ziel) {
+                props.onZiel?.();
                 return;
               }
-              props.onBefehl(eintrag.id);
+              if (props.onModell) {
+                props.onModell(eintrag.id);
+                setTick((wert) => wert + 1);
+                return;
+              }
+              void ladeModell().then((modul) => {
+                modul.wendeModell(view, eintrag.modell);
+                setTick((wert) => wert + 1);
+              });
             }}
           >
             {knopf.pfade ? <LeistenIcon pfade={knopf.pfade} /> : knopf.zeichen}
           </button>
         );
       })}
-      {props.modell && props.nummern !== false && props.view
+      {props.nummern !== false && view
         ? NUMMER_KNOPF.map((eintrag) => {
             const ansicht = props.view;
             if (!ansicht) return null;

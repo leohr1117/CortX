@@ -12,8 +12,6 @@ import {
   aktivWichtig,
 } from './aktiv.ts';
 import {
-  inlineAn,
-  loeschePaar,
   schalteCode,
   schalteFett,
   schalteHaken,
@@ -389,8 +387,7 @@ export function klemme(text: string, start: number, ende: number): { start: numb
 export { STIL_REGISTER, STIL_VAR, kombiniereStil, stilAttribut } from './stil.ts';
 export type { FormatStil } from './stil.ts';
 
-export { inlineAn, loeschePaar };
-export { PUNKT_TASTEN, punktArt, punktTaste, type PunktArt } from './punkt.ts';
+export { PUNKT_TASTEN, punktArt, type PunktArt } from './punkt.ts';
 export interface InlineStand {
   fett: boolean;
   kursiv: boolean;

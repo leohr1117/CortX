@@ -80,6 +80,25 @@ async function tippe(view: EditorView, text: string): Promise<void> {
   }
 }
 
+async function einfuegen(view: EditorView, text: string, cursor = text.length): Promise<void> {
+  await act(async () => {
+    let tr = view.state.tr.insertText(text);
+    const ende = tr.selection.from;
+    view.dispatch(tr.setSelection(TextSelection.create(tr.doc, ende - text.length + cursor)));
+  });
+}
+
+async function kurz(text: string, cursor: number, erwartet: string | null): Promise<void> {
+  const sitz = await leer();
+  try {
+    if (text.length > 0) await einfuegen(sitz.view, text, cursor);
+    const name = `${text}@${cursor}`;
+    if (erwartet === null) expect(marken(sitz.view), name).not.toContain('fett');
+    else expect(speichere(sitz.view.state.doc), name).toBe(erwartet);
+    if (erwartet !== null) expect(marken(sitz.view), name).toEqual(['fett']);
+  } finally { await zu(sitz); }
+}
+
 async function schrittZurueck(view: EditorView): Promise<boolean> {
   let ok = false;
   await act(async () => {
@@ -331,6 +350,48 @@ describe('input rules in the note editor', () => {
       expect(roh).toContain('hdhx');
     } finally {
       await zu(sitz);
+    }
+  });
+  it('wraps bold only at the two stars after a word', async () => {
+    schalter(true);
+    const an: Array<[string, number, string | null]> = [
+      ['(hello**', 8, '**(hello**'], ['[hello**', 8, '**[hello**'], ['say (hello**', 12, 'say **(hello**'],
+      ['say hello** there', 11, 'say **hello** there'], ['hello** ', 7, '**hello** '],
+      ['', 0, null], ['**', 2, null], ['hi__', 4, null], ['hello***', 8, null], ['*hi*', 4, null],
+      ['tag#1**', 7, null], ['hello**', 0, null], ['hello**', 3, null], ['#tag**', 6, null],
+      ['note #tag**', 11, null], ['#school/math**', 14, null], ['**hello** ', 10, null],
+    ];
+    for (const [text, cursor, erwartet] of an) await kurz(text, cursor, erwartet);
+    const kopf = await oeffne('= hello');
+    try { await tippe(kopf.view, '**'); expect(speichere(kopf.view.state.doc)).toBe('= **hello**'); }
+    finally { await zu(kopf); }
+    const zeile = await oeffne('a\nhello');
+    try { await tippe(zeile.view, '**'); expect(speichere(zeile.view.state.doc)).toBe('a\n**hello**'); }
+    finally { await zu(zeile); }
+  });
+  it('turns a box only when the line so far is exactly that box', async () => {
+    schalter(true);
+    const milch = await leer();
+    try {
+      await einfuegen(milch.view, '[ ]milk', 3);
+      expect(speichere(milch.view.state.doc)).toBe('[] milk');
+      expect(milch.view.state.doc.child(0).attrs.art).toBe('haken');
+    } finally { await zu(milch); }
+    const zeile = await oeffne('x\nz');
+    try {
+      await act(async () => {
+        const doc = zeile.view.state.doc;
+        const start = doc.child(0).nodeSize + 1;
+        zeile.view.dispatch(zeile.view.state.tr.insertText('[ ]', start, start + doc.child(1).content.size));
+      });
+      expect(speichere(zeile.view.state.doc)).toBe('x\n[] ');
+    } finally { await zu(zeile); }
+    for (const text of ['= [ ]', '[x]', '`[ ]`', 'see [ ]']) {
+      const sitz = await leer();
+      try {
+        await einfuegen(sitz.view, text);
+        expect(sitz.view.state.doc.child(0).type.name, text).toBe('absatz');
+      } finally { await zu(sitz); }
     }
   });
 });

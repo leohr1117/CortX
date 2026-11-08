@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import {
   belege,
   leseBaum,
-  liegtInCode,
   schalteCode,
   schalteFett,
   schalteHaken,
@@ -12,7 +11,6 @@ import {
   schalteVerknuepfung,
   sicherZiel,
   suchtext,
-  wandleKuerzel,
 } from './index.ts';
 
 describe('markdown beside the existing notation', () => {
@@ -184,28 +182,3 @@ describe('combined formatting', () => {
   });
 });
 
-describe('typing shortcuts', () => {
-  it('wraps a word and a checkbox, and undo text is the shortcut', () => {
-    expect(wandleKuerzel('hello**', 7)).toEqual({ text: '**hello**', start: 9, ende: 9 });
-    expect(wandleKuerzel('**hello**', 9)).toBeNull();
-    expect(wandleKuerzel('say hello** there', 11)).toEqual({ text: 'say **hello** there', start: 13, ende: 13 });
-    expect(wandleKuerzel('[ ]', 3)).toEqual({ text: '[] ', start: 3, ende: 3 });
-    expect(wandleKuerzel('see [ ]', 7)).toBeNull();
-    expect(wandleKuerzel('hello** ', 7)).toEqual({ text: '**hello** ', start: 9, ende: 9 });
-    expect(wandleKuerzel('**hello** ', 10)).toBeNull();
-  });
-
-  it('does not rewrite inside code', () => {
-    expect(liegtInCode('`hello**`', 7)).toBe(true);
-    expect(wandleKuerzel('`hello**`', 8)).toBeNull();
-    expect(wandleKuerzel('```\nhello**\n```', 11)).toBeNull();
-  });
-
-  it('does not rewrite a hash tag', () => {
-    expect(wandleKuerzel('#tag**', 6)).toBeNull();
-    expect(wandleKuerzel('note #tag**', 11)).toBeNull();
-    expect(wandleKuerzel('#school/math**', 14)).toBeNull();
-    expect(wandleKuerzel('**#tag**', 8)).toBeNull();
-    expect(wandleKuerzel('hello**', 7)).toEqual({ text: '**hello**', start: 9, ende: 9 });
-  });
-});

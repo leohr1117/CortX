@@ -1,7 +1,7 @@
 import { ART, type Beleg } from './baum.ts';
 import type { TextWahl } from './ueberschrift.ts';
 import { schalteUeberschrift } from './ueberschrift.ts';
-import { belege, leseDokument, zeilenTreffer } from './lesen.ts';
+import { belege, zeilenTreffer } from './lesen.ts';
 import {
   INLINE_REGISTER,
   cursorInSchale,
@@ -78,7 +78,7 @@ export function hatInlineWichtig(text: string, start: number, ende: number): boo
   });
 }
 
-function entferne(text: string, marker: Array<[number, number]>, start: number, ende: number): TextWahl {
+export function entferne(text: string, marker: Array<[number, number]>, start: number, ende: number): TextWahl {
   const bereiche = [...marker].sort((a, b) => b[0] - a[0]);
   let neu = text;
   let von = start;
@@ -92,28 +92,6 @@ function entferne(text: string, marker: Array<[number, number]>, start: number, 
     else if (bis > links) bis = links;
   }
   return { text: neu, start: von, ende: bis };
-}
-
-function inMarker(von: number, bis: number, spanne: readonly [number, number]): boolean {
-  return von >= spanne[0] && bis <= spanne[1];
-}
-
-export function loeschePaar(text: string, von: number, bis: number): TextWahl | null {
-  const wahl = klemme(text, von, bis);
-  if (wahl.start === wahl.ende) return null;
-  const arten = new Set<string>(INLINE_REGISTER.map((eintrag) => eintrag.art));
-  let beste: Beleg | null = null;
-  let breite = Number.POSITIVE_INFINITY;
-  for (const beleg of leseDokument(text).belege) {
-    if (!arten.has(beleg.art) || beleg.marker.length < 2) continue;
-    if (!beleg.marker.some((spanne) => inMarker(wahl.start, wahl.ende, spanne))) continue;
-    const span = beleg.ganzBis - beleg.ganzVon;
-    if (span >= breite) continue;
-    beste = beleg;
-    breite = span;
-  }
-  if (!beste) return null;
-  return entferne(text, beste.marker, wahl.start, wahl.ende);
 }
 
 function spanneZurueck(beleg: Beleg, index: number): { von: number; bis: number } {
@@ -334,20 +312,5 @@ export function schalteWichtig(text: string, start: number, ende: number): TextW
 
 export function schalteKopf(text: string, start: number, ende: number): TextWahl {
   return schalteUeberschrift(text, start, ende);
-}
-
-type BefehlErgebnis = { art: 'ziel' } | { art: 'text'; wahl: TextWahl };
-
-export function rufBefehl(
-  id: FormatBefehl,
-  text: string,
-  start: number,
-  ende: number,
-  ziel: string | null,
-): BefehlErgebnis {
-  const befehl = formatVon(id);
-  if (!befehl.run) throw new Error('unknown command');
-  if (ziel === null && befehl.knopf?.ziel) return { art: 'ziel' };
-  return { art: 'text', wahl: befehl.run(text, start, ende, ziel ?? '') };
 }
 

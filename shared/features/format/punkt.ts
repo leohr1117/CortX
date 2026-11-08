@@ -19,7 +19,7 @@ export function punktArt(inputType: string, data: string | null): PunktArt | nul
   return null;
 }
 
-function ersetze(text: string, von: number, bis: number, einsetzen: string, cursor: number): TextWahl {
+export function ersetze(text: string, von: number, bis: number, einsetzen: string, cursor: number): TextWahl {
   return { text: text.slice(0, von) + einsetzen + text.slice(bis), start: cursor, ende: cursor };
 }
 
@@ -68,7 +68,7 @@ interface Ort {
   abgehakt: boolean | undefined;
 }
 
-function ortAn(text: string, index: number): Ort | null {
+export function ortAn(text: string, index: number): Ort | null {
   const belege = leseDokument(text).belege;
   if (imCode(belege, index)) return null;
   const beleg = findePunkt(belege, index);
@@ -88,30 +88,4 @@ export function punktInhalt(text: string, index: number): { von: number; bis: nu
   const ort = ortAn(text, Math.max(0, Math.min(Math.floor(index), text.length)));
   if (!ort) return null;
   return { von: ort.inhaltVon, bis: ort.inhaltBis };
-}
-
-export function punktTaste(text: string, start: number, ende: number, art: PunktArt): TextWahl | null {
-  if (start !== ende || !Number.isFinite(start)) return null;
-  const index = Math.max(0, Math.min(Math.floor(start), text.length));
-  const ort = ortAn(text, index);
-  if (!ort) return null;
-  const leer = text.slice(ort.inhaltVon, ort.inhaltBis).trim() === '';
-  if (art === 'zurueck') {
-    if (!leer || index !== ort.inhaltVon) return null;
-    return ersetze(text, ort.zeile.von, ort.zeile.bis, '', ort.zeile.von);
-  }
-  if (art === 'umbruch') {
-    const spalte = Math.max(ort.inhaltVon, Math.min(index, ort.inhaltBis));
-    const einsetzen = `\n${' '.repeat(ort.marker.length)}`;
-    return ersetze(text, spalte, spalte, einsetzen, spalte + einsetzen.length);
-  }
-  if (leer && ort.kopf) return ersetze(text, ort.zeile.von, ort.zeile.bis, '', ort.zeile.von);
-  if (leer) {
-    const neu = naechsterMarker(ort.marker, ort.abgehakt);
-    return ersetze(text, ort.zeile.von, ort.inhaltBis, neu, ort.zeile.von + neu.length);
-  }
-  const spalte = Math.max(ort.inhaltVon, Math.min(index, ort.inhaltBis));
-  const neu = naechsterMarker(ort.marker, ort.abgehakt);
-  const einsetzen = `\n${neu}`;
-  return ersetze(text, spalte, spalte, einsetzen, spalte + einsetzen.length);
 }

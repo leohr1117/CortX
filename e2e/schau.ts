@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
-import { FESTE_UHR } from './ruhe.ts';
+import { FESTE_UHR, festesDatum } from './ruhe.ts';
 
 interface Lauf {
   datenbank: string;
@@ -50,6 +50,24 @@ export interface SaatNotiz {
 export interface SaatThema {
   name: string;
   notizen: SaatNotiz[];
+}
+
+export interface NotizZeit {
+  id: number;
+  created: string;
+}
+
+export interface FremdBesitz {
+  konto: string;
+  notizId: number;
+  themaId: number;
+  themaAngelegt: boolean;
+}
+
+const FREMDES_KONTO = 'other-account';
+
+export function versionsNotizZeit(): string {
+  return festesDatum(11, 5, 10, 0);
 }
 
 function kontoId(db: DatabaseSync): string {
@@ -196,30 +214,93 @@ export function setzeThema(name: string, notizen: readonly SaatNotiz[]): void {
   });
 }
 
-export function legeFremdeNotiz(text: string): void {
+export function legeFremdeNotiz(text: string): FremdBesitz {
+  const beleg: FremdBesitz = {
+    konto: FREMDES_KONTO,
+    notizId: 0,
+    themaId: 0,
+    themaAngelegt: false,
+  };
   schreib((db) => {
-    const konto = 'other-account';
     const jetzt = FESTE_UHR.toISOString();
-    const vorhanden = db.prepare(`SELECT id FROM "topic" WHERE name_key = 'inbox' AND account_id = ?`).get(konto) as
+    const vorhanden = db.prepare(`SELECT id FROM "topic" WHERE name_key = 'inbox' AND account_id = ?`).get(beleg.konto) as
       | { id: number }
       | undefined;
-    const themaId = vorhanden
-      ? vorhanden.id
-      : Number(
-          db
-            .prepare(`INSERT INTO "topic" (name, name_key, created, account_id) VALUES ('Inbox', 'inbox', ?, ?)`)
-            .run(jetzt, konto).lastInsertRowid,
-        );
-    db.prepare(
-      `INSERT INTO "note" (text, created, topic_id, source, ai_confidence, client_id, pinned, account_id)
-       VALUES (?, ?, ?, 'manual', NULL, NULL, 0, ?)`,
-    ).run(text, jetzt, themaId, konto);
+    if (vorhanden) {
+      beleg.themaId = vorhanden.id;
+    } else {
+      const thema = db
+        .prepare(`INSERT INTO "topic" (name, name_key, created, account_id) VALUES ('Inbox', 'inbox', ?, ?)`)
+        .run(jetzt, beleg.konto);
+      beleg.themaId = Number(thema.lastInsertRowid);
+      beleg.themaAngelegt = true;
+    }
+    const notiz = db
+      .prepare(
+        `INSERT INTO "note" (text, created, topic_id, source, ai_confidence, client_id, pinned, account_id)
+         VALUES (?, ?, ?, 'manual', NULL, NULL, 0, ?)`,
+      )
+      .run(text, jetzt, beleg.themaId, beleg.konto);
+    beleg.notizId = Number(notiz.lastInsertRowid);
   });
+  return beleg;
 }
 
 export function entferneVersionsstand(): void {
   schreib((db) => {
     db.prepare('DELETE FROM "version_hint" WHERE account_id = ?').run(kontoId(db));
+  });
+}
+
+export function merkeNotizZeiten(): NotizZeit[] {
+  const db = oeffne();
+  try {
+    return db
+      .prepare('SELECT id, created FROM "note" WHERE account_id = ? ORDER BY id')
+      .all(kontoId(db)) as unknown as NotizZeit[];
+  } finally {
+    db.close();
+  }
+}
+
+export function setzeNotizZeiten(zeiten: readonly NotizZeit[]): void {
+  schreib((db) => {
+    const konto = kontoId(db);
+    const setzen = db.prepare('UPDATE "note" SET created = ? WHERE id = ? AND account_id = ?');
+    for (const zeile of zeiten) setzen.run(zeile.created, zeile.id, konto);
+  });
+}
+
+export function erstellteFremdeNotiz(text: string): string | null {
+  const db = oeffne();
+  try {
+    const zeile = db
+      .prepare('SELECT created FROM "note" WHERE text = ? AND account_id = ?')
+      .get(text, FREMDES_KONTO) as { created: string } | undefined;
+    return zeile?.created ?? null;
+  } finally {
+    db.close();
+  }
+}
+
+export function entferneFremdeNotiz(beleg: FremdBesitz): void {
+  schreib((db) => {
+    const eigene = db.prepare('SELECT id FROM "note" WHERE id = ? AND account_id = ?').get(beleg.notizId, beleg.konto) as
+      | { id: number }
+      | undefined;
+    if (!eigene) return;
+    db.prepare('DELETE FROM "correction" WHERE note_id = ?').run(beleg.notizId);
+    db.prepare('DELETE FROM "note" WHERE id = ? AND account_id = ?').run(beleg.notizId, beleg.konto);
+    if (!beleg.themaAngelegt) return;
+    const notizen = db.prepare('SELECT count(*) AS n FROM "note" WHERE topic_id = ?').get(beleg.themaId) as {
+      n: number;
+    };
+    if (notizen.n !== 0) return;
+    const korrekturen = db
+      .prepare('SELECT count(*) AS n FROM "correction" WHERE from_topic_id = ? OR to_topic_id = ?')
+      .get(beleg.themaId, beleg.themaId) as { n: number };
+    if (korrekturen.n !== 0) return;
+    db.prepare('DELETE FROM "topic" WHERE id = ? AND account_id = ?').run(beleg.themaId, beleg.konto);
   });
 }
 

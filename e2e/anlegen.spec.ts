@@ -99,6 +99,13 @@ async function liegtFrei(ziel: Locator, neu: Locator): Promise<void> {
   expect(zeile.bottom).toBeLessThanOrEqual(fuss + 1);
 }
 
+function wirfGesammelt(ursachen: readonly unknown[], folge: readonly unknown[]): void {
+  const alle = [...ursachen, ...folge];
+  if (alle.length === 0) return;
+  if (alle.length === 1) throw alle[0];
+  throw new AggregateError(alle, 'Several errors');
+}
+
 async function bisSichtbar(page: Page, liste: Locator, ziel: Locator): Promise<void> {
   for (let versuch = 0; versuch < 24; versuch += 1) {
     const lage = await ziel.evaluate((el) => {
@@ -141,6 +148,7 @@ test('the new row stays pinned on a long suggestion list', async ({ page }, test
   test.skip(testInfo.project.name !== 'handy', 'phone width');
   test.setTimeout(90_000);
   const vorher = sichereBestand();
+  let kern: unknown[] = [];
   try {
     setzeSchauspiel(bestand());
     const thema = await vorschlag(page, '#To');
@@ -205,8 +213,16 @@ test('the new row stays pinned on a long suggestion list', async ({ page }, test
     await festUnten(tastatur.neu);
     await expect.poll(() => liesQuelle(page)).toBe('#To');
     await page.screenshot({ path: `${BILDER}/handy-neu-tastatur.png` });
+  } catch (fehler) {
+    kern.push(fehler);
   } finally {
-    stelleBestand(vorher);
+    const folge: unknown[] = [];
+    try {
+      stelleBestand(vorher);
+    } catch (fehler) {
+      folge.push(fehler);
+    }
+    wirfGesammelt(kern, folge);
   }
 });
 
