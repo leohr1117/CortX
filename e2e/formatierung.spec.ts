@@ -115,7 +115,7 @@ test('a typed dash and space becomes a list and backspace restores the character
   }
 });
 
-test('a typed bold shortcut becomes bold and backspace restores the characters', async ({ page }) => {
+test('a typed bold shortcut keeps the mark when backspace deletes the letter', async ({ page }) => {
   test.setTimeout(90_000);
   const bestand = sichereBestand();
   try {
@@ -124,13 +124,18 @@ test('a typed bold shortcut becomes bold and backspace restores the characters',
     await page.locator('.notiz').first().locator('a.tx').click();
     await page.getByRole('button', { name: 'Edit' }).click();
     await setzeQuelle(page, '');
-    await tippe(page, '**x**');
-    await expect(page.locator('.modell-host .cm-fett')).toHaveText('x');
-    await erwarteQuelle(page, '**x**');
+    await tippe(page, '**fett**');
+    await expect(page.locator('.modell-host .cm-fett')).toHaveText('fett');
+    await expect(page.locator('.modell-host .ProseMirror')).toHaveText('fett');
+    await erwarteQuelle(page, '**fett**');
     await page.keyboard.press('Backspace');
-    await expect(page.locator('.modell-host .cm-fett')).toHaveCount(0);
-    await expect(page.locator('.modell-host .ProseMirror')).toHaveText('**x**');
-    await erwarteQuelle(page, '\\*\\*x\\*\\*');
+    await expect(page.locator('.modell-host .ProseMirror')).toHaveText('fet');
+    await expect(page.locator('.modell-host .cm-fett')).toHaveText('fet');
+    await erwarteQuelle(page, '**fet**');
+    await page.keyboard.press('Backspace');
+    await expect(page.locator('.modell-host .ProseMirror')).toHaveText('fe');
+    await expect(page.locator('.modell-host .cm-fett')).toHaveText('fe');
+    await erwarteQuelle(page, '**fe**');
   } finally {
     stelleBestand(bestand);
   }

@@ -123,6 +123,18 @@ function markNamen(view: EditorView): string[] {
   return [...namen];
 }
 
+function texteMitKlasse(knoten: Node, name: string): string[] {
+  const aus: string[] = [];
+  const lauf = (aktuell: Node): void => {
+    if (aktuell.nodeType !== 1) return;
+    const el = aktuell as HTMLElement;
+    if (el.classList.contains(name)) aus.push(el.textContent ?? '');
+    for (const kind of [...el.childNodes]) lauf(kind);
+  };
+  lauf(knoten);
+  return aus;
+}
+
 const KUERZEL = [
   { name: 'bold', text: '**x**', marke: 'fett', quelle: '**x**' },
   { name: 'italic', text: '*x*', marke: 'kursiv', quelle: '*x*' },
@@ -130,6 +142,74 @@ const KUERZEL = [
   { name: 'important', text: '!!x!!', marke: 'wichtig', quelle: '!!x!!' },
   { name: 'code', text: '`x`', marke: 'code', quelle: '`x`' },
 ] as const;
+
+type Eingabeweg = 'Backspace' | 'before';
+
+async function loescheLetztenBuchstaben(weg: Eingabeweg): Promise<void> {
+  schalter(true);
+  for (const fall of KUERZEL) {
+    const sitz = await leer();
+    try {
+      await tippe(sitz.view, fall.text);
+      expect(undoInputRule(sitz.view.state), `${fall.name} ${weg}`).toBe(false);
+      expect(sitz.view.state.doc.child(0).textContent, fall.name).toBe('x');
+      expect(markNamen(sitz.view), fall.name).toEqual([fall.marke]);
+      await taste(sitz.view, weg);
+      expect(sitz.view.state.doc.child(0).textContent, `${fall.name} ${weg}`).toBe('');
+      expect(markNamen(sitz.view), `${fall.name} ${weg}`).toEqual([]);
+      expect(sitz.view.dom.textContent ?? '', `${fall.name} ${weg}`).not.toMatch(/[*~`!]/);
+      const wieder = lade(speichere(sitz.view.state.doc));
+      expect(wieder.textContent, `${fall.name} ${weg}`).toBe('');
+      expect(wieder.childCount, `${fall.name} ${weg}`).toBe(0);
+    } finally {
+      await zu(sitz);
+    }
+  }
+}
+
+async function behalteFett(weg: Eingabeweg): Promise<void> {
+  schalter(true);
+  const sitz = await leer();
+  try {
+    await tippe(sitz.view, '**fett**');
+    expect(undoInputRule(sitz.view.state), weg).toBe(false);
+    expect(sitz.view.state.doc.textContent, weg).toBe('fett');
+    expect(markNamen(sitz.view), weg).toEqual(['fett']);
+    await taste(sitz.view, weg);
+    expect(sitz.view.state.doc.textContent, weg).toBe('fet');
+    expect(markNamen(sitz.view), weg).toEqual(['fett']);
+    await taste(sitz.view, weg);
+    expect(sitz.view.state.doc.textContent, weg).toBe('fe');
+    expect(markNamen(sitz.view), weg).toEqual(['fett']);
+    expect(speichere(sitz.view.state.doc), weg).toBe('**fe**');
+    expect((sitz.view.dom.textContent ?? '').replace(/\s/g, ''), weg).toBe('fe');
+    expect(texteMitKlasse(sitz.view.dom, 'cm-fett'), weg).toEqual(['fe']);
+  } finally {
+    await zu(sitz);
+  }
+}
+
+async function loescheAusserhalb(weg: Eingabeweg): Promise<void> {
+  schalter(true);
+  const zeichen = String.fromCodePoint(0x10000);
+  const sitz = await leer();
+  try {
+    await tippe(sitz.view, `**a${zeichen}**`);
+    const roh = sitz.view.state.doc.child(0).textContent;
+    expect(roh, weg).toBe(`a${zeichen}`);
+    expect(roh.codePointAt(1), weg).toBe(0x10000);
+    expect(undoInputRule(sitz.view.state), weg).toBe(false);
+    expect(markNamen(sitz.view), weg).toEqual(['fett']);
+    await taste(sitz.view, weg);
+    expect(sitz.view.state.doc.child(0).textContent, weg).toBe('a');
+    expect(markNamen(sitz.view), weg).toEqual(['fett']);
+    expect(speichere(sitz.view.state.doc), weg).toBe('**a**');
+    expect((sitz.view.dom.textContent ?? '').replace(/\s/g, ''), weg).toBe('a');
+    expect(texteMitKlasse(sitz.view.dom, 'cm-fett'), weg).toEqual(['a']);
+  } finally {
+    await zu(sitz);
+  }
+}
 
 describe('inline shortcuts in the note editor', () => {
   it('turns each inline shortcut into its mark', async () => {
@@ -147,26 +227,28 @@ describe('inline shortcuts in the note editor', () => {
     }
   });
 
-  it('restores the typed characters when backspace follows at once', async () => {
-    schalter(true);
-    for (const fall of KUERZEL) {
-      for (const weg of ['Backspace', 'before'] as const) {
-        const sitz = await leer();
-        try {
-          await tippe(sitz.view, fall.text);
-          expect(undoInputRule(sitz.view.state), `${fall.name} ${weg}`).toBe(true);
-          await taste(sitz.view, weg);
-          expect(sitz.view.state.doc.child(0).textContent, `${fall.name} ${weg}`).toBe(fall.text);
-          expect(markNamen(sitz.view), `${fall.name} ${weg}`).toEqual([]);
-          const roh = speichere(sitz.view.state.doc);
-          const wieder = lade(roh);
-          expect(wieder.child(0).textContent, `${fall.name} ${weg}`).toBe(fall.text);
-          expect(wieder.child(0).type.name, `${fall.name} ${weg}`).toBe('absatz');
-        } finally {
-          await zu(sitz);
-        }
-      }
-    }
+  it('deletes the letter after an inline shortcut with Backspace and does not put the markers back', async () => {
+    await loescheLetztenBuchstaben('Backspace');
+  });
+
+  it('deletes the letter after an inline shortcut with beforeinput and does not put the markers back', async () => {
+    await loescheLetztenBuchstaben('before');
+  });
+
+  it('deletes two letters after a bold shortcut with Backspace and keeps the mark', async () => {
+    await behalteFett('Backspace');
+  });
+
+  it('deletes two letters after a bold shortcut with beforeinput and keeps the mark', async () => {
+    await behalteFett('before');
+  });
+
+  it('deletes one character outside the basic plane with Backspace and keeps the mark', async () => {
+    await loescheAusserhalb('Backspace');
+  });
+
+  it('deletes one character outside the basic plane with beforeinput and keeps the mark', async () => {
+    await loescheAusserhalb('before');
   });
 
   it('keeps an untouched line byte for byte', async () => {

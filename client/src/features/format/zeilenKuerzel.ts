@@ -9,6 +9,7 @@ import { modell } from '../../../../shared/features/format/modell.ts';
 import { istNummerArt } from '../../../../shared/features/format/nummer.ts';
 import { formatVon } from '../../../../shared/features/format/register.ts';
 import { kopfZeichen } from '../../../../shared/features/format/zeile.ts';
+import { inlineRuecktaste } from './inlineKuerzel.ts';
 import { kuerzelAn } from './kuerzelSpeicher.ts';
 
 interface Ziel {
@@ -115,9 +116,12 @@ function zeilenRegeln(an: () => boolean): InputRule[] {
 
 const ZURUECK = 'zeilenZurueck';
 
-const nimmZurueck: Command = (state, dispatch) => undoInputRule(state, dispatch && ((tr) => {
-  dispatch(tr.setMeta(ZURUECK, true));
-}));
+const nimmZurueck: Command = (state, dispatch) => {
+  if (inlineRuecktaste(state, dispatch)) return true;
+  return undoInputRule(state, dispatch && ((tr) => {
+    dispatch(tr.setMeta(ZURUECK, true));
+  }));
+};
 
 function nachtrag(transactions: readonly Transaction[], neu: EditorState, eingabe: Plugin, an: () => boolean): Transaction | null {
   if (!an()) return null;
@@ -152,7 +156,9 @@ function ruecktaste(view: EditorView, event: Event): boolean {
   const eingabe = event as Eingabe;
   if (eingabe.inputType !== 'deleteContentBackward' || view.composing) return false;
   if (eingabe.ctrlKey || eingabe.metaKey || eingabe.altKey) return false;
-  return nimmZurueck(view.state, (tr) => view.dispatch(tr));
+  if (!nimmZurueck(view.state, (tr) => view.dispatch(tr))) return false;
+  event.preventDefault();
+  return true;
 }
 
 export function zeilenPlugins(an: () => boolean = kuerzelAn): Plugin[] {
