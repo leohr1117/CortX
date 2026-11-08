@@ -1371,6 +1371,10 @@ input.feld::placeholder { color: var(--leise); }
 .format-leiste .schalt.fett { font-weight: 700; }
 .format-leiste .schalt.kursiv { font-style: italic; }
 .format-leiste .schalt.strich { text-decoration: line-through; }
+.format-leiste .schalt[aria-disabled='true'] {
+  color: var(--leise);
+  cursor: default;
+}
 .format-leiste.mobil {
   position: fixed;
   left: 0;

@@ -1,4 +1,5 @@
 import type { Command } from 'prosemirror-state';
+import { formatImCodeblockGesperrt } from '../../../../shared/features/format/modellbefehl.ts';
 import { leistenEintraege } from '../../../../shared/features/format/index.ts';
 import { setzeZustand } from './modellLauf.ts';
 
@@ -9,6 +10,7 @@ export function formatTasten(onLink: () => void): Record<string, Command> {
     const schalt = eintrag.modell;
     if (!taste || !schalt) continue;
     tasten[taste] = (state, _dispatch, view) => {
+      if (formatImCodeblockGesperrt(eintrag.id, state)) return true;
       if (eintrag.knopf.ziel) {
         onLink();
         return true;

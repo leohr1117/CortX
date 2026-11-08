@@ -41,6 +41,11 @@ function nurCodeblock(zustand: EditorState): boolean {
   return zeilen.length > 0 && zeilen.every((zeile) => zeile.node.type.name === 'codeblock');
 }
 
+export function formatImCodeblockGesperrt(id: FormatId, zustand: EditorState): boolean {
+  const art = verhalten(id);
+  return nurCodeblock(zustand) && (art === 'marke' || art === 'wichtig' || art === 'link');
+}
+
 function wirklicheMarks(zustand: EditorState): readonly Mark[] {
   if (zustand.storedMarks) return zustand.storedMarks;
   return zustand.selection.$from.marks();
@@ -159,7 +164,6 @@ function schalteBlock(zustand: EditorState, id: FormatId): EditorState {
   return wende(zustand, tr);
 }
 function schalteMarke(zustand: EditorState, id: FormatId): EditorState {
-  if (nurCodeblock(zustand)) return zustand;
   const typ = zustand.schema.marks[id];
   if (!typ) return zustand;
   if (zustand.selection.empty) {
@@ -297,8 +301,13 @@ function schalteLinkZeilen(zustand: EditorState, ziel: string | undefined, typ: 
   return wende(zustand, tr);
 }
 
+function ersetzeLink(zustand: EditorState, typ: MarkType, ziel: string, from: number, to: number): EditorState {
+  const tr = zustand.tr;
+  tr.removeMark(from, to, typ);
+  tr.addMark(from, to, typ.create({ [zielName()]: ziel }));
+  return wende(zustand, tr);
+}
 function schalteLink(zustand: EditorState, ziel: string | undefined): EditorState {
-  if (nurCodeblock(zustand)) return zustand;
   const typ = zustand.schema.marks[ART.link];
   if (!typ) return zustand;
   if (!zustand.selection.empty && zeilenDerAuswahl(zustand).length > 1) {
@@ -309,12 +318,7 @@ function schalteLink(zustand: EditorState, ziel: string | undefined): EditorStat
   if (zustand.selection.empty) {
     const spanne = markenSpanne(zustand, typ);
     if (spanne && ziel === '') return wende(zustand, zustand.tr.removeMark(spanne.from, spanne.to, typ));
-    if (spanne && ziel) {
-      const tr = zustand.tr;
-      tr.removeMark(spanne.from, spanne.to, typ);
-      tr.addMark(spanne.from, spanne.to, typ.create({ [name]: ziel }));
-      return wende(zustand, tr);
-    }
+    if (spanne && ziel) return ersetzeLink(zustand, typ, ziel, spanne.from, spanne.to);
     if (!spanne && ziel) return wende(zustand, zustand.tr.addStoredMark(typ.create({ [name]: ziel })));
     return zustand;
   }
@@ -326,14 +330,10 @@ function schalteLink(zustand: EditorState, ziel: string | undefined): EditorStat
   if (!ziel) return zustand;
   const bereich = schneideLeer(zustand.doc, from, to);
   if (bereich.from >= bereich.to) return zustand;
-  const tr = zustand.tr;
-  tr.removeMark(bereich.from, bereich.to, typ);
-  tr.addMark(bereich.from, bereich.to, typ.create({ [name]: ziel }));
-  return wende(zustand, tr);
+  return ersetzeLink(zustand, typ, ziel, bereich.from, bereich.to);
 }
 
 function schalteWichtig(zustand: EditorState): EditorState {
-  if (nurCodeblock(zustand)) return zustand;
   if (zustand.selection.empty || zeilenDerAuswahl(zustand).length > 1) return schalteBlock(zustand, ART.wichtig);
   return schalteMarke(zustand, ART.wichtig);
 }
@@ -358,7 +358,6 @@ function istAktiv(id: FormatId, zustand: EditorState): boolean {
     return markeAktiv(zustand, id);
   }
   if (art === 'wichtig') {
-    if (nurCodeblock(zustand)) return false;
     const zeilen = zeilenDerAuswahl(zustand);
     const block = zustand.selection.empty || zeilen.length > 1;
     if (block && zeilen.length > 0 && zeilen.every((zeile) => istArt(zeile.node, id))) return true;
@@ -382,6 +381,7 @@ export function entferneFormatierung(zustand: EditorState): EditorState {
 export function modellSchalt(id: FormatId): ModellSchalt {
   return {
     run(zustand, ziel) {
+      if (formatImCodeblockGesperrt(id, zustand)) return zustand;
       const art = verhalten(id);
       if (art === 'link') return schalteLink(zustand, ziel);
       if (art === 'code') return schalteCode(zustand);

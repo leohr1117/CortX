@@ -57,6 +57,30 @@ function marken(doc: Node): string[] {
   return [...namen].sort();
 }
 
+function mitVerlauf(text: string, von: number, bis = von): EditorState {
+  const doc = lade(text);
+  return EditorState.create({
+    schema: modell,
+    doc,
+    selection: TextSelection.create(doc, von, bis),
+    plugins: [history()],
+  });
+}
+
+function ganze(text: string): EditorState {
+  const doc = lade(text);
+  return mitVerlauf(text, TextSelection.atStart(doc).from, TextSelection.atEnd(doc).to);
+}
+
+function einSchritt(aus: EditorState, anText: string): void {
+  let zurueck = aus;
+  expect(undo(aus, (tr) => {
+    zurueck = aus.apply(tr);
+  })).toBe(true);
+  expect(speichere(zurueck.doc)).toBe(anText);
+  expect(zurueck.doc.textContent).toBe(aus.doc.textContent);
+}
+
 describe('model commands', () => {
   it('gives every bar command a model command and reads isActive from the model', () => {
     for (const eintrag of leistenEintraege()) {
@@ -324,5 +348,52 @@ describe('model commands', () => {
     const zustand = lauf(ART.fett, ausText('- one\n- two'));
     expect(speichere(zustand.doc)).toBe('- **one**\n- **two**');
     expect(speichere(lauf(ART.fett, ausText('one\n\ntwo')).doc)).toBe('**one**\n\n**two**');
+  });
+
+  it('undoes one command for strike, code, heading, and important', () => {
+    for (const [id, anText] of [
+      ['strich', '~~abc~~'],
+      [ART.code, '`abc`'],
+      [ART.ueberschrift, '= abc'],
+      [ART.wichtig, '!!abc!!'],
+    ] as const) {
+      const an = lauf(id, ganze('abc'));
+      expect(speichere(an.doc)).toBe(anText);
+      expect(an.doc.textContent).toBe('abc');
+      const aus = lauf(id, an);
+      expect(speichere(aus.doc)).toBe('abc');
+      einSchritt(aus, anText);
+    }
+
+    let block = ganze('a\nb');
+    block = lauf(ART.code, block);
+    const codeAn = speichere(block.doc);
+    expect(codeAn).toBe('```\na\nb\n```');
+    const innen = fund(block.doc, 'a') + 1;
+    block = block.apply(block.tr.setSelection(TextSelection.create(block.doc, innen)).setMeta('addToHistory', false));
+    const codeAus = lauf(ART.code, block);
+    expect(speichere(codeAus.doc)).toBe('a\nb');
+    einSchritt(codeAus, codeAn);
+
+    const doc = lade('eins ');
+    let zeile = mitVerlauf('eins ', TextSelection.atEnd(doc).from);
+    zeile = lauf(ART.wichtig, zeile);
+    expect(zeile.doc.child(0).type.name).toBe('wichtigZeile');
+    expect(zeile.doc.textContent).toBe('eins ');
+    const zeileAn = speichere(zeile.doc);
+    expect(zeileAn).toBe('!!!! eins ');
+    const zeileAus = lauf(ART.wichtig, zeile);
+    expect(zeileAus.doc.child(0).type.name).toBe('wichtigZeile');
+    expect(zeileAus.doc.child(1).type.name).toBe('absatz');
+    einSchritt(zeileAus, zeileAn);
+
+    let kopf = mitVerlauf('eins ', TextSelection.atEnd(doc).from);
+    kopf = lauf(ART.ueberschrift, kopf);
+    const kopfAn = speichere(kopf.doc);
+    expect(kopfAn).toBe('= eins ');
+    const kopfAus = lauf(ART.ueberschrift, kopf);
+    expect(kopfAus.doc.child(0).type.name).toBe('ueberschrift');
+    expect(kopfAus.doc.child(1).type.name).toBe('absatz');
+    einSchritt(kopfAus, kopfAn);
   });
 });

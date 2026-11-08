@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { TEXTE } from '../../../../shared/kern/texte.ts';
 import type { EditorView as ModellAnsicht } from 'prosemirror-view';
 import { leistenEintraege, type FormatBefehl } from '../../../../shared/features/format/index.ts';
+import { formatImCodeblockGesperrt } from '../../../../shared/features/format/modellbefehl.ts';
 import { NUMMER_KNOPF } from '../../../../shared/features/format/nummer.ts';
 import {
   HINDERNIS,
@@ -162,6 +163,7 @@ export function Leiste(props: LeistenProps) {
       {leistenEintraege().map((eintrag) => {
         const knopf = eintrag.knopf;
         const an = !knopf.gedrueckt ? false : (eintrag.modell?.isActive(view.state) ?? false);
+        const gesperrt = formatImCodeblockGesperrt(eintrag.id, view.state);
         return (
           <button
             key={eintrag.id}
@@ -170,8 +172,10 @@ export function Leiste(props: LeistenProps) {
             aria-label={knopf.beschriftung}
             title={knopf.beschriftung}
             aria-pressed={knopf.gedrueckt ? an : undefined}
+            aria-disabled={gesperrt ? true : undefined}
             onPointerDown={(event) => event.preventDefault()}
             onClick={() => {
+              if (formatImCodeblockGesperrt(eintrag.id, view.state)) return;
               if (eintrag.knopf.ziel) {
                 props.onZiel?.();
                 return;
