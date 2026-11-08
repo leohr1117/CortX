@@ -11,6 +11,7 @@ interface Paar {
 }
 
 const FLUCHT = 'fluchtMark';
+const TIPP_PAAR: readonly Paar[] = [{ marker: '==', marke: ART.wichtig }];
 
 function paare(): Paar[] {
   const aus: Paar[] = [];
@@ -19,6 +20,11 @@ function paare(): Paar[] {
       if (!paar.knopf || paar.marker.length === 0) continue;
       aus.push({ marker: paar.marker, marke: format.id });
     }
+  }
+  for (const paar of TIPP_PAAR) {
+    if (paar.marker.length === 0) continue;
+    if (aus.some((bekannt) => bekannt.marker === paar.marker)) continue;
+    aus.push(paar);
   }
   aus.sort((a, b) => b.marker.length - a.marker.length || a.marke.localeCompare(b.marke));
   return aus;
