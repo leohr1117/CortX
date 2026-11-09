@@ -59,11 +59,11 @@ test('combined formatting shows together on a phone', async ({ page }, testInfo)
 
     await page.getByRole('button', { name: 'Edit' }).click();
     const leiste = page.getByRole('toolbar', { name: 'Format' });
-    await expect(leiste.getByRole('button', { name: 'Important' })).toHaveAttribute('title', 'Important');
-    await expect(leiste.getByRole('button', { name: 'Checklist' })).toHaveAttribute('title', 'Checklist');
-    await expect(leiste.getByRole('button', { name: 'Bulleted list' })).toHaveAttribute('title', 'Bulleted list');
-    await expect(leiste.getByRole('button', { name: 'Bold' })).toHaveAttribute('title', 'Bold');
-    await expect(leiste.getByRole('button', { name: 'Link' })).toHaveAttribute('title', 'Link');
+    await expect(leiste.getByRole('button', { name: 'Important' })).toHaveAttribute('title', 'Important (Ctrl+Shift+1)');
+    await expect(leiste.getByRole('button', { name: 'Checklist' })).toHaveAttribute('title', 'Checklist (Ctrl+Shift+U)');
+    await expect(leiste.getByRole('button', { name: 'Bulleted list' })).toHaveAttribute('title', 'Bulleted list (Ctrl+Shift+L)');
+    await expect(leiste.getByRole('button', { name: 'Bold' })).toHaveAttribute('title', 'Bold (Ctrl+B)');
+    await expect(leiste.getByRole('button', { name: 'Link' })).toHaveAttribute('title', 'Link (Ctrl+K)');
     await expect(page.locator('.schreib .cm-fett.cm-kursiv', { hasText: 'Test' })).toBeVisible();
     await expect(page.locator('.schreib .cm-strich.cm-fett', { hasText: 'z' })).toBeVisible();
     await expect(page.locator('.schreib .cm-wichtig.cm-fett', { hasText: 'fett' })).toBeVisible();

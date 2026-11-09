@@ -22,6 +22,7 @@ import { haengeModell, loeseModell } from './modellHaken.ts';
 import { zustandNach } from './modellLauf.ts';
 import { knotenAnsichten, markenAnsichten, schichtenPlugin } from './modellSicht.ts';
 import { formatTasten } from './modellTasten.ts';
+import { wichtigTastenPlugin } from './wichtigTaste.ts';
 import { buchstabenBleibenText } from '../capture/buchstabeAbsatz.ts';
 import { erfassenTasten } from '../capture/erfassenTaste.ts';
 import { tagDekoPlugin } from '../capture/tagDeko.ts';
@@ -117,6 +118,7 @@ export function ModellEditor({
         ...inlinePlugins(),
         ...randPlugins(),
         keymap({ 'Mod-z': undo, 'Mod-y': redo, 'Shift-Mod-z': redo }),
+        wichtigTastenPlugin(() => onLinkRef.current?.()),
         keymap(formatTasten(() => onLinkRef.current?.())),
         ...modellEingabe(),
         modellAblage(),

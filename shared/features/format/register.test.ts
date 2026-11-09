@@ -27,6 +27,7 @@ describe('format register', () => {
       'Mod-b',
       'Mod-i',
       'Mod-Shift-x',
+      'Mod-!',
       'Mod-e',
       'Mod-Shift-h',
       'Mod-Shift-l',

@@ -61,6 +61,31 @@ function spanneVon(view: ModellAnsicht | null): Spanne | null {
   return { empty: sel.empty, head: sel.head, from: sel.from, to: sel.to };
 }
 
+function macBefehl(): boolean {
+  return typeof navigator !== 'undefined' && /Mac|iP(hone|[oa]d)/.test(navigator.platform);
+}
+
+function tasteAnzeige(taste: string): { titel: string; aria: string } {
+  const teile = taste.split('-');
+  const zeichen = teile[teile.length - 1] ?? '';
+  const mac = macBefehl();
+  const name = (zeichen === '!' ? '1' : zeichen).toUpperCase();
+  const schicht = teile.includes('Shift') || zeichen === '!';
+  const titel = [
+    teile.includes('Mod') ? (mac ? 'Cmd' : 'Ctrl') : '',
+    teile.includes('Alt') ? (mac ? 'Option' : 'Alt') : '',
+    schicht ? 'Shift' : '',
+    name,
+  ].filter((teil) => teil.length > 0);
+  const aria = [
+    teile.includes('Mod') ? (mac ? 'Meta' : 'Control') : '',
+    teile.includes('Alt') ? 'Alt' : '',
+    schicht ? 'Shift' : '',
+    name,
+  ].filter((teil) => teil.length > 0);
+  return { titel: titel.join('+'), aria: aria.join('+') };
+}
+
 export function Leiste(props: LeistenProps) {
   const view = props.view;
   const stand = props.stand;
@@ -164,13 +189,15 @@ export function Leiste(props: LeistenProps) {
         const knopf = eintrag.knopf;
         const an = !knopf.gedrueckt ? false : (eintrag.modell?.isActive(view.state) ?? false);
         const gesperrt = formatImCodeblockGesperrt(eintrag.id, view.state);
+        const anzeige = knopf.taste ? tasteAnzeige(knopf.taste) : null;
         return (
           <button
             key={eintrag.id}
             type="button"
             className={['schalt', knopf.klasse, an ? 'an' : ''].filter(Boolean).join(' ')}
             aria-label={knopf.beschriftung}
-            title={knopf.beschriftung}
+            title={anzeige ? `${knopf.beschriftung} (${anzeige.titel})` : knopf.beschriftung}
+            aria-keyshortcuts={anzeige?.aria}
             aria-pressed={knopf.gedrueckt ? an : undefined}
             aria-disabled={gesperrt ? true : undefined}
             onPointerDown={(event) => event.preventDefault()}

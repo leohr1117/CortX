@@ -211,7 +211,7 @@ const FORMAT_ROH: readonly RohEintrag[] = [
       paare: [{ art: ART.wichtig, marker: WICHTIG_INLINE, knopf: true, folge: 1 }],
       zeile: WICHTIG_ZEILE,
     },
-    knopf: { zeichen: '', beschriftung: TEXTE.wichtigKnopf, pfade: WICHTIG_PFAD, gedrueckt: true },
+    knopf: { zeichen: '', beschriftung: TEXTE.wichtigKnopf, pfade: WICHTIG_PFAD, gedrueckt: true, taste: 'Mod-!' },
     vorschau: { art: ART.wichtig, klasse: 'cm-wichtig', rang: 8, tag: 'mark' },
     get run() { return alsBefehl(ART.wichtig, schalteWichtig); },
     get isActive() { return aktivWichtig; },

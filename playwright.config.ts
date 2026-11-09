@@ -39,7 +39,10 @@ export default defineConfig({
     {
       name: 'abnahme-handy',
       testMatch: /[/\\]abnahme[/\\].*\.spec\.ts$/,
-      testIgnore: /[/\\]abnahme[/\\]desktop\.spec\.ts$/,
+      testIgnore: [
+        /[/\\]abnahme[/\\]desktop\.spec\.ts$/,
+        /[/\\]abnahme[/\\]desktop-folge\.spec\.ts$/,
+      ],
       snapshotPathTemplate: '{testDir}/__bilder__/{projectName}/{arg}{ext}',
       use: { ...devices['Pixel 7'], serviceWorkers: 'block' },
     },
