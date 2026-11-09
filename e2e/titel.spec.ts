@@ -70,10 +70,11 @@ test('a paragraph on the first line is the title in the list and the header', as
   await page.screenshot({ path: `${BILDER}/${testInfo.project.name}-titel-liste.png` });
 
   await karte.locator('a.tx').click();
-  const kopf = page.getByRole('heading', { level: 1 });
-  await expect(kopf).toHaveText(`${thema} > ${sichtbar}`);
+  const kopf = page.locator('.kopf').getByRole('heading', { level: 1 });
+  await expect(kopf).toHaveText(thema);
   await expect(page.locator('.lesetext h2.titel')).toHaveCount(0);
-  await expect(page.locator('.lesetext')).toContainText(sichtbar);
+  const blatt = await page.locator('main.notizblatt').innerText();
+  expect(blatt.split(sichtbar).length - 1).toBe(1);
   await expect(page.locator('.lesetext')).not.toContainText('**');
   await ohneSeitlichenUeberlauf(page);
   const zurueck = page.getByRole('button', { name: 'Back' });
@@ -91,7 +92,9 @@ test('a paragraph on the first line is the title in the list and the header', as
 
   await zurueck.click();
   await seitenkarte.locator('a.tx').click();
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText(`${thema} > Liste`);
+  await expect(page.locator('.kopf').getByRole('heading', { level: 1 })).toHaveText(thema);
+  const abschnittBlatt = await page.locator('main.notizblatt').innerText();
+  expect(abschnittBlatt.split('Liste').length - 1).toBe(1);
   const verzeichnis = page.getByRole('navigation', { name: 'On this page' });
   await expect(verzeichnis.getByRole('link')).toHaveText(['Dairy']);
   await expect(page.locator('.lesetext h2.titel')).toHaveCount(0);

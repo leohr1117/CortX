@@ -82,7 +82,7 @@ test('a shorthand path shows the target and files into the section', async ({ pa
   await expect(page.getByRole('heading', { name: 'school', level: 1 })).toBeVisible();
   await page.locator(`#note-${id} a.tx`).click();
   await expect(page).toHaveURL(/\/library\/note\?id=\d+/);
-  await expect(page.getByRole('heading', { level: 1, name: 'school > Deutsch LK' })).toBeVisible();
+  await expect(page.locator('.kopf').getByRole('heading', { level: 1, name: 'school', exact: true })).toBeVisible();
   const verzeichnis = page.getByRole('navigation', { name: 'On this page' });
   await expect(verzeichnis.getByRole('link')).toHaveText(['Analysis']);
   await expect(page.locator('#abschnitt-0')).toHaveText('Analysis');

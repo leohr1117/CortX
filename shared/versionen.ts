@@ -6,6 +6,11 @@ interface Versionseintrag {
 
 export const VERSIONEN: readonly Versionseintrag[] = [
   {
+    version: '1.14.3',
+    datum: '2026-11-09',
+    zeilen: ['The note header now shows only the topic, and on iPad in window mode the back button is no longer covered.'],
+  },
+  {
     version: '1.14.2',
     datum: '2026-11-06',
     zeilen: ['Internal cleanup, nothing changes for you.'],

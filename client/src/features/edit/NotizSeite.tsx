@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type ComponentType } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { ablageZeile, planeNotizText, textMeldung } from '../../../../shared/features/edit/index.ts';
 import { schalteKasten } from '../../../../shared/features/format/index.ts';
-import { abschnittNamen, pfadText, seitentitel } from '../../../../shared/features/seiten/index.ts';
+import { abschnittNamen } from '../../../../shared/features/seiten/index.ts';
 import type { Notiz } from '../../../../shared/kern/modell.ts';
 import { TEXTE } from '../../../../shared/kern/texte.ts';
 import { AugeIcon, StiftIcon } from '../../ui/icons.tsx';
@@ -256,7 +256,6 @@ export function NotizSeite() {
   }
 
   const zeile = notiz ? ablageZeile(notiz, new Date()) : '';
-  const pfad = notiz ? pfadText(notiz.topic, seitentitel(feld) || TEXTE.unbenannt) : undefined;
   const namen = notiz && modus === 'lesen' ? abschnittNamen(feld) : [];
   const EditorFeld = schreibFeld;
   const aktion = notiz ? (
@@ -286,7 +285,14 @@ export function NotizSeite() {
 
   return (
     <div className="app">
-      <Kopf titel={pfad} zurueck="/library" zurueckLabel={TEXTE.zurueck} onZurueck={() => void zurueck()} aktion={aktion} />
+      <Kopf
+        titel={notiz?.topic}
+        zurueck="/library"
+        zurueckLabel={TEXTE.zurueck}
+        onZurueck={() => void zurueck()}
+        aktion={aktion}
+        fenster
+      />
       <main className={modus === 'schreiben' ? 'inhalt rolle notizblatt schreiben' : 'inhalt rolle notizblatt'}>
         {fehler && !notiz ? <p className="leer1">{fehler}</p> : null}
         {notiz && modus === 'lesen' ? (

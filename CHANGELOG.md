@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.14.3
+
+The note header now shows only the topic, and on iPad in window mode the back button is no longer covered.
+
 ## 1.14.2
 
 Internal cleanup, nothing changes for you.

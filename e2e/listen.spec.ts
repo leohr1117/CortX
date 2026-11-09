@@ -142,7 +142,9 @@ async function seiteScrollt(page: Page): Promise<void> {
   await page.screenshot({ path: `${BILDER}/handy-seiten-scroll.png` });
   await tippeZeile(page, liste, letzte);
   await expect(page).toHaveURL(/\/library\/note\?id=\d+/);
-  await expect(page.getByRole('heading', { level: 1 })).toContainText(LETZTE_SEITE);
+  await expect(page.locator('.kopf').getByRole('heading', { level: 1, name: 'Topic01', exact: true })).toBeVisible();
+  const blatt = await page.locator('main.notizblatt').innerText();
+  expect(blatt.split(LETZTE_SEITE).length - 1).toBe(1);
 }
 
 test('a long page list scrolls by touch on a phone', async ({ page }, testInfo) => {

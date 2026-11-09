@@ -69,7 +69,7 @@ test('change picker lists topics and closes without a move', async ({ page }, te
   await expect(page.getByRole('status')).toContainText('Home');
   await expect(page.getByRole('button', { name: 'Change' })).toHaveCount(0);
   await oeffneSeite(page, 'Home', 'Pay the rent');
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Home > Pay the rent');
+  await expect(page.locator('.kopf').getByRole('heading', { level: 1 })).toHaveText('Home');
   const dialog = await wechsle(page);
   await expect(dialog.getByLabel('Search topics')).toBeFocused();
   await expect(dialog.locator('.wz.sel .n')).toHaveText('Home');
@@ -87,7 +87,7 @@ test('change picker lists topics and closes without a move', async ({ page }, te
   await page.screenshot({ path: `tmp-test/screens/${testInfo.project.name}-03b-change.png` });
   await page.keyboard.press('Escape');
   await expect(dialog).toHaveCount(0);
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Home > Pay the rent');
+  await expect(page.locator('.kopf').getByRole('heading', { level: 1 })).toHaveText('Home');
   await expect(page).toHaveURL(/\/library\/note\?id=\d+/);
 });
 
@@ -224,12 +224,12 @@ test('change moves the note onto an existing or new topic', async ({ page }, tes
   await expect(page.getByRole('status')).toContainText('Added to');
   await expect(page.getByRole('status')).toContainText('Home');
   await oeffneSeite(page, 'Home', 'Move me');
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Home > Move me');
+  await expect(page.locator('.kopf').getByRole('heading', { level: 1 })).toHaveText('Home');
 
   let dialog = await wechsle(page);
   await page.getByRole('button', { name: 'Close' }).click();
   await expect(dialog).toHaveCount(0);
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Home > Move me');
+  await expect(page.locator('.kopf').getByRole('heading', { level: 1 })).toHaveText('Home');
 
   dialog = await wechsle(page);
   await page.locator('.scrim').click({ position: { x: 8, y: 8 } });
@@ -239,12 +239,12 @@ test('change moves the note onto an existing or new topic', async ({ page }, tes
   await page.goBack();
   await expect(dialog).toHaveCount(0);
   await expect(page).toHaveURL(/\/library\/note\?id=\d+/);
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Home > Move me');
+  await expect(page.locator('.kopf').getByRole('heading', { level: 1 })).toHaveText('Home');
 
   dialog = await wechsle(page);
   await dialog.getByRole('option', { name: /^Work\b/ }).click();
   await expect(dialog).toHaveCount(0);
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Work > Move me');
+  await expect(page.locator('.kopf').getByRole('heading', { level: 1 })).toHaveText('Work');
   await expect(page.locator('.ablage')).toContainText('via #work');
 
   dialog = await wechsle(page);

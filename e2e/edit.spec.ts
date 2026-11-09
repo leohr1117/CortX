@@ -31,7 +31,7 @@ async function vollstaendig(ziel: Locator): Promise<void> {
 async function oeffne(page: Page, text: string): Promise<void> {
   await page.locator('.notiz', { hasText: text }).locator('a.tx').click();
   await expect(page).toHaveURL(/\/library\/note\?id=\d+/);
-  await expect(page.getByRole('heading', { level: 1 })).toContainText(text);
+  await expect(page.locator('.kopf').getByRole('heading', { level: 1, name: 'Work', exact: true })).toBeVisible();
 }
 
 test.beforeAll(() => {
@@ -87,7 +87,7 @@ test('a note opens for reading and continues as a writing surface', async ({ pag
     await expect(page.getByRole('heading', { name: 'Work', level: 1, exact: true })).toBeVisible();
 
     await oeffne(page, 'Sprint summary');
-    await expect(page.getByRole('heading', { level: 1, name: 'Work > Sprint summary' })).toBeVisible();
+    await expect(page.locator('.kopf').getByRole('heading', { level: 1, name: 'Work', exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Save' })).toHaveCount(0);
     await expect(page.locator('label')).toHaveCount(0);
     await expect(page.getByText('Topic', { exact: true })).toHaveCount(0);
