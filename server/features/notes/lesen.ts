@@ -1,9 +1,13 @@
 import type { DatabaseSync } from 'node:sqlite';
+import { DOKUMENT_SCHEMA_VERSION, pruefeDokument } from '../../../shared/features/format/dokument.ts';
+import { exportiere, importiere } from '../../../shared/features/format/md.ts';
 import type { NoteSource, Notiz } from '../../../shared/kern/modell.ts';
 
 export interface NotizZeile {
   id: number;
   text: string;
+  doc: unknown;
+  docJson: string;
   created: string;
   topicId: number;
   topic: string;
@@ -17,7 +21,7 @@ export interface NotizZeile {
 const SELECT = `
   SELECT
     "note".id AS id,
-    "note".text AS text,
+    "note".doc AS docJson,
     "note".created AS created,
     "note".topic_id AS topicId,
     "topic".name AS topic,
@@ -30,15 +34,58 @@ const SELECT = `
   JOIN "topic" ON "topic".id = "note".topic_id
 `;
 
+export function dokumentAusText(text: string): Record<string, unknown> {
+  const json = importiere(text).toJSON() as Record<string, unknown>;
+  const doc = { ...json, schema_version: DOKUMENT_SCHEMA_VERSION };
+  if (!pruefeDokument(doc)) throw new Error('Imported note is not a document.');
+  return doc;
+}
+
+export function spalteAusText(text: string): string {
+  return JSON.stringify(dokumentAusText(text));
+}
+
+export function textAusDokument(doc: unknown): string | null {
+  const knoten = pruefeDokument(doc);
+  if (!knoten) return null;
+  return exportiere(knoten);
+}
+
+export function textAusSpalte(spalte: string): string {
+  let wert: unknown;
+  try {
+    wert = JSON.parse(spalte);
+  } catch {
+    throw new Error('Stored note document is invalid.');
+  }
+  const text = textAusDokument(wert);
+  if (text === null) throw new Error('Stored note document is invalid.');
+  return text;
+}
+
 function zeile(roh: unknown): NotizZeile | null {
   if (!roh || typeof roh !== 'object') return null;
-  const wert = roh as NotizZeile;
+  const wert = roh as NotizZeile & { docJson?: unknown };
+  const docJson = typeof wert.docJson === 'string' ? wert.docJson : '';
+  let doc: unknown;
+  try {
+    doc = JSON.parse(docJson);
+  } catch {
+    return null;
+  }
+  const text = textAusDokument(doc);
+  if (text === null) return null;
   return {
-    ...wert,
     id: Number(wert.id),
+    text,
+    doc,
+    docJson,
+    created: wert.created,
     topicId: Number(wert.topicId),
-    pinned: Number(wert.pinned),
+    topic: wert.topic,
+    source: wert.source,
     aiConfidence: wert.aiConfidence === null || wert.aiConfidence === undefined ? null : Number(wert.aiConfidence),
+    pinned: Number(wert.pinned),
     clientId: wert.clientId ?? null,
     version: Number(wert.version ?? 1),
   };
@@ -48,6 +95,7 @@ export function alsNotiz(wert: NotizZeile): Notiz {
   return {
     id: wert.id,
     text: wert.text,
+    doc: wert.doc,
     created: wert.created,
     topic: wert.topic,
     source: wert.source,

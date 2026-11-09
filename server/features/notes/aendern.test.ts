@@ -5,10 +5,11 @@ import type { DatabaseSync } from 'node:sqlite';
 import { NOTE_TEXT_MAX, SPEICHER } from '../../../shared/kern/grenzen.ts';
 import { oeffneDatenbank } from '../../kern/db.ts';
 import { oeffneAngemeldet } from '../zugang/attrappe.ts';
+import { dokumentAusText, spalteAusText, textAusSpalte } from './lesen.ts';
 
 interface NotizFest {
   id: number;
-  text: string;
+  doc: string;
   created: string;
   topic_id: number;
   source: string;
@@ -47,7 +48,7 @@ describe('note edit and delete', () => {
   function fest(db: DatabaseSync, id: number): NotizFest {
     return db
       .prepare(
-        `SELECT id, text, created, topic_id, source, ai_confidence, client_id, pinned
+        `SELECT id, doc, created, topic_id, source, ai_confidence, client_id, pinned
          FROM "note" WHERE id = ?`,
       )
       .get(id) as unknown as NotizFest;
@@ -82,7 +83,7 @@ describe('note edit and delete', () => {
     const gleich = await server.inject({
       method: 'POST',
       url: `/api/notes/${id}`,
-      payload: { text: vorher.text, version: 1 },
+      payload: { text: textAusSpalte(vorher.doc), version: 1 },
     });
     expect(gleich.statusCode).toBe(200);
     expect(fest(db, id)).toEqual(vorher);
@@ -95,7 +96,7 @@ describe('note edit and delete', () => {
     expect(gespeichert.statusCode).toBe(200);
     expect(gespeichert.json()).toMatchObject({ id, text: 'Call tomorrow, bring the notes  ', topic: 'Inbox' });
     const nachher = fest(db, id);
-    expect(nachher).toEqual({ ...vorher, text: 'Call tomorrow, bring the notes  ' });
+    expect(nachher).toEqual({ ...vorher, doc: spalteAusText('Call tomorrow, bring the notes  ') });
     expect(korrekturen(db)).toEqual(korrekturVorher);
   });
 
@@ -194,5 +195,75 @@ describe('note edit and delete', () => {
       400,
     );
     expect((await server.inject({ method: 'POST', url: '/api/notes/9/delete' })).statusCode).toBe(404);
+  });
+
+  it('rounds a document through create, read, move, save, and undo', async () => {
+    const { server, db } = await paar();
+    const doc = dokumentAusText('Round trip note');
+    const angelegt = await server.inject({ method: 'POST', url: '/api/notes', payload: { doc } });
+    expect(angelegt.statusCode).toBe(201);
+    const id = angelegt.json().id as number;
+    expect(angelegt.json()).toMatchObject({ text: 'Round trip note', doc, topic: 'Inbox' });
+    const gelesen = await server.inject({ method: 'GET', url: `/api/notes/${id}` });
+    expect(gelesen.statusCode).toBe(200);
+    expect(gelesen.json()).toMatchObject({ id, text: 'Round trip note', doc });
+    const verschoben = await server.inject({
+      method: 'POST',
+      url: `/api/notes/${id}/move`,
+      payload: { topic: 'Home' },
+    });
+    expect(verschoben.statusCode).toBe(200);
+    expect(verschoben.json()).toMatchObject({ id, text: 'Round trip note', doc, topic: 'Home' });
+    const neu = dokumentAusText('Updated round trip');
+    const gespeichert = await server.inject({
+      method: 'POST',
+      url: `/api/notes/${id}`,
+      payload: { doc: neu, version: 1 },
+    });
+    expect(gespeichert.statusCode).toBe(200);
+    expect(gespeichert.json()).toMatchObject({ id, text: 'Updated round trip', doc: neu, topic: 'Home' });
+    const weg = await server.inject({ method: 'POST', url: `/api/notes/${id}/delete` });
+    expect(weg.statusCode).toBe(200);
+    const zurueck = await server.inject({
+      method: 'POST',
+      url: '/api/notes/undo',
+      payload: { token: weg.json().token },
+    });
+    expect(zurueck.statusCode).toBe(200);
+    expect(zurueck.json()).toMatchObject({ id, text: 'Updated round trip', doc: neu, topic: 'Home' });
+    expect((db.prepare('SELECT doc FROM "note" WHERE id = ?').get(id) as { doc: string }).doc).toBe(
+      spalteAusText('Updated round trip'),
+    );
+  });
+
+  it('rejects a broken document and still accepts text', async () => {
+    const { server, db } = await paar();
+    const kaputt = await server.inject({
+      method: 'POST',
+      url: '/api/notes',
+      payload: { doc: { schema_version: 1, type: 'doc', content: 'nope' } },
+    });
+    expect(kaputt.statusCode).toBe(400);
+    expect(db.prepare('SELECT COUNT(*) AS n FROM "note"').get()).toEqual({ n: 0 });
+    const beides = await server.inject({
+      method: 'POST',
+      url: '/api/notes',
+      payload: { text: 'Buy milk', doc: { schema_version: 99, type: 'doc', content: [] } },
+    });
+    expect(beides.statusCode).toBe(400);
+    expect(db.prepare('SELECT COUNT(*) AS n FROM "note"').get()).toEqual({ n: 0 });
+    const text = await server.inject({ method: 'POST', url: '/api/notes', payload: { text: 'Buy milk' } });
+    expect(text.statusCode).toBe(201);
+    expect(text.json()).toMatchObject({ text: 'Buy milk', doc: dokumentAusText('Buy milk') });
+    const id = text.json().id as number;
+    const schlecht = await server.inject({
+      method: 'POST',
+      url: `/api/notes/${id}`,
+      payload: { doc: { type: 'doc' }, version: 1 },
+    });
+    expect(schlecht.statusCode).toBe(400);
+    expect(textAusSpalte((db.prepare('SELECT doc FROM "note" WHERE id = ?').get(id) as { doc: string }).doc)).toBe(
+      'Buy milk',
+    );
   });
 });

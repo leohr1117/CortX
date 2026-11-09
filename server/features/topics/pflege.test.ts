@@ -4,6 +4,7 @@ import type { FastifyInstance } from 'fastify';
 import type { DatabaseSync } from 'node:sqlite';
 import { TOPIC_NAME_MAX, SPEICHER } from '../../../shared/kern/grenzen.ts';
 import { oeffneDatenbank } from '../../kern/db.ts';
+import { spalteAusText } from '../notes/lesen.ts';
 import { oeffneAngemeldet } from '../zugang/attrappe.ts';
 
 function bestand(db: DatabaseSync) {
@@ -11,7 +12,7 @@ function bestand(db: DatabaseSync) {
     topics: db.prepare('SELECT id, name, name_key, created FROM "topic" ORDER BY id').all(),
     notes: db
       .prepare(
-        'SELECT id, text, created, topic_id, source, ai_confidence, client_id, pinned FROM "note" ORDER BY id',
+        'SELECT id, doc, created, topic_id, source, ai_confidence, client_id, pinned FROM "note" ORDER BY id',
       )
       .all(),
     corrections: db
@@ -172,16 +173,16 @@ describe('topic maintenance api', () => {
     expect(koerper).toMatchObject({ from: 'Work', into: 'Ideas', count: 2 });
     expect(db.prepare('SELECT id FROM "topic" WHERE name = ?').get('Work')).toBeUndefined();
     const ideen = db.prepare('SELECT id FROM "topic" WHERE name = ?').get('Ideas') as { id: number };
-    const gewandert = db.prepare('SELECT topic_id, pinned, source, ai_confidence, client_id, text FROM "note" WHERE id = ?').get(
+    const gewandert = db.prepare('SELECT topic_id, pinned, source, ai_confidence, client_id, doc FROM "note" WHERE id = ?').get(
       fest,
-    ) as { topic_id: number; pinned: number; source: string; ai_confidence: number; client_id: string; text: string };
+    ) as { topic_id: number; pinned: number; source: string; ai_confidence: number; client_id: string; doc: string };
     expect(gewandert).toEqual({
       topic_id: ideen.id,
       pinned: 1,
       source: 'ai',
       ai_confidence: 0.4,
       client_id: clientId,
-      text: 'Pinned thought',
+      doc: spalteAusText('Pinned thought'),
     });
     expect((db.prepare('SELECT topic_id FROM "note" WHERE id = ?').get(lose) as { topic_id: number }).topic_id).toBe(
       ideen.id,

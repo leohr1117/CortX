@@ -5,6 +5,7 @@ import type { DatabaseSync } from 'node:sqlite';
 import { NOTE_TEXT_MAX, TOPIC_NAME_MAX, SPEICHER } from '../../../shared/kern/grenzen.ts';
 import { oeffneDatenbank } from '../../kern/db.ts';
 import { oeffneAngemeldet } from '../zugang/attrappe.ts';
+import { textAusSpalte } from './lesen.ts';
 
 describe('filing api', () => {
   const dbs: DatabaseSync[] = [];
@@ -242,7 +243,11 @@ describe('filing api', () => {
     const ende = await post(server, '#school/mathe First block');
     expect(ende.statusCode).toBe(200);
     expect(ende.json()).toMatchObject({ id, ziel: 'Mathe', text: 'Mathe\n\nLimits\n\nFirst block' });
-    expect(db.prepare('SELECT text, version FROM note_revision WHERE note_id = ?').all(id)).toEqual([
+    const revisionen = db.prepare('SELECT doc, version FROM note_revision WHERE note_id = ?').all(id) as Array<{
+      doc: string;
+      version: number;
+    }>;
+    expect(revisionen.map((zeile) => ({ text: textAusSpalte(zeile.doc), version: zeile.version }))).toEqual([
       { text: 'Mathe\n\nLimits', version: 1 },
     ]);
 
@@ -269,7 +274,7 @@ describe('filing api', () => {
     });
     expect(konflikt.statusCode).toBe(409);
     expect(konflikt.json()).toEqual({ error: 'This page changed. Reload it and try again.' });
-    expect((db.prepare('SELECT text FROM note WHERE id = ?').get(id) as { text: string }).text).toBe(mittenText);
+    expect(textAusSpalte((db.prepare('SELECT doc FROM note WHERE id = ?').get(id) as { doc: string }).doc)).toBe(mittenText);
 
     const zurueck = await server.inject({
       method: 'POST',
@@ -278,7 +283,9 @@ describe('filing api', () => {
     });
     expect(zurueck.statusCode).toBe(200);
     expect(zurueck.json().erfasst).toBe('#school/Mathe/Analysis Still');
-    expect((db.prepare('SELECT text FROM note WHERE id = ?').get(id) as { text: string }).text).toBe(beweise.json().text);
+    expect(textAusSpalte((db.prepare('SELECT doc FROM note WHERE id = ?').get(id) as { doc: string }).doc)).toBe(
+      beweise.json().text,
+    );
   });
 
   it('files one note onto several pages and undoes every part', async () => {
@@ -364,7 +371,9 @@ describe('filing api', () => {
     });
     expect(abschnittZurueck.statusCode).toBe(200);
     expect(abschnittZurueck.json().erfasst).toBe(abschnittRoh);
-    expect((db.prepare('SELECT text FROM "note" WHERE id = ?').get(neuId) as { text: string }).text).toBe(neuText);
+    expect(textAusSpalte((db.prepare('SELECT doc FROM "note" WHERE id = ?').get(neuId) as { doc: string }).doc)).toBe(
+      neuText,
+    );
     const bleiben = await server.inject({ method: 'GET', url: '/api/library/notes?topic=school' });
     expect((bleiben.json() as { notes: Array<{ text: string }> }).notes.map((notiz) => notiz.text)).toEqual([neuText]);
   });

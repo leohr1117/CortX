@@ -1,5 +1,7 @@
 import fs from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
+import { spalteAusText, textAusSpalte } from '../server/features/notes/lesen.ts';
+import { registriereSuchtext } from '../server/kern/db.ts';
 import { FESTE_UHR, festesDatum } from './ruhe.ts';
 
 interface Lauf {
@@ -81,9 +83,24 @@ function kontoId(db: DatabaseSync): string {
 function oeffne(): DatabaseSync {
   const lauf = JSON.parse(fs.readFileSync('tmp-test/e2e-server.json', 'utf8')) as Lauf;
   const db = new DatabaseSync(lauf.datenbank);
+  registriereSuchtext(db);
   db.exec('PRAGMA busy_timeout = 5000');
   db.exec('PRAGMA foreign_keys = ON');
   return db;
+}
+
+function notizAusSpalte(zeile: NotizZeile & { doc: string }): NotizZeile {
+  return {
+    id: zeile.id,
+    text: textAusSpalte(zeile.doc),
+    created: zeile.created,
+    topic_id: zeile.topic_id,
+    source: zeile.source,
+    ai_confidence: zeile.ai_confidence,
+    client_id: zeile.client_id,
+    pinned: zeile.pinned,
+    account_id: zeile.account_id,
+  };
 }
 
 function schreib(arbeit: (db: DatabaseSync) => void): void {
@@ -107,11 +124,13 @@ export function sichereBestand(): Bestand {
       topics: db
         .prepare('SELECT id, name, name_key, created, account_id FROM "topic" ORDER BY id')
         .all() as unknown as ThemaZeile[],
-      notes: db
-        .prepare(
-          'SELECT id, text, created, topic_id, source, ai_confidence, client_id, pinned, account_id FROM "note" ORDER BY id',
-        )
-        .all() as unknown as NotizZeile[],
+      notes: (
+        db
+          .prepare(
+            'SELECT id, doc, created, topic_id, source, ai_confidence, client_id, pinned, account_id FROM "note" ORDER BY id',
+          )
+          .all() as unknown as Array<NotizZeile & { doc: string }>
+      ).map(notizAusSpalte),
       corrections: db
         .prepare('SELECT id, note_id, from_topic_id, to_topic_id, created FROM "correction" ORDER BY id')
         .all() as unknown as KorrekturZeile[],
@@ -135,13 +154,13 @@ export function stelleBestand(bestand: Bestand): void {
       thema.run(zeile.id, zeile.name, zeile.name_key, zeile.created, zeile.account_id);
     }
     const notiz = db.prepare(
-      `INSERT INTO "note" (id, text, created, topic_id, source, ai_confidence, client_id, pinned, account_id)
+      `INSERT INTO "note" (id, doc, created, topic_id, source, ai_confidence, client_id, pinned, account_id)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     );
     for (const zeile of bestand.notes) {
       notiz.run(
         zeile.id,
-        zeile.text,
+        spalteAusText(zeile.text),
         zeile.created,
         zeile.topic_id,
         zeile.source,
@@ -170,7 +189,7 @@ export function setzeSchauspiel(themen: readonly SaatThema[]): void {
     db.prepare(`DELETE FROM "topic" WHERE account_id = ? AND name_key != 'inbox'`).run(konto);
     const einfuegen = db.prepare('INSERT INTO "topic" (name, name_key, created, account_id) VALUES (?, ?, ?, ?)');
     const notiz = db.prepare(
-      `INSERT INTO "note" (text, created, topic_id, source, ai_confidence, client_id, pinned, account_id)
+      `INSERT INTO "note" (doc, created, topic_id, source, ai_confidence, client_id, pinned, account_id)
        VALUES (?, ?, ?, ?, NULL, NULL, ?, ?)`,
     );
     const inbox = db.prepare(`SELECT id FROM "topic" WHERE name_key = 'inbox' AND account_id = ?`).get(konto) as
@@ -186,7 +205,7 @@ export function setzeSchauspiel(themen: readonly SaatThema[]): void {
         id = Number(info.lastInsertRowid);
       }
       for (const stueck of eintrag.notizen) {
-        notiz.run(stueck.text, stueck.created, id, stueck.source ?? 'manual', stueck.pinned ?? 0, konto);
+        notiz.run(spalteAusText(stueck.text), stueck.created, id, stueck.source ?? 'manual', stueck.pinned ?? 0, konto);
       }
     }
   });
@@ -207,10 +226,10 @@ export function setzeThema(name: string, notizen: readonly SaatNotiz[]): void {
     ).run(vorhanden.id, vorhanden.id, vorhanden.id);
     db.prepare('DELETE FROM "note" WHERE topic_id = ? AND account_id = ?').run(vorhanden.id, konto);
     const notiz = db.prepare(
-      `INSERT INTO "note" (text, created, topic_id, source, ai_confidence, client_id, pinned, account_id)
+      `INSERT INTO "note" (doc, created, topic_id, source, ai_confidence, client_id, pinned, account_id)
        VALUES (?, ?, ?, 'manual', NULL, NULL, 0, ?)`,
     );
-    for (const stueck of notizen) notiz.run(stueck.text, stueck.created, vorhanden.id, konto);
+    for (const stueck of notizen) notiz.run(spalteAusText(stueck.text), stueck.created, vorhanden.id, konto);
   });
 }
 
@@ -237,10 +256,10 @@ export function legeFremdeNotiz(text: string): FremdBesitz {
     }
     const notiz = db
       .prepare(
-        `INSERT INTO "note" (text, created, topic_id, source, ai_confidence, client_id, pinned, account_id)
+        `INSERT INTO "note" (doc, created, topic_id, source, ai_confidence, client_id, pinned, account_id)
          VALUES (?, ?, ?, 'manual', NULL, NULL, 0, ?)`,
       )
-      .run(text, jetzt, beleg.themaId, beleg.konto);
+      .run(spalteAusText(text), jetzt, beleg.themaId, beleg.konto);
     beleg.notizId = Number(notiz.lastInsertRowid);
   });
   return beleg;
@@ -274,10 +293,11 @@ export function setzeNotizZeiten(zeiten: readonly NotizZeit[]): void {
 export function erstellteFremdeNotiz(text: string): string | null {
   const db = oeffne();
   try {
-    const zeile = db
-      .prepare('SELECT created FROM "note" WHERE text = ? AND account_id = ?')
-      .get(text, FREMDES_KONTO) as { created: string } | undefined;
-    return zeile?.created ?? null;
+    const zeilen = db.prepare('SELECT doc, created FROM "note" WHERE account_id = ?').all(FREMDES_KONTO) as Array<{
+      doc: string;
+      created: string;
+    }>;
+    return zeilen.find((zeile) => textAusSpalte(zeile.doc) === text)?.created ?? null;
   } finally {
     db.close();
   }

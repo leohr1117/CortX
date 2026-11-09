@@ -8,7 +8,14 @@ import { AppFehler } from '../../kern/fehler.ts';
 import { transaktion } from '../../kern/db.ts';
 import { legeThemaAn, listeThemen, themaId } from '../topics/index.ts';
 import { listeSeiten } from './katalog.ts';
-import { alsNotiz, liesNotizNachClient, liesNotizNachId, liesNotizenFuerThema, type NotizZeile } from './lesen.ts';
+import {
+  alsNotiz,
+  liesNotizNachClient,
+  liesNotizNachId,
+  liesNotizenFuerThema,
+  spalteAusText,
+  type NotizZeile,
+} from './lesen.ts';
 
 const UNGUELTIG = TEXTE.notizUngueltig;
 const KONFLIKT = TEXTE.seiteKonflikt;
@@ -61,7 +68,7 @@ class SchonDa extends Error {
 }
 
 interface AltBild {
-  text: string;
+  doc: string;
   version: number;
 }
 
@@ -69,11 +76,11 @@ function haenge(db: DatabaseSync, seite: NotizZeile, block: string, abschnitt: s
   const text = haengeBlock(seite.text, block, abschnitt);
   pruefeLaenge(text);
   db.prepare(
-    `INSERT INTO "note_revision" (note_id, text, version, created, account_id) VALUES (?, ?, ?, ?, ?)`,
-  ).run(seite.id, seite.text, seite.version, new Date().toISOString(), kontoId);
+    `INSERT INTO "note_revision" (note_id, doc, version, created, account_id) VALUES (?, ?, ?, ?, ?)`,
+  ).run(seite.id, seite.docJson, seite.version, new Date().toISOString(), kontoId);
   const geschrieben = db
-    .prepare('UPDATE "note" SET text = ?, version = version + 1 WHERE id = ? AND account_id = ? AND version = ?')
-    .run(text, seite.id, kontoId, seite.version);
+    .prepare('UPDATE "note" SET doc = ?, version = version + 1 WHERE id = ? AND account_id = ? AND version = ?')
+    .run(spalteAusText(text), seite.id, kontoId, seite.version);
   if (Number(geschrieben.changes) !== 1) throw new AppFehler(409, KONFLIKT);
   const neu = liesNotizNachId(db, seite.id, kontoId);
   if (!neu) throw new AppFehler(500, TEXTE.nichtAblegen);
@@ -92,10 +99,10 @@ function legeNeu(
   try {
     const info = db
       .prepare(
-        `INSERT INTO "note" (text, created, topic_id, source, ai_confidence, client_id, pinned, account_id)
+        `INSERT INTO "note" (doc, created, topic_id, source, ai_confidence, client_id, pinned, account_id)
          VALUES (?, ?, ?, ?, NULL, ?, 0, ?)`,
       )
-      .run(text, new Date().toISOString(), topicId, source, clientId, kontoId);
+      .run(spalteAusText(text), new Date().toISOString(), topicId, source, clientId, kontoId);
     const zeile = liesNotizNachId(db, Number(info.lastInsertRowid), kontoId);
     if (!zeile) throw new AppFehler(500, TEXTE.nichtAblegen);
     return zeile;
@@ -144,7 +151,7 @@ export function legeAb(db: DatabaseSync, roh: string, clientId: string | null, k
               throw new AppFehler(400, LEER);
             }
             if (!neuIds.has(seite.id) && !alt.has(seite.id)) {
-              alt.set(seite.id, { text: seite.text, version: seite.version });
+              alt.set(seite.id, { doc: seite.docJson, version: seite.version });
             }
             const neu = haenge(db, seite, ziel.text, ziel.abschnitt, kontoId);
             letzte = neu;
@@ -165,16 +172,16 @@ export function legeAb(db: DatabaseSync, roh: string, clientId: string | null, k
       throw fehler;
     }
     if (!letzte) throw new AppFehler(500, TEXTE.nichtAblegen);
-    const schritte: Array<{ art: 'anhaengen' | 'anlegen'; id: number; text: string; version: number; nachher?: number }> = [];
+    const schritte: Array<{ art: 'anhaengen' | 'anlegen'; id: number; doc: string; version: number; nachher?: number }> = [];
     for (const [id, bild] of alt) {
       const zeile = liesNotizNachId(db, id, kontoId);
       if (!zeile) throw new AppFehler(500, TEXTE.nichtAblegen);
-      schritte.push({ art: 'anhaengen', id, text: bild.text, version: bild.version, nachher: zeile.version });
+      schritte.push({ art: 'anhaengen', id, doc: bild.doc, version: bild.version, nachher: zeile.version });
     }
     for (const id of neuIds) {
       const zeile = liesNotizNachId(db, id, kontoId);
       if (!zeile) throw new AppFehler(500, TEXTE.nichtAblegen);
-      schritte.push({ art: 'anlegen', id, text: zeile.text, version: zeile.version });
+      schritte.push({ art: 'anlegen', id, doc: zeile.docJson, version: zeile.version });
     }
     return {
       notiz: alsNotiz(letzte),

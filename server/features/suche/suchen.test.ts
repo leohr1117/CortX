@@ -1,10 +1,10 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { DatabaseSync } from 'node:sqlite';
+import type { DatabaseSync } from 'node:sqlite';
 import type { FastifyInstance } from 'fastify';
 import { SUCH_LIMIT, SUCH_MAX } from '../../../shared/features/suche/index.ts';
 import { SPEICHER } from '../../../shared/kern/grenzen.ts';
 import { migriere, oeffneDatenbank } from '../../kern/db.ts';
-import { migrationsSql } from '../../kern/migrationen.ts';
+import { spalteAusText, textAusSpalte } from '../notes/lesen.ts';
 import { PROBE_KONTO, oeffneAngemeldet } from '../zugang/attrappe.ts';
 import { sucheNotizen } from './index.ts';
 
@@ -47,10 +47,12 @@ describe('note search', () => {
   }
 
   function indexGanz(db: DatabaseSync): void {
-    db.prepare("INSERT INTO note_fts(note_fts) VALUES ('integrity-check')").run();
-    const notizen = db.prepare('SELECT count(*) AS n FROM "note"').get() as { n: number };
-    const index = db.prepare('SELECT count(*) AS n FROM note_fts').get() as { n: number };
-    expect(Number(index.n)).toBe(Number(notizen.n));
+    const notizen = db.prepare('SELECT id, doc FROM "note" ORDER BY id').all() as Array<{ id: number; doc: string }>;
+    const index = db.prepare('SELECT rowid AS id, text FROM note_fts ORDER BY rowid').all() as Array<{
+      id: number;
+      text: string;
+    }>;
+    expect(index).toEqual(notizen.map((zeile) => ({ id: zeile.id, text: textAusSpalte(zeile.doc) })));
   }
 
   it('requires a signed-in account and a real query', async () => {
@@ -91,10 +93,10 @@ describe('note search', () => {
       .prepare(`INSERT INTO "topic" (name, name_key, created, account_id) VALUES ('Inbox', 'inbox', ?, ?)`)
       .run('2026-10-01T00:00:00.000Z', 'other-account');
     db.prepare(
-      `INSERT INTO "note" (text, created, topic_id, source, ai_confidence, client_id, pinned, account_id)
+      `INSERT INTO "note" (doc, created, topic_id, source, ai_confidence, client_id, pinned, account_id)
        VALUES (?, ?, ?, 'manual', NULL, NULL, 0, ?)`,
     ).run(
-      'lantern hidden quicksilver ledger',
+      spalteAusText('lantern hidden quicksilver ledger'),
       '2026-11-02T00:00:00.000Z',
       Number(fremdThema.lastInsertRowid),
       'other-account',
@@ -223,24 +225,19 @@ describe('note search', () => {
     indexGanz(db);
   });
 
-  it('indexes notes that were already stored before the search index existed', () => {
-    const db = new DatabaseSync(SPEICHER);
+  it('indexes a stored note and does not retitle it when migration runs again', () => {
+    const db = oeffneDatenbank(SPEICHER);
     dbs.push(db);
-    db.exec('PRAGMA foreign_keys = OFF');
-    for (let index = 0; index < 5; index += 1) db.exec(migrationsSql(index));
-    db.exec('PRAGMA user_version = 5');
-    db.exec('PRAGMA foreign_keys = ON');
     const inbox = db.prepare(`SELECT id FROM "topic" WHERE name_key = 'inbox'`).get() as { id: number };
     db.prepare('UPDATE "topic" SET account_id = ? WHERE id = ?').run('konto', inbox.id);
     db.prepare(
-      `INSERT INTO "note" (text, created, topic_id, source, ai_confidence, client_id, pinned, account_id)
-       VALUES (?, ?, ?, 'manual', NULL, NULL, 0, NULL)`,
-    ).run('already filed lantern', '2026-10-01T00:00:00.000Z', inbox.id);
+      `INSERT INTO "note" (doc, created, topic_id, source, ai_confidence, client_id, pinned, account_id)
+       VALUES (?, ?, ?, 'manual', NULL, NULL, 0, ?)`,
+    ).run(spalteAusText('already filed lantern'), '2026-10-01T00:00:00.000Z', inbox.id, 'konto');
     migriere(db);
-    db.prepare('UPDATE "note" SET account_id = ? WHERE account_id IS NULL').run('konto');
     const treffer = sucheNotizen(db, 'lantern', 'konto');
     expect(treffer).toHaveLength(1);
-    expect(treffer[0]).toMatchObject({ text: '# already filed lantern', topic: 'Inbox' });
+    expect(treffer[0]).toMatchObject({ text: 'already filed lantern', topic: 'Inbox' });
     expect(sucheNotizen(db, 'lantern', 'other-account')).toEqual([]);
     const trigger = db
       .prepare("SELECT name FROM sqlite_master WHERE type = 'trigger' AND name LIKE 'note_fts_%' ORDER BY name")

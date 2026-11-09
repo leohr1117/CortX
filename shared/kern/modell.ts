@@ -8,6 +8,7 @@ export interface Thema {
 export interface Notiz {
   id: number;
   text: string;
+  doc?: unknown;
   created: string;
   topic: string;
   source: NoteSource;

@@ -1,10 +1,11 @@
 import type { DatabaseSync } from 'node:sqlite';
 import { formeTreffer, planeSuche, SUCH_LIMIT, suchMeldung, type SuchRoh, type SuchTreffer } from '../../../shared/features/suche/index.ts';
 import { AppFehler } from '../../kern/fehler.ts';
+import { textAusSpalte } from '../notes/lesen.ts';
 
 const TREFFER = `
   SELECT "note".id AS id,
-         "note".text AS text,
+         "note".doc AS doc,
          "note".created AS created,
          "topic".name AS topic
   FROM note_fts
@@ -18,10 +19,10 @@ const TREFFER = `
 `;
 
 function alsRoh(wert: unknown): SuchRoh {
-  const zeile = wert as { id: number; text: string; topic: string; created: string };
+  const zeile = wert as { id: number; doc: string; topic: string; created: string };
   return {
     id: Number(zeile.id),
-    text: String(zeile.text),
+    text: textAusSpalte(String(zeile.doc)),
     topic: String(zeile.topic),
     created: String(zeile.created),
   };

@@ -6,6 +6,7 @@ import { AKTUELLE_VERSION } from '../../../shared/versionen.ts';
 import { SPEICHER } from '../../../shared/kern/grenzen.ts';
 import { erstelleApp } from '../../kern/app.ts';
 import { oeffneDatenbank } from '../../kern/db.ts';
+import { spalteAusText, textAusSpalte } from '../notes/lesen.ts';
 import type { StridePruefer, StrideRoh } from '../zugang/stride.ts';
 
 const ADA = 'ada@example.com';
@@ -69,9 +70,9 @@ describe('version stand', () => {
 
     const thema = db.prepare('SELECT id FROM "topic" WHERE account_id = ?').get(ADA) as { id: number };
     db.prepare(
-      `INSERT INTO "note" (text, created, topic_id, source, ai_confidence, pinned, account_id)
+      `INSERT INTO "note" (doc, created, topic_id, source, ai_confidence, pinned, account_id)
        VALUES (?, ?, ?, 'manual', NULL, 0, ?)`,
-    ).run('stay put', '2026-10-01T00:00:00.000Z', thema.id, ADA);
+    ).run(spalteAusText('stay put'), '2026-10-01T00:00:00.000Z', thema.id, ADA);
 
     const leer = await app.inject({ method: 'PATCH', url: '/api/version', headers: { cookie }, payload: {} });
     expect(leer.statusCode).toBe(400);
@@ -82,7 +83,11 @@ describe('version stand', () => {
       payload: { notified: 'drei' },
     });
     expect(falsch.statusCode).toBe(400);
-    expect(db.prepare('SELECT text FROM "note"').all()).toEqual([{ text: 'stay put' }]);
+    expect(
+      (db.prepare('SELECT doc FROM "note"').all() as Array<{ doc: string }>).map((zeile) => ({
+        text: textAusSpalte(zeile.doc),
+      })),
+    ).toEqual([{ text: 'stay put' }]);
 
     const gesetzt = await app.inject({
       method: 'PATCH',
@@ -92,7 +97,11 @@ describe('version stand', () => {
     });
     expect(gesetzt.statusCode).toBe(200);
     expect(gesetzt.json()).toEqual({ notified: '1.0.0', seen: '1.0.0', fresh: false });
-    expect(db.prepare('SELECT text FROM "note"').all()).toEqual([{ text: 'stay put' }]);
+    expect(
+      (db.prepare('SELECT doc FROM "note"').all() as Array<{ doc: string }>).map((zeile) => ({
+        text: textAusSpalte(zeile.doc),
+      })),
+    ).toEqual([{ text: 'stay put' }]);
 
     db.prepare('UPDATE "version_hint" SET notified = NULL, seen = NULL WHERE account_id = ?').run(ADA);
     const bestand = await app.inject({ method: 'GET', url: '/api/version', headers: { cookie } });

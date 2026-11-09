@@ -6,6 +6,7 @@ import { SPEICHER } from '../../../shared/kern/grenzen.ts';
 import { erstelleApp } from '../../kern/app.ts';
 import { strideUrl } from '../../kern/config.ts';
 import { oeffneDatenbank } from '../../kern/db.ts';
+import { spalteAusText } from '../notes/lesen.ts';
 import type { StridePruefer, StrideRoh, StrideRuf } from './stride.ts';
 
 const START = Date.parse('2026-11-01T00:00:00.000Z');
@@ -76,8 +77,8 @@ describe('account session', () => {
     if (!daten) throw new Error('missing database');
     const thema = daten.prepare('SELECT id FROM "topic"').get() as { id: number };
     daten
-      .prepare('INSERT INTO "note" (text, created, topic_id, source, ai_confidence) VALUES (?, ?, ?, ?, NULL)')
-      .run('keep me', '2026-01-01T00:00:00.000Z', thema.id, 'manual');
+      .prepare('INSERT INTO "note" (doc, created, topic_id, source, ai_confidence) VALUES (?, ?, ?, ?, NULL)')
+      .run(spalteAusText('keep me'), '2026-01-01T00:00:00.000Z', thema.id, 'manual');
 
     const gesperrt = await server.inject({ method: 'GET', url: '/api/library' });
     expect(gesperrt.statusCode).toBe(401);

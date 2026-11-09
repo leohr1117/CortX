@@ -7,7 +7,7 @@ import { TEXTE } from '../../../shared/kern/texte.ts';
 import type { Notiz } from '../../../shared/kern/modell.ts';
 import { AppFehler } from '../../kern/fehler.ts';
 import { transaktion } from '../../kern/db.ts';
-import { alsNotiz, liesNotizNachId, type NotizZeile } from './lesen.ts';
+import { alsNotiz, liesNotizNachId, spalteAusText, textAusDokument, type NotizZeile } from './lesen.ts';
 
 const NICHTS = TEXTE.nichtsRueck;
 const GEHT_NICHT = TEXTE.nichtRueck;
@@ -30,7 +30,7 @@ const bildSchema = z
     note: z
       .object({
         id: z.number().int().positive(),
-        text: z.string().min(1).max(NOTE_TEXT_MAX),
+        doc: z.string().min(2),
         created: z.string().min(1),
         topicId: z.number().int().positive(),
         source: z.enum(['tag', 'ai', 'manual']),
@@ -61,9 +61,18 @@ function liesBild(payload: string): UndoBild | null {
     const bild = geparst.data;
     if (new Set(bild.corrections.map((zeile) => zeile.id)).size !== bild.corrections.length) return null;
     if (bild.corrections.some((zeile) => zeile.noteId !== bild.note.id)) return null;
+    if (!gueltigesDoc(bild.note.doc)) return null;
     return bild;
   } catch {
     return null;
+  }
+}
+
+function gueltigesDoc(doc: string): boolean {
+  try {
+    return textAusDokument(JSON.parse(doc)) !== null;
+  } catch {
+    return false;
   }
 }
 
@@ -77,7 +86,7 @@ function schnapp(db: DatabaseSync, notiz: NotizZeile): UndoBild {
   return {
     note: {
       id: notiz.id,
-      text: notiz.text,
+      doc: notiz.docJson,
       created: notiz.created,
       topicId: notiz.topicId,
       source: notiz.source,
@@ -103,16 +112,17 @@ function themaDa(db: DatabaseSync, id: number, kontoId: string): boolean {
 interface SeitenUndo {
   art: 'anhaengen' | 'anlegen';
   id: number;
-  text: string;
+  doc: string;
   version: number;
 }
 
 function seitenBild(payload: string): SeitenUndo | null {
   try {
-    const roh = JSON.parse(payload) as { art?: unknown; id?: unknown; text?: unknown; version?: unknown };
+    const roh = JSON.parse(payload) as { art?: unknown; id?: unknown; doc?: unknown; version?: unknown };
     if (roh.art !== 'anhaengen' && roh.art !== 'anlegen') return null;
-    if (typeof roh.id !== 'number' || typeof roh.text !== 'string' || typeof roh.version !== 'number') return null;
-    return { art: roh.art, id: roh.id, text: roh.text, version: roh.version };
+    if (typeof roh.id !== 'number' || typeof roh.doc !== 'string' || typeof roh.version !== 'number') return null;
+    if (!gueltigesDoc(roh.doc)) return null;
+    return { art: roh.art, id: roh.id, doc: roh.doc, version: roh.version };
   } catch {
     return null;
   }
@@ -124,11 +134,11 @@ function seitenZurueck(db: DatabaseSync, bild: SeitenUndo, kontoId: string): Not
   if (bild.art === 'anhaengen') {
     if (notiz.version !== bild.version + 1) throw new AppFehler(409, GEHT_NICHT);
     const geschrieben = db
-      .prepare('UPDATE "note" SET text = ?, version = version + 1 WHERE id = ? AND account_id = ? AND version = ?')
-      .run(bild.text, bild.id, kontoId, bild.version + 1);
+      .prepare('UPDATE "note" SET doc = ?, version = version + 1 WHERE id = ? AND account_id = ? AND version = ?')
+      .run(bild.doc, bild.id, kontoId, bild.version + 1);
     if (Number(geschrieben.changes) !== 1) throw new AppFehler(409, GEHT_NICHT);
   } else {
-    if (notiz.text !== bild.text || notiz.version !== bild.version) throw new AppFehler(409, GEHT_NICHT);
+    if (notiz.docJson !== bild.doc || notiz.version !== bild.version) throw new AppFehler(409, GEHT_NICHT);
     db.prepare('DELETE FROM "note_revision" WHERE note_id = ?').run(bild.id);
     db.prepare('DELETE FROM "correction" WHERE note_id = ?').run(bild.id);
     const weg = db.prepare('DELETE FROM "note" WHERE id = ? AND account_id = ?').run(bild.id, kontoId);
@@ -150,8 +160,8 @@ export function speichereText(db: DatabaseSync, id: number, roh: string, version
     if (!notiz) throw new AppFehler(404, TEXTE.notizFehlt);
     if (notiz.text !== plan.text) {
       const geschrieben = db
-        .prepare('UPDATE "note" SET text = ?, version = version + 1 WHERE id = ? AND account_id = ? AND version = ?')
-        .run(plan.text, id, kontoId, version);
+        .prepare('UPDATE "note" SET doc = ?, version = version + 1 WHERE id = ? AND account_id = ? AND version = ?')
+        .run(spalteAusText(plan.text), id, kontoId, version);
       if (Number(geschrieben.changes) !== 1) {
         if (!liesNotizNachId(db, id, kontoId)) throw new AppFehler(404, TEXTE.notizFehlt);
         throw new AppFehler(409, KONFLIKT);
@@ -187,7 +197,7 @@ export function loescheNotiz(db: DatabaseSync, id: number, kontoId: string): { t
 interface SammelSchritt {
   art: 'anhaengen' | 'anlegen';
   id: number;
-  text: string;
+  doc: string;
   version: number;
   nachher: number | null;
 }
@@ -205,15 +215,15 @@ function sammelBild(payload: string): SammelBild | null {
     const schritte: SammelSchritt[] = [];
     for (const schritt of roh.schritte) {
       if (!schritt || typeof schritt !== 'object') return null;
-      const eintrag = schritt as { art?: unknown; id?: unknown; text?: unknown; version?: unknown; nachher?: unknown };
+      const eintrag = schritt as { art?: unknown; id?: unknown; doc?: unknown; version?: unknown; nachher?: unknown };
       if ((eintrag.art !== 'anhaengen' && eintrag.art !== 'anlegen') || typeof eintrag.id !== 'number') return null;
-      if (typeof eintrag.text !== 'string' || typeof eintrag.version !== 'number') return null;
+      if (typeof eintrag.doc !== 'string' || typeof eintrag.version !== 'number' || !gueltigesDoc(eintrag.doc)) return null;
       if (eintrag.art === 'anhaengen') {
         if (typeof eintrag.nachher !== 'number') return null;
-        schritte.push({ art: 'anhaengen', id: eintrag.id, text: eintrag.text, version: eintrag.version, nachher: eintrag.nachher });
+        schritte.push({ art: 'anhaengen', id: eintrag.id, doc: eintrag.doc, version: eintrag.version, nachher: eintrag.nachher });
         continue;
       }
-      schritte.push({ art: 'anlegen', id: eintrag.id, text: eintrag.text, version: eintrag.version, nachher: null });
+      schritte.push({ art: 'anlegen', id: eintrag.id, doc: eintrag.doc, version: eintrag.version, nachher: null });
     }
     return { schritte, erfasst: typeof roh.erfasst === 'string' ? roh.erfasst : null };
   } catch {
@@ -227,14 +237,14 @@ function schrittZurueck(db: DatabaseSync, schritt: SammelSchritt, kontoId: strin
   if (schritt.art === 'anhaengen') {
     if (notiz.version !== schritt.nachher) throw new AppFehler(409, GEHT_NICHT);
     const geschrieben = db
-      .prepare('UPDATE "note" SET text = ?, version = version + 1 WHERE id = ? AND account_id = ? AND version = ?')
-      .run(schritt.text, schritt.id, kontoId, schritt.nachher);
+      .prepare('UPDATE "note" SET doc = ?, version = version + 1 WHERE id = ? AND account_id = ? AND version = ?')
+      .run(schritt.doc, schritt.id, kontoId, schritt.nachher);
     if (Number(geschrieben.changes) !== 1) throw new AppFehler(409, GEHT_NICHT);
     const neu = liesNotizNachId(db, schritt.id, kontoId);
     if (!neu) throw new AppFehler(500, GEHT_NICHT);
     return alsNotiz(neu);
   }
-  if (notiz.text !== schritt.text || notiz.version !== schritt.version) throw new AppFehler(409, GEHT_NICHT);
+  if (notiz.docJson !== schritt.doc || notiz.version !== schritt.version) throw new AppFehler(409, GEHT_NICHT);
   db.prepare('DELETE FROM "note_revision" WHERE note_id = ?').run(schritt.id);
   db.prepare('DELETE FROM "correction" WHERE note_id = ?').run(schritt.id);
   const weg = db.prepare('DELETE FROM "note" WHERE id = ? AND account_id = ?').run(schritt.id, kontoId);
@@ -282,11 +292,11 @@ export function stelleNotizHer(db: DatabaseSync, token: string, kontoId: string)
     }
     try {
       db.prepare(
-        `INSERT INTO "note" (id, text, created, topic_id, source, ai_confidence, client_id, pinned, account_id, version)
+        `INSERT INTO "note" (id, doc, created, topic_id, source, ai_confidence, client_id, pinned, account_id, version)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       ).run(
         bild.note.id,
-        bild.note.text,
+        bild.note.doc,
         bild.note.created,
         bild.note.topicId,
         bild.note.source,

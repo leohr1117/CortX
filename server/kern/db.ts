@@ -1,9 +1,14 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
+import { pruefeDokument } from '../../shared/features/format/dokument.ts';
+import { exportiere } from '../../shared/features/format/md.ts';
 import { SPEICHER } from '../../shared/kern/grenzen.ts';
 import { MIGRATIONEN } from './migrationen.ts';
 import { istTestlauf, verweigereEchteDatenbank } from './testpfad.ts';
+
+export const ALTES_SCHEMA =
+  'This database uses the old note schema without a doc column. CortX does not migrate existing notes, and the file was not modified.';
 
 function schemaVersion(db: DatabaseSync): number {
   const zeile = db.prepare('PRAGMA user_version').get() as { user_version: number };
@@ -38,16 +43,47 @@ export function migriere(db: DatabaseSync): void {
   }
 }
 
+export function registriereSuchtext(db: DatabaseSync): void {
+  db.function('cortx_suchtext', { deterministic: true, directOnly: false }, (doc) => {
+    if (typeof doc !== 'string') throw new Error('Note doc must be text.');
+    let wert: unknown;
+    try {
+      wert = JSON.parse(doc);
+    } catch (fehler) {
+      throw new Error('Note doc is not JSON.', { cause: fehler });
+    }
+    const knoten = pruefeDokument(wert);
+    if (!knoten) throw new Error('Note doc is not a document.');
+    return exportiere(knoten);
+  });
+}
+
+function hatAltesSchema(pfad: string): boolean {
+  let db: DatabaseSync;
+  try {
+    db = new DatabaseSync(pfad, { readOnly: true });
+  } catch {
+    return false;
+  }
+  try {
+    const note = db.prepare(`SELECT 1 AS ok FROM sqlite_master WHERE type = 'table' AND name = 'note'`).get();
+    if (!note) return false;
+    const spalten = db.prepare(`PRAGMA table_info("note")`).all() as Array<{ name: string }>;
+    return !spalten.some((spalte) => spalte.name === 'doc');
+  } finally {
+    db.close();
+  }
+}
+
 export function oeffneDatenbank(pfad: string): DatabaseSync {
   const ziel = istTestlauf() ? verweigereEchteDatenbank(pfad) : pfad === SPEICHER ? pfad : path.resolve(pfad);
-  if (ziel !== SPEICHER) {
-    fs.mkdirSync(path.dirname(ziel), { recursive: true });
-  }
+  // Read the file before mkdir, WAL, or migriere. A rejected database must stay byte-identical.
+  if (ziel !== SPEICHER && fs.existsSync(ziel) && hatAltesSchema(ziel)) throw new Error(ALTES_SCHEMA);
+  if (ziel !== SPEICHER) fs.mkdirSync(path.dirname(ziel), { recursive: true });
   const db = new DatabaseSync(ziel);
+  registriereSuchtext(db);
   db.exec('PRAGMA foreign_keys = ON');
-  if (ziel !== SPEICHER) {
-    db.exec('PRAGMA journal_mode = WAL');
-  }
+  if (ziel !== SPEICHER) db.exec('PRAGMA journal_mode = WAL');
   migriere(db);
   return db;
 }

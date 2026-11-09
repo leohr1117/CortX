@@ -70,9 +70,11 @@ test('a paragraph on the first line is the title in the list and the header', as
   await page.screenshot({ path: `${BILDER}/${testInfo.project.name}-titel-liste.png` });
 
   await karte.locator('a.tx').click();
+  await expect(page).toHaveURL(/\/library\/note\?id=\d+/);
   const kopf = page.locator('.kopf').getByRole('heading', { level: 1 });
   await expect(kopf).toHaveText(thema);
   await expect(page.locator('.lesetext h2.titel')).toHaveCount(0);
+  await expect(page.locator('main.notizblatt .lesetext')).toContainText(sichtbar);
   const blatt = await page.locator('main.notizblatt').innerText();
   expect(blatt.split(sichtbar).length - 1).toBe(1);
   await expect(page.locator('.lesetext')).not.toContainText('**');

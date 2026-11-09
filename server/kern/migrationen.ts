@@ -1,5 +1,4 @@
 import type { DatabaseSync } from 'node:sqlite';
-import { wandleSeiten } from './seitenmigration.ts';
 
 export type MigrationsSchritt = string | ((db: DatabaseSync) => void);
 
@@ -14,28 +13,34 @@ export const MIGRATIONEN: readonly MigrationsSchritt[] = [
   CREATE TABLE "topic" (
     id INTEGER PRIMARY KEY,
     name TEXT NOT NULL,
-    name_key TEXT NOT NULL UNIQUE,
-    created TEXT NOT NULL
-  );
-
-  CREATE TABLE "note" (
-    id INTEGER PRIMARY KEY,
-    text TEXT NOT NULL,
+    name_key TEXT NOT NULL,
     created TEXT NOT NULL,
-    topic_id INTEGER NOT NULL REFERENCES "topic"(id),
-    source TEXT NOT NULL CHECK (source IN ('tag', 'ai', 'manual')),
-    ai_confidence REAL CHECK (ai_confidence IS NULL OR (ai_confidence >= 0 AND ai_confidence <= 1))
+    account_id TEXT
   );
 
-  CREATE INDEX note_topic ON "note"(topic_id);
+  CREATE UNIQUE INDEX topic_konto_key ON "topic"(account_id, name_key);
+  CREATE INDEX topic_konto ON "topic"(account_id);
 
   INSERT INTO "topic" (name, name_key, created)
   VALUES ('Inbox', 'inbox', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
-  `,
-  `
-  ALTER TABLE "note" ADD COLUMN client_id TEXT;
-  ALTER TABLE "note" ADD COLUMN pinned INTEGER NOT NULL DEFAULT 0 CHECK (pinned IN (0, 1));
+
+  CREATE TABLE "note" (
+    id INTEGER PRIMARY KEY,
+    doc TEXT NOT NULL,
+    created TEXT NOT NULL,
+    topic_id INTEGER NOT NULL REFERENCES "topic"(id),
+    source TEXT NOT NULL CHECK (source IN ('tag', 'ai', 'manual')),
+    ai_confidence REAL CHECK (ai_confidence IS NULL OR (ai_confidence >= 0 AND ai_confidence <= 1)),
+    client_id TEXT,
+    pinned INTEGER NOT NULL DEFAULT 0 CHECK (pinned IN (0, 1)),
+    account_id TEXT,
+    version INTEGER NOT NULL DEFAULT 1
+  );
+
+  CREATE INDEX note_topic ON "note"(topic_id);
   CREATE UNIQUE INDEX note_client_id ON "note"(client_id) WHERE client_id IS NOT NULL;
+  CREATE INDEX note_konto ON "note"(account_id);
+
   CREATE TABLE "correction" (
     id INTEGER PRIMARY KEY,
     note_id INTEGER NOT NULL REFERENCES "note"(id),
@@ -44,44 +49,20 @@ export const MIGRATIONEN: readonly MigrationsSchritt[] = [
     created TEXT NOT NULL
   );
   CREATE INDEX correction_note ON "correction"(note_id);
-  `,
-  `
+
   CREATE TABLE "topic_undo" (
     token TEXT PRIMARY KEY,
     payload TEXT NOT NULL,
-    created TEXT NOT NULL
-  );
-  `,
-  `
-  CREATE TABLE "note_undo" (
-    token TEXT PRIMARY KEY,
-    payload TEXT NOT NULL,
-    created TEXT NOT NULL
-  );
-  `,
-  `
-  CREATE TABLE "topic_neu" (
-    id INTEGER PRIMARY KEY,
-    name TEXT NOT NULL,
-    name_key TEXT NOT NULL,
     created TEXT NOT NULL,
     account_id TEXT
   );
 
-  INSERT INTO "topic_neu" (id, name, name_key, created, account_id)
-  SELECT id, name, name_key, created, NULL FROM "topic";
-
-  DROP TABLE "topic";
-  ALTER TABLE "topic_neu" RENAME TO "topic";
-
-  CREATE UNIQUE INDEX topic_konto_key ON "topic"(account_id, name_key);
-  CREATE INDEX topic_konto ON "topic"(account_id);
-
-  ALTER TABLE "note" ADD COLUMN account_id TEXT;
-  CREATE INDEX note_konto ON "note"(account_id);
-
-  ALTER TABLE "topic_undo" ADD COLUMN account_id TEXT;
-  ALTER TABLE "note_undo" ADD COLUMN account_id TEXT;
+  CREATE TABLE "note_undo" (
+    token TEXT PRIMARY KEY,
+    payload TEXT NOT NULL,
+    created TEXT NOT NULL,
+    account_id TEXT
+  );
 
   CREATE TABLE "session" (
     token_hash TEXT PRIMARY KEY,
@@ -104,50 +85,39 @@ export const MIGRATIONEN: readonly MigrationsSchritt[] = [
     account_id TEXT NOT NULL,
     claimed TEXT NOT NULL
   );
-  `,
-  `
-  CREATE VIRTUAL TABLE note_fts USING fts5(
-    text,
-    content='note',
-    content_rowid='id',
-    tokenize='unicode61 remove_diacritics 1'
-  );
 
-  CREATE TRIGGER note_fts_insert AFTER INSERT ON "note" BEGIN
-    INSERT INTO note_fts(rowid, text) VALUES (new.id, new.text);
-  END;
-
-  CREATE TRIGGER note_fts_delete AFTER DELETE ON "note" BEGIN
-    INSERT INTO note_fts(note_fts, rowid, text) VALUES ('delete', old.id, old.text);
-  END;
-
-  CREATE TRIGGER note_fts_update AFTER UPDATE ON "note" BEGIN
-    INSERT INTO note_fts(note_fts, rowid, text) VALUES ('delete', old.id, old.text);
-    INSERT INTO note_fts(rowid, text) VALUES (new.id, new.text);
-  END;
-
-  INSERT INTO note_fts(note_fts) VALUES ('rebuild');
-  `,
-  `
   CREATE TABLE "version_hint" (
     account_id TEXT PRIMARY KEY,
     notified TEXT,
     seen TEXT
   );
 
-  INSERT INTO "version_hint" (account_id, notified, seen)
-  SELECT account_id, NULL, NULL FROM "note" WHERE account_id IS NOT NULL
-  UNION
-  SELECT account_id, NULL, NULL FROM "topic" WHERE account_id IS NOT NULL
-  UNION
-  SELECT account_id, NULL, NULL FROM "session" WHERE account_id IS NOT NULL
-  UNION
-  SELECT account_id, NULL, NULL FROM "topic_undo" WHERE account_id IS NOT NULL
-  UNION
-  SELECT account_id, NULL, NULL FROM "note_undo" WHERE account_id IS NOT NULL;
-  `,
-  (db) => {
-    wandleSeiten(db);
-  },
-];
+  CREATE TABLE "note_revision" (
+    id INTEGER PRIMARY KEY,
+    note_id INTEGER NOT NULL REFERENCES "note"(id) ON DELETE CASCADE,
+    doc TEXT NOT NULL,
+    version INTEGER NOT NULL,
+    created TEXT NOT NULL,
+    account_id TEXT
+  );
+  CREATE INDEX note_revision_note ON "note_revision"(note_id);
 
+  CREATE VIRTUAL TABLE note_fts USING fts5(
+    text,
+    tokenize='unicode61 remove_diacritics 1'
+  );
+
+  CREATE TRIGGER note_fts_insert AFTER INSERT ON "note" BEGIN
+    INSERT INTO note_fts(rowid, text) VALUES (new.id, cortx_suchtext(new.doc));
+  END;
+
+  CREATE TRIGGER note_fts_delete AFTER DELETE ON "note" BEGIN
+    DELETE FROM note_fts WHERE rowid = old.id;
+  END;
+
+  CREATE TRIGGER note_fts_update AFTER UPDATE ON "note" BEGIN
+    DELETE FROM note_fts WHERE rowid = old.id;
+    INSERT INTO note_fts(rowid, text) VALUES (new.id, cortx_suchtext(new.doc));
+  END;
+  `,
+];
