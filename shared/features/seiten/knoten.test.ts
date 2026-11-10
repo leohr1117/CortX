@@ -1,11 +1,14 @@
 import type { Node } from 'prosemirror-model';
 import { describe, expect, it } from 'vitest';
 import { importiere, exportiere } from '../format/md.ts';
+import { modell } from '../format/modell.ts';
 import { erkenneTermin, terminAusKnoten } from '../termine/erkennen.ts';
 import {
   abschnitteAusKnoten,
   haengeKnoten,
+  mitHakenKurz,
   neueSeiteKnoten,
+  ohneRandzeilen,
   teileDokument,
   titelAusKnoten,
 } from './knoten.ts';
@@ -115,5 +118,61 @@ describe('page nodes', () => {
     expect(terminAusKnoten(fett, BEZUG)).toEqual(erkenneTermin('tomorrow', BEZUG));
     const kopfzeile = importiere('## Meet tomorrow');
     expect(terminAusKnoten(kopfzeile, BEZUG)).toEqual(erkenneTermin('Meet tomorrow', BEZUG));
+  });
+
+  it('drops empty edge lines and keeps inner nodes equal', () => {
+    const marke = modell.marks.fett!.create();
+    const innen = modell.nodes.absatz!.createChecked({ quelle: 'innen\n', flucht: true }, modell.text('Milch', [marke]));
+    const mitte = modell.nodes.leerzeile!.createChecked({ quelle: '\n' });
+    const liste = modell.nodes.punkt!.createChecked({ quelle: '- Milch' }, modell.text('Milch'));
+    const kopfzeile = modell.nodes.ueberschrift!.createChecked({ stufe: 2, zeichen: '#' });
+    const ende = modell.nodes.absatz!.createChecked({ quelle: 'Ende\n' }, modell.text('Ende'));
+    const doc = modell.node('doc', null, [
+      modell.nodes.leerzeile!.createChecked({ quelle: 'vor' }),
+      modell.nodes.absatz!.createChecked({ quelle: 'leer' }),
+      kopfzeile,
+      innen,
+      mitte,
+      liste,
+      ende,
+      modell.nodes.absatz!.createChecked(),
+      modell.nodes.leerzeile!.createChecked(),
+    ]);
+    const vorher = doc.toJSON();
+    const raus = ohneRandzeilen(doc);
+    expect(doc.toJSON()).toEqual(vorher);
+    expect(raus.childCount).toBe(5);
+    expect(raus.child(0).eq(kopfzeile)).toBe(true);
+    expect(raus.child(1).eq(innen)).toBe(true);
+    expect(raus.child(2).eq(mitte)).toBe(true);
+    expect(raus.child(3).eq(liste)).toBe(true);
+    const endeKurz = modell.nodes.absatz!.createChecked({ quelle: 'Ende' }, modell.text('Ende'));
+    expect(raus.child(4).eq(endeKurz)).toBe(true);
+    const gleich = modell.node('doc', null, [innen, mitte, liste]);
+    expect(ohneRandzeilen(gleich)).toBe(gleich);
+    const leerzeichen = modell.nodes.absatz!.createChecked({ quelle: '  ' }, modell.text('  '));
+    const mitLeerzeichen = modell.node('doc', null, [leerzeichen, innen]);
+    const blieb = ohneRandzeilen(mitLeerzeichen);
+    expect(blieb.childCount).toBe(2);
+    expect(blieb.child(0).eq(leerzeichen)).toBe(true);
+    const innenKurz = modell.nodes.absatz!.createChecked({ quelle: 'innen', flucht: true }, modell.text('Milch', [marke]));
+    expect(blieb.child(1).eq(innenKurz)).toBe(true);
+  });
+
+  it('rewrites a checkbox source to the short marker when it disagrees', () => {
+    const kasten = modell.nodes.punkt!.createChecked(
+      { art: 'haken', abgehakt: true, quelle: '- [ ] a\n' },
+      modell.text('a'),
+    );
+    const bleiben = modell.nodes.absatz!.createChecked({ quelle: 'keep' }, modell.text('keep'));
+    const doc = modell.node('doc', null, [kasten, bleiben]);
+    const neu = mitHakenKurz(doc);
+    expect(String(neu.child(0).attrs.quelle)).toBe('[x] a\n');
+    expect(neu.child(0).attrs.abgehakt).toBe(true);
+    expect(neu.child(1).eq(bleiben)).toBe(true);
+    expect(mitHakenKurz(neu)).toBe(neu);
+    const offen = modell.nodes.punkt!.createChecked({ art: 'haken', abgehakt: false, quelle: '[] a' }, modell.text('a'));
+    const passt = modell.node('doc', null, [offen]);
+    expect(mitHakenKurz(passt)).toBe(passt);
   });
 });

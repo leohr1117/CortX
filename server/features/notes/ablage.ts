@@ -15,6 +15,7 @@ import {
   type SeiteKurz,
   type ZielTeil,
 } from '../../../shared/features/seiten/index.ts';
+import { mitHakenKurz, ohneRandzeilen } from '../../../shared/features/seiten/knoten.ts';
 import { INBOX_NAME, NOTE_TEXT_MAX } from '../../../shared/kern/grenzen.ts';
 import { TEXTE } from '../../../shared/kern/texte.ts';
 import type { Notiz, Thema } from '../../../shared/kern/modell.ts';
@@ -60,7 +61,7 @@ function merkeUndo(db: DatabaseSync, kontoId: string, payload: unknown): string 
   return token;
 }
 
-function jsonVon(doc: Node): string {
+export function jsonVon(doc: Node): string {
   const wert = { ...(doc.toJSON() as Record<string, unknown>), schema_version: DOKUMENT_SCHEMA_VERSION };
   if (!pruefeDokument(wert)) throw new AppFehler(500, TEXTE.nichtAblegen);
   return JSON.stringify(wert);
@@ -101,8 +102,15 @@ class SchonDa extends Error {
   }
 }
 
-function haenge(db: DatabaseSync, seite: NotizZeile, block: Node, abschnitt: string | null, kontoId: string): NotizZeile {
-  const doc = haengeKnoten(docVon(seite), block, abschnitt);
+function haenge(
+  db: DatabaseSync,
+  seite: NotizZeile,
+  block: Node,
+  abschnitt: string | null,
+  kontoId: string,
+  behalteQuelle: boolean,
+): NotizZeile {
+  const doc = haengeKnoten(docVon(seite), block, abschnitt, behalteQuelle);
   pruefeLaenge(doc);
   db.prepare(
     `INSERT INTO "note_revision" (note_id, doc, version, created, account_id) VALUES (?, ?, ?, ?, ?)`,
@@ -171,29 +179,37 @@ function loese(teil: ZielTeil, themen: readonly Thema[], seiten: readonly SeiteK
   };
 }
 
-function koerper(teil: ZielTeil, roh: string, ganz: Node): Node {
-  if (teil.pfad === null && teil.doc === ganz) {
-    const text = roh.trim();
-    return text === roh ? ganz : importiere(text);
+function koerper(teil: ZielTeil, roh: string | null, ganz: Node): Node {
+  if (roh !== null) {
+    if (teil.pfad === null && teil.doc === ganz) {
+      const text = roh.trim();
+      return text === roh ? ganz : importiere(text);
+    }
+    const exportText = exportiere(teil.doc);
+    const text = exportText.trim();
+    if (text === exportText) return teil.doc;
+    return importiere(text);
   }
-  const exportText = exportiere(teil.doc);
-  const text = exportText.trim();
-  if (text === exportText) return teil.doc;
-  return importiere(text);
+  return ohneRandzeilen(teil.doc);
 }
 
-export function legeAb(db: DatabaseSync, roh: string, clientId: string | null, kontoId: string): AblageErgebnis {
+export function legeAb(db: DatabaseSync, eingabe: string | Node, clientId: string | null, kontoId: string): AblageErgebnis {
   return transaktion(db, () => {
     if (clientId) {
       const vorhanden = liesNotizNachClient(db, clientId, kontoId);
       if (vorhanden) return schonDa(vorhanden);
     }
-    const ganz = importiere(roh);
+    const alsText = typeof eingabe === 'string';
+    const ganz = alsText ? importiere(eingabe) : mitHakenKurz(eingabe);
     const teile = teileDokument(ganz);
-    if (teile.every((teil) => teil.pfad === null) && roh.trim().length === 0) throw new AppFehler(400, TEXTE.leerDatei);
+    const leer = alsText ? eingabe.trim().length === 0 : istLeer(ganz);
+    if (teile.every((teil) => teil.pfad === null) && leer) throw new AppFehler(400, TEXTE.leerDatei);
     const themen = listeThemen(db, kontoId);
     const seitenStand = listeSeiten(db, kontoId);
-    const paare = teile.map((teil) => ({ los: loese(teil, themen, seitenStand), body: koerper(teil, roh, ganz) }));
+    const paare = teile.map((teil) => ({
+      los: loese(teil, themen, seitenStand),
+      body: koerper(teil, alsText ? eingabe : null, ganz),
+    }));
     const neuIds = new Set<number>();
     const alt = new Map<number, AltBild>();
     const ziele: string[] = [];
@@ -214,13 +230,13 @@ export function legeAb(db: DatabaseSync, roh: string, clientId: string | null, k
             if (!neuIds.has(seite.id) && !alt.has(seite.id)) {
               alt.set(seite.id, { doc: seite.docJson, version: seite.version });
             }
-            const neu = haenge(db, seite, body, los.abschnitt, kontoId);
+            const neu = haenge(db, seite, body, los.abschnitt, kontoId, !alsText);
             letzte = neu;
             ziele.push(zielText(neu.topic, titel(neu), los.abschnitt, true));
             continue;
           }
         }
-        const doc = neueSeiteKnoten(los.seite, los.abschnitt, body, los.topicName);
+        const doc = neueSeiteKnoten(los.seite, los.abschnitt, body, los.topicName, !alsText);
         const zeile = legeNeu(db, doc, topicId, los.source, clientOffen, kontoId);
         clientOffen = null;
         neuIds.add(zeile.id);
@@ -248,7 +264,7 @@ export function legeAb(db: DatabaseSync, roh: string, clientId: string | null, k
       notiz: alsNotiz(letzte),
       neu: irgendeinNeu,
       ziel: ziele.join(TEXTE.punktMitte),
-      undo: merkeUndo(db, kontoId, { art: 'sammel', schritte, erfasst: roh }),
+      undo: merkeUndo(db, kontoId, { art: 'sammel', schritte, erfasst: alsText ? eingabe : exportiere(ganz) }),
     };
   });
 }

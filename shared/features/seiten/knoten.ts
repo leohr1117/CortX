@@ -1,7 +1,8 @@
 import type { Node } from 'prosemirror-model';
-import { EBENE } from '../format/baum.ts';
+import { ART, EBENE } from '../format/baum.ts';
 import { exportiere } from '../format/md.ts';
 import { modell } from '../format/modell.ts';
+import { hakenVon } from '../format/zeile.ts';
 import { PFAD_PRAEFIX, liesPfadName } from './register.ts';
 import { schluessel } from './text.ts';
 
@@ -28,8 +29,8 @@ function nackt(knoten: Node): Node {
   return knoten.type.createChecked(attrs, knoten.content);
 }
 
-function docAus(liste: readonly Node[]): Node {
-  return modell.node('doc', null, liste.map(nackt));
+function docAus(liste: readonly Node[], behalteQuelle = false): Node {
+  return modell.node('doc', null, behalteQuelle ? [...liste] : liste.map(nackt));
 }
 
 function leerzeile(): Node {
@@ -53,6 +54,73 @@ function textDokument(text: string): Node {
 
 export function istLeer(doc: Node): boolean {
   return exportiere(doc).trim().length === 0;
+}
+
+function randZeileLeer(knoten: Node): boolean {
+  if (knoten.type.name === 'leerzeile') return true;
+  if (knoten.type.name !== 'absatz') return false;
+  return knoten.textContent.length === 0;
+}
+
+function zeilenEndeVon(quelle: string): { kern: string; ende: string } {
+  if (quelle.endsWith('\r\n')) return { kern: quelle.slice(0, -2), ende: '\r\n' };
+  if (quelle.endsWith('\n')) return { kern: quelle.slice(0, -1), ende: '\n' };
+  if (quelle.endsWith('\r')) return { kern: quelle.slice(0, -1), ende: '\r' };
+  return { kern: quelle, ende: '' };
+}
+
+function mitQuelle(knoten: Node, quelle: string): Node {
+  const attrs = { ...knoten.attrs, quelle };
+  if (knoten.isLeaf) return knoten.type.createChecked(attrs);
+  return knoten.type.createChecked(attrs, knoten.content, knoten.marks);
+}
+
+function ohneZeilenende(knoten: Node): Node {
+  const quelle = String(knoten.attrs.quelle ?? '');
+  const { kern, ende } = zeilenEndeVon(quelle);
+  if (ende === '') return knoten;
+  return mitQuelle(knoten, kern);
+}
+
+export function ohneRandzeilen(doc: Node): Node {
+  const alle = kinder(doc);
+  let anfang = 0;
+  let ende = alle.length;
+  while (anfang < ende && randZeileLeer(alle[anfang]!)) anfang += 1;
+  while (ende > anfang && randZeileLeer(alle[ende - 1]!)) ende -= 1;
+  if (anfang === ende) return anfang === 0 ? doc : modell.node('doc', null, []);
+  const letzter = ohneZeilenende(alle[ende - 1]!);
+  if (anfang === 0 && ende === alle.length && letzter === alle[ende - 1]) return doc;
+  const liste = alle.slice(anfang, ende - 1);
+  liste.push(letzter);
+  return modell.node('doc', null, liste);
+}
+
+function hakenKurz(knoten: Node): Node {
+  if (knoten.type.name !== 'punkt' || String(knoten.attrs.art ?? '') !== ART.haken) return knoten;
+  const quelle = String(knoten.attrs.quelle ?? '');
+  const { kern, ende } = zeilenEndeVon(quelle);
+  const fund = hakenVon(kern);
+  if (!fund) return knoten;
+  const abgehakt = knoten.attrs.abgehakt === true;
+  if (fund.abgehakt === abgehakt) return knoten;
+  const marker = abgehakt ? '[x]' : '[]';
+  const luecke = fund.rest.length > 0 ? ' ' : '';
+  const neu = `${marker}${luecke}${fund.rest}${ende}`;
+  if (neu === quelle) return knoten;
+  return mitQuelle(knoten, neu);
+}
+
+export function mitHakenKurz(doc: Node): Node {
+  const alle = kinder(doc);
+  let anders = false;
+  const neu = alle.map((knoten) => {
+    const ersetzt = hakenKurz(knoten);
+    if (ersetzt !== knoten) anders = true;
+    return ersetzt;
+  });
+  if (!anders) return doc;
+  return modell.node('doc', null, neu);
 }
 
 function randLeer(knoten: Node): boolean {
@@ -140,7 +208,13 @@ export function teileDokument(doc: Node): ZielTeil[] {
   return teile;
 }
 
-export function neueSeiteKnoten(titel: string | null, abschnitt: string | null, body: Node, ersatz = ''): Node {
+export function neueSeiteKnoten(
+  titel: string | null,
+  abschnitt: string | null,
+  body: Node,
+  ersatz = '',
+  behalteQuelle = false,
+): Node {
   if (!titel) {
     if (istLeer(body)) return textDokument(ersatz.trim());
     return body;
@@ -150,20 +224,20 @@ export function neueSeiteKnoten(titel: string | null, abschnitt: string | null, 
     liste.push(leerzeile(), kopf(abschnitt));
     if (!istLeer(body)) liste.push(leerzeile(), ...kinder(body));
   } else if (!istLeer(body)) liste.push(leerzeile(), ...kinder(body));
-  return docAus(liste);
+  return docAus(liste, behalteQuelle);
 }
 
-export function haengeKnoten(seite: Node, block: Node, abschnitt: string | null): Node {
+export function haengeKnoten(seite: Node, block: Node, abschnitt: string | null, behalteQuelle = false): Node {
   const alle = kinder(seite);
   if (!abschnitt) {
     if (istLeer(block)) return seite;
-    return docAus([...ohneEnde(alle), leerzeile(), ...kinder(block)]);
+    return docAus([...ohneEnde(alle), leerzeile(), ...kinder(block)], behalteQuelle);
   }
   const index = alle.findIndex((knoten) => gleicherAbschnitt(knoten, abschnitt));
   if (index < 0) {
     const neu = [...ohneEnde(alle), leerzeile(), kopf(abschnitt)];
     if (!istLeer(block)) neu.push(leerzeile(), ...kinder(block));
-    return docAus(neu);
+    return docAus(neu, behalteQuelle);
   }
   if (istLeer(block)) return seite;
   let bis = alle.length;
@@ -176,5 +250,5 @@ export function haengeKnoten(seite: Node, block: Node, abschnitt: string | null)
   const danach = alle.slice(bis);
   const mitte = [...alle.slice(0, index + 1), ...ohneEnde(alle.slice(index + 1, bis)), leerzeile(), ...kinder(block)];
   if (danach.length > 0) mitte.push(leerzeile());
-  return docAus([...mitte, ...danach]);
+  return docAus([...mitte, ...danach], behalteQuelle);
 }

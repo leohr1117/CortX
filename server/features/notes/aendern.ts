@@ -1,12 +1,18 @@
 import { randomUUID } from 'node:crypto';
 import type { DatabaseSync } from 'node:sqlite';
+import type { Node } from 'prosemirror-model';
 import { z } from 'zod';
 import { planeNotizText, textMeldung } from '../../../shared/features/edit/index.ts';
+import { pruefeDokument } from '../../../shared/features/format/dokument.ts';
+import { exportiere } from '../../../shared/features/format/md.ts';
+import { istLeer } from '../../../shared/features/seiten/index.ts';
+import { mitHakenKurz } from '../../../shared/features/seiten/knoten.ts';
 import { NOTE_TEXT_MAX } from '../../../shared/kern/grenzen.ts';
 import { TEXTE } from '../../../shared/kern/texte.ts';
 import type { Notiz } from '../../../shared/kern/modell.ts';
 import { AppFehler } from '../../kern/fehler.ts';
 import { transaktion } from '../../kern/db.ts';
+import { jsonVon } from './ablage.ts';
 import { alsNotiz, liesNotizNachId, spalteAusText, textAusDokument, type NotizZeile } from './lesen.ts';
 
 const NICHTS = TEXTE.nichtsRueck;
@@ -162,6 +168,29 @@ export function speichereText(db: DatabaseSync, id: number, roh: string, version
       const geschrieben = db
         .prepare('UPDATE "note" SET doc = ?, version = version + 1 WHERE id = ? AND account_id = ? AND version = ?')
         .run(spalteAusText(plan.text), id, kontoId, version);
+      if (Number(geschrieben.changes) !== 1) {
+        if (!liesNotizNachId(db, id, kontoId)) throw new AppFehler(404, TEXTE.notizFehlt);
+        throw new AppFehler(409, KONFLIKT);
+      }
+    }
+    const neu = liesNotizNachId(db, id, kontoId);
+    if (!neu) throw new AppFehler(500, SPEICHERN);
+    return alsNotiz(neu);
+  });
+}
+
+export function speichereDokument(db: DatabaseSync, id: number, doc: Node, version: number, kontoId: string): Notiz {
+  return transaktion(db, () => {
+    const klar = mitHakenKurz(doc);
+    if (istLeer(klar)) throw new AppFehler(400, TEXTE.leerSpeichern);
+    if (exportiere(klar).length > NOTE_TEXT_MAX) throw new AppFehler(400, TEXTE.notizLang);
+    const notiz = liesNotizNachId(db, id, kontoId);
+    if (!notiz) throw new AppFehler(404, TEXTE.notizFehlt);
+    const gespeichert = pruefeDokument(notiz.doc);
+    if (!gespeichert || !gespeichert.eq(klar)) {
+      const geschrieben = db
+        .prepare('UPDATE "note" SET doc = ?, version = version + 1 WHERE id = ? AND account_id = ? AND version = ?')
+        .run(jsonVon(klar), id, kontoId, version);
       if (Number(geschrieben.changes) !== 1) {
         if (!liesNotizNachId(db, id, kontoId)) throw new AppFehler(404, TEXTE.notizFehlt);
         throw new AppFehler(409, KONFLIKT);
