@@ -37,6 +37,9 @@ test('a new card replaces the old one and undo leaves no second message', async 
 test('dismiss, escape, and a swipe each remove the card without undoing', async ({ page }) => {
   await ablegen(page, 'Stay filed');
   const kreuz = page.getByRole('button', { name: 'Dismiss' });
+  await page.locator('.karte').evaluate(async (el) => {
+    await Promise.all(el.getAnimations({ subtree: true }).map((lauf) => lauf.finished));
+  });
   const flaeche = await kreuz.boundingBox();
   expect(flaeche?.width ?? 0).toBeGreaterThanOrEqual(48);
   expect(flaeche?.height ?? 0).toBeGreaterThanOrEqual(48);

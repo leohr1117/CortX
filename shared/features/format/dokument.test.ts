@@ -1,6 +1,6 @@
 import { Node } from 'prosemirror-model';
 import { describe, expect, it } from 'vitest';
-import { DOKUMENT_SCHEMA_VERSION, pruefeDokument } from './dokument.ts';
+import { DOKUMENT_SCHEMA_VERSION, packeDokument, pruefeDokument } from './dokument.ts';
 import { modell } from './modell.ts';
 
 type JsonObjekt = Record<string, unknown>;
@@ -266,5 +266,51 @@ describe('Dokumentpruefung', () => {
     expect(pruefeDokument(eingabe)).toBeNull();
     expect(decoderAufrufe(eingabe)).toBe(0);
     expect(decoderAufrufe({ schema_version: 1, type: 'doc', content: [] })).toBe(1);
+  });
+});
+
+describe('Dokumentpack', () => {
+  it('setzt schema_version 1 auf eine Kopie von toJSON', () => {
+    const doc = muster();
+    const roh = doc.toJSON() as JsonObjekt;
+    const pack = packeDokument(doc);
+    expect(pack).not.toBe(roh);
+    expect(pack.schema_version).toBe(1);
+    expect(pack.schema_version).toBe(DOKUMENT_SCHEMA_VERSION);
+    expect(Object.hasOwn(pack, 'schema_version')).toBe(true);
+  });
+
+  it('laesst die Quelle ohne schema_version', () => {
+    const doc = muster();
+    const roh = doc.toJSON() as JsonObjekt;
+    const vorher = JSON.stringify(roh);
+    const pack = packeDokument(doc);
+    expect(Object.hasOwn(roh, 'schema_version')).toBe(false);
+    expect(JSON.stringify(roh)).toBe(vorher);
+    expect(JSON.stringify(doc.toJSON()).includes('schema_version')).toBe(false);
+    expect(packeDokument(doc)).not.toBe(pack);
+    expect(pruefeDokument(roh)).toBeNull();
+  });
+
+  it('pruefeDokument ist eq zum Ursprungsknoten', () => {
+    const doc = muster();
+    const gelesen = pruefeDokument(packeDokument(doc));
+    expect(gelesen).not.toBeNull();
+    expect(gelesen!.eq(doc)).toBe(true);
+    expect(gelesen).not.toBe(doc);
+  });
+
+  it('isoliert Kopien und packt ein leeres Dokument', () => {
+    const doc = muster();
+    const erste = packeDokument(doc);
+    const zweite = packeDokument(doc);
+    erste.schema_version = 9;
+    expect(zweite.schema_version).toBe(1);
+    expect(Object.hasOwn(doc.toJSON() as JsonObjekt, 'schema_version')).toBe(false);
+    const leer = modell.node('doc', null, []);
+    const pack = packeDokument(leer);
+    expect(pack.schema_version).toBe(DOKUMENT_SCHEMA_VERSION);
+    expect(pruefeDokument(pack)!.eq(leer)).toBe(true);
+    expect(pruefeDokument(leer.toJSON())).toBeNull();
   });
 });

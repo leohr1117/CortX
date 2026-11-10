@@ -21,3 +21,9 @@ export function pruefeDokument(eingabe: unknown): Node | null {
     return null;
   }
 }
+
+export function packeDokument(doc: Node): Record<string, unknown> {
+  const kopie = structuredClone(doc.toJSON()) as Record<string, unknown>;
+  kopie.schema_version = DOKUMENT_SCHEMA_VERSION;
+  return kopie;
+}

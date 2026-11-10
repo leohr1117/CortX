@@ -9,10 +9,14 @@ import { setzeZustand } from './modellLauf.ts';
 export function NotizEditor({
   text,
   onText,
+  dokument,
+  onDokument,
   ungueltig = false,
 }: {
   text: string;
   onText: (text: string) => void;
+  dokument?: unknown;
+  onDokument?: (doc: unknown) => void;
   ungueltig?: boolean;
 }) {
   const [view, setView] = useState<EditorView | null>(null);
@@ -35,8 +39,10 @@ export function NotizEditor({
       <ModellEditor
         modus="notiz"
         text={text}
+        dokument={dokument}
         ungueltig={ungueltig}
         onText={onText}
+        onDokument={onDokument}
         onAuswahl={() => setStand((wert) => wert + 1)}
         onLink={() => setLink(true)}
         ref={setView}

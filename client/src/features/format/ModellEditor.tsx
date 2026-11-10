@@ -6,6 +6,7 @@ import { EditorState, TextSelection, type Transaction } from 'prosemirror-state'
 import { ReplaceStep } from 'prosemirror-transform';
 import { EditorView } from 'prosemirror-view';
 import 'prosemirror-view/style/prosemirror.css';
+import { packeDokument, pruefeDokument } from '../../../../shared/features/format/dokument.ts';
 import { lade } from '../../../../shared/features/format/laden.ts';
 import { speichere } from '../../../../shared/features/format/speichern.ts';
 import { NOTE_TEXT_MAX } from '../../../../shared/kern/grenzen.ts';
@@ -64,6 +65,8 @@ function schreibeRef(ziel: Ref<EditorView | null> | undefined, wert: EditorView 
 export function ModellEditor({
   text,
   onText,
+  dokument,
+  onDokument,
   onAuswahl,
   onLink,
   onAblegen,
@@ -74,6 +77,8 @@ export function ModellEditor({
 }: {
   text: string;
   onText: (text: string) => void;
+  dokument?: unknown;
+  onDokument?: (doc: unknown) => void;
   onAuswahl?: () => void;
   onLink?: () => void;
   onAblegen?: () => void;
@@ -85,19 +90,23 @@ export function ModellEditor({
   const host = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const onTextRef = useRef(onText);
+  const onDokumentRef = useRef(onDokument);
   const onAuswahlRef = useRef(onAuswahl);
   const onLinkRef = useRef(onLink);
   const onAblegenRef = useRef(onAblegen);
   const textRef = useRef(text);
+  const dokumentRef = useRef(dokument);
   const gemeldet = useRef(text);
   const refWeiter = useRef(ref);
   const modusRef = useRef(modus);
   const platzhalterRef = useRef(platzhalter);
   onTextRef.current = onText;
+  onDokumentRef.current = onDokument;
   onAuswahlRef.current = onAuswahl;
   onLinkRef.current = onLink;
   onAblegenRef.current = onAblegen;
   textRef.current = text;
+  dokumentRef.current = dokument;
   refWeiter.current = ref;
   modusRef.current = modus;
   platzhalterRef.current = platzhalter;
@@ -106,9 +115,12 @@ export function ModellEditor({
     const el = host.current;
     if (!el) return;
     const anfang = textRef.current;
-    gemeldet.current = anfang;
+    const vorgegeben = dokumentRef.current === undefined ? null : pruefeDokument(dokumentRef.current);
+    const anfangDoc = vorgegeben ?? lade(anfang);
+    const anfangText = speichere(anfangDoc);
+    gemeldet.current = anfangText;
     const basis = EditorState.create({
-      doc: lade(anfang),
+      doc: anfangDoc,
       plugins: [
         ...(modusRef.current === 'erfassen' ? erfassenTasten() : []),
         history(),
@@ -155,6 +167,7 @@ export function ModellEditor({
         view.updateState(next);
         gemeldet.current = wert;
         onTextRef.current(wert);
+        onDokumentRef.current?.(packeDokument(next.doc));
         onAuswahlRef.current?.();
       },
     });
@@ -162,7 +175,7 @@ export function ModellEditor({
     if (modusRef.current === 'erfassen') view.dom.classList.add('cm-content');
     haengeGriff(view);
     haengeModell(view);
-    merkeEnde(view, anfang);
+    merkeEnde(view, anfangText);
     schreibeRef(refWeiter.current, view);
     view.focus();
     return () => {
@@ -172,6 +185,24 @@ export function ModellEditor({
       schreibeRef(refWeiter.current, null);
     };
   }, []);
+
+  useLayoutEffect(() => {
+    const view = viewRef.current;
+    if (!view || dokument === undefined) return;
+    const knoten = pruefeDokument(dokument);
+    if (!knoten) return;
+    const wert = speichere(knoten);
+    if (knoten.eq(view.state.doc)) {
+      gemeldet.current = wert;
+      return;
+    }
+    gemeldet.current = wert;
+    const zustand = EditorState.create({ doc: knoten, plugins: view.state.plugins });
+    const ende = TextSelection.atEnd(zustand.doc);
+    view.updateState(zustand.apply(zustand.tr.setSelection(ende).setMeta('addToHistory', false)));
+    merkeEnde(view, wert);
+    onAuswahlRef.current?.();
+  }, [dokument]);
 
   useLayoutEffect(() => {
     const view = viewRef.current;

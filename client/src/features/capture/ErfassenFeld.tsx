@@ -11,8 +11,8 @@ import { setzeVorschlag, zielAmCursor, type ZielAmCursor } from '../../../../sha
 import { HINDERNIS, LAGE, beobachteSicht, liesSicht, listenPlatz } from '../../ui/lage.ts';
 import { tastaturIstHandy } from '../../ui/system.ts';
 import { ModellEditor } from '../format/ModellEditor.tsx';
-import { liesEntwurf, schreibEntwurf } from '../offline/index.ts';
 import { hatBuchstabenZeile } from './buchstabeAbsatz.ts';
+import { useEntwurfSync } from './entwurfSync.ts';
 import { Vorschlag } from './Vorschlag.tsx';
 
 const KEINE_SEITEN: SeiteKurz[] = [];
@@ -132,7 +132,6 @@ export function ErfassenFeld({
   const zuRef = useRef<string | null>(null);
   const gemeldet = useRef(text);
   const beruehrt = useRef(false);
-  const zuletztGeschrieben = useRef<string | null>(null);
   const geprueft = useRef<object | null>(null);
   const refWeiter = useRef(ref);
   const [sicht, setSicht] = useState<EditorView | null>(null);
@@ -141,7 +140,7 @@ export function ErfassenFeld({
   const [zu, setZu] = useState<string | null>(null);
   const [wahl, setWahl] = useState(0);
   const [wahlFuer, setWahlFuer] = useState('');
-  const [bereit, setBereit] = useState(false);
+  const [dokument, setDokument] = useState<unknown>(undefined);
   const [lage, setLage] = useState<Lage>({ top: 0, left: 8, maxHoehe: LAGE.listeMaxPx });
   onTextRef.current = onText;
   onAblegenRef.current = onAblegen;
@@ -248,6 +247,7 @@ export function ErfassenFeld({
     setRoh(text);
     setCaret(text.length);
     setZu(null);
+    setDokument(undefined);
   }, [text]);
 
   useLayoutEffect(() => {
@@ -302,43 +302,24 @@ export function ErfassenFeld({
     };
   }, [offen, roh, anker, caret]);
 
-  useEffect(() => {
-    let aktivLauf = true;
-    void liesEntwurf()
-      .then((entwurf) => {
-        if (!aktivLauf) return;
-        if (!beruehrt.current && rohRef.current.length === 0 && entwurf.length > 0) {
-          gemeldet.current = entwurf;
-          rohRef.current = entwurf;
-          caretRef.current = entwurf.length;
-          setRoh(entwurf);
-          setCaret(entwurf.length);
-          onTextRef.current?.(entwurf);
-        }
-        setBereit(true);
-        onBereitRef.current?.();
-      })
-      .catch(() => {
-        if (!aktivLauf) return;
-        setBereit(true);
-        onBereitRef.current?.();
-      });
-    return () => {
-      aktivLauf = false;
-    };
-  }, []);
+  function ladeEntwurf(wert: string, doc: unknown) {
+    gemeldet.current = wert;
+    rohRef.current = wert;
+    caretRef.current = wert.length;
+    setRoh(wert);
+    setCaret(wert.length);
+    setDokument(doc);
+    onTextRef.current?.(wert);
+  }
 
-  useEffect(() => {
-    if (!bereit || zuletztGeschrieben.current === roh) return;
-    zuletztGeschrieben.current = roh;
-    void schreibEntwurf(roh).catch(() => undefined);
-  }, [roh, bereit]);
+  useEntwurfSync(roh, sicht, beruehrt, rohRef, ladeEntwurf, () => onBereitRef.current?.());
 
   return (
     <>
       <ModellEditor
         modus="erfassen"
         text={text}
+        dokument={dokument}
         platzhalter={platzhalter}
         onText={(wert) => {
           beruehrt.current = true;

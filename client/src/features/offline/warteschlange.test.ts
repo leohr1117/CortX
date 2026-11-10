@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { packeDokument } from '../../../../shared/features/format/dokument.ts';
+import { importiere } from '../../../../shared/features/format/md.ts';
 import {
   baueEintrag,
   istDauerhaft,
@@ -8,10 +10,16 @@ import {
 
 describe('offline queue', () => {
   it('sends the queue in order', () => {
-    const a = baueEintrag('one', 'a', 2, 't');
-    const b = baueEintrag('two', 'b', 1, 't');
+    const eins = packeDokument(importiere('one'));
+    const zwei = packeDokument(importiere('two'));
+    const a = baueEintrag(eins, 'a', 2, 't');
+    const b = baueEintrag(zwei, 'b', 1, 't');
     const queue = [a, b];
     expect(reihenfolge(queue).map((eintrag) => eintrag.clientId)).toEqual(['b', 'a']);
+    expect(a.doc).toEqual(eins);
+    expect(b.doc).toEqual(zwei);
+    expect(a).not.toHaveProperty('text');
+    expect(b).not.toHaveProperty('text');
     expect(naechsteSeq(queue)).toBe(3);
     expect(naechsteSeq([])).toBe(1);
   });

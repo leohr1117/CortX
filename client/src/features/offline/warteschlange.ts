@@ -1,12 +1,12 @@
 export interface WarteschlangeEintrag {
   clientId: string;
-  text: string;
+  doc: unknown;
   created: string;
   seq: number;
 }
 
-export function baueEintrag(text: string, clientId: string, seq: number, created: string): WarteschlangeEintrag {
-  return { clientId, text, seq, created };
+export function baueEintrag(doc: unknown, clientId: string, seq: number, created: string): WarteschlangeEintrag {
+  return { clientId, doc, seq, created };
 }
 
 export function naechsteSeq(queue: readonly WarteschlangeEintrag[]): number {

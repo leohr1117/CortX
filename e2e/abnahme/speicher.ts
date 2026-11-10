@@ -115,3 +115,10 @@ export function nur(name: MarkName, wort: string): Record<MarkName, string[]> {
   marks[name] = [wort];
   return marks;
 }
+
+export function ohneSchemaVersion(wert: unknown): unknown {
+  if (wert === null || typeof wert !== 'object' || Array.isArray(wert)) return wert;
+  const kopie = { ...(wert as Record<string, unknown>) };
+  delete kopie.schema_version;
+  return kopie;
+}

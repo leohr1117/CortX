@@ -51,8 +51,8 @@ export function ladeNotiz(id: number): Promise<Notiz> {
   return hole(`/api/notes/${id}`, TEXTE.notizLaden);
 }
 
-export async function speichereNotiz(id: number, text: string, version: number): Promise<Notiz> {
-  const antwort = await sende(`/api/notes/${id}`, { text, version });
+export async function speichereNotiz(id: number, doc: unknown, version: number): Promise<Notiz> {
+  const antwort = await sende(`/api/notes/${id}`, { doc, version });
   if (!antwort.ok) return liesFehler(antwort, TEXTE.speichernNotiz);
   return (await antwort.json()) as Notiz;
 }

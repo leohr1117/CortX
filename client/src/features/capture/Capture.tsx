@@ -16,6 +16,7 @@ import { LinkFeld } from '../format/LinkFeld.tsx';
 import { setzeZustand, wendeModell } from '../format/modellLauf.ts';
 import { legeInWarteschlange, schreibEntwurf, spuele } from '../offline/index.ts';
 import { ApiFehler, ladeSeiten, ladeThemen, legeNotizAb, macheRueckgaengig } from './api.ts';
+import { packVonEditor, packVonText, textVonDokument } from './entwurfSync.ts';
 import { ErfassenFeld } from './ErfassenFeld.tsx';
 import { textNachAblageRueck } from './rueck.ts';
 import { leeresAnhaengen, ZielText } from './Ziel.tsx';
@@ -138,7 +139,7 @@ export function CaptureAnsicht() {
   useEffect(() => {
     let aktiv = true;
     const sync = () => {
-      void spuele((eintrag) => legeNotizAb(eintrag.text, eintrag.clientId)).then((standSync) => {
+      void spuele((eintrag) => legeNotizAb(eintrag.doc, eintrag.clientId)).then((standSync) => {
         if (!aktiv) return;
         if (standSync.erledigt.length > 0) {
           void Promise.all([ladeThemen().catch(() => null), ladeSeiten().catch(() => null)]).then(([liste, katalog]) => {
@@ -156,7 +157,7 @@ export function CaptureAnsicht() {
                 id: treffer.notiz.id,
                 ziel: treffer.notiz.ziel ?? treffer.notiz.topic,
                 undo: treffer.notiz.undo ?? '',
-                text: treffer.text,
+                text: textVonDokument(treffer.doc),
               };
             }
             return alt;
@@ -196,7 +197,7 @@ export function CaptureAnsicht() {
       setMeldung(null);
       setFehler(null);
       setzeText(wieder);
-      await schreibEntwurf(wieder);
+      await schreibEntwurf(packVonText(wieder));
       await katalogNeu();
       sichtRef.current?.focus();
     } catch (grund: unknown) {
@@ -245,8 +246,8 @@ export function CaptureAnsicht() {
     setMeldung(null);
     schliesseKarte('aktion');
     try {
-      const ergebnis = await legeInWarteschlange(roh, navigator.onLine, (eintrag) =>
-        legeNotizAb(eintrag.text, eintrag.clientId),
+      const ergebnis = await legeInWarteschlange(packVonEditor(sichtRef.current, roh), navigator.onLine, (eintrag) =>
+        legeNotizAb(eintrag.doc, eintrag.clientId),
       );
       if (ergebnis.art === 'abgelehnt') {
         setzeText(roh);

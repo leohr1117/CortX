@@ -67,8 +67,8 @@ export async function ladeSeiten(): Promise<SeiteKurz[]> {
   return daten.seiten;
 }
 
-export async function legeNotizAb(text: string, clientId: string): Promise<AblageAntwort> {
-  const antwort = await sende('/api/notes', { text, clientId });
+export async function legeNotizAb(doc: unknown, clientId: string): Promise<AblageAntwort> {
+  const antwort = await sende('/api/notes', { doc, clientId });
   return leseJson<AblageAntwort>(antwort);
 }
 

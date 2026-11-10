@@ -6,6 +6,19 @@ import {
   WARTESCHLANGE_STORE,
   notizEntwurfId,
 } from '../client/src/features/offline/index.ts';
+import { pruefeDokument } from '../shared/features/format/dokument.ts';
+import { exportiere } from '../shared/features/format/md.ts';
+
+function textAusLokal(roh: unknown): string {
+  if (typeof roh === 'string') return roh;
+  if (!roh || typeof roh !== 'object') return '';
+  const wert = roh as { doc?: unknown; text?: unknown };
+  if (Object.hasOwn(wert, 'doc')) {
+    const knoten = pruefeDokument(wert.doc);
+    if (knoten) return exportiere(knoten);
+  }
+  return typeof wert.text === 'string' ? wert.text : '';
+}
 
 const STORES = { db: LOKAL_DB, entwurfStore: ENTWURF_STORE, entwurfId: ENTWURF_ID, queue: WARTESCHLANGE_STORE };
 
@@ -40,26 +53,24 @@ export async function leereLokal(page: Page): Promise<void> {
 }
 
 async function liesSchluessel(page: Page, schluessel: string): Promise<string> {
-  return page.evaluate(async (namen) => {
+  const roh = await page.evaluate(async (namen) => {
     const db = await new Promise<IDBDatabase>((resolve, reject) => {
       const anfrage = indexedDB.open(namen.db);
       anfrage.onsuccess = () => resolve(anfrage.result);
       anfrage.onerror = () => reject(anfrage.error);
     });
     try {
-      return await new Promise<string>((resolve, reject) => {
+      return await new Promise<unknown>((resolve, reject) => {
         const tx = db.transaction(namen.entwurfStore, 'readonly');
         const lesen = tx.objectStore(namen.entwurfStore).get(namen.schluessel);
-        lesen.onsuccess = () => {
-          const wert = lesen.result as { text?: string } | undefined;
-          resolve(wert?.text ?? '');
-        };
+        lesen.onsuccess = () => resolve(lesen.result ?? '');
         lesen.onerror = () => reject(lesen.error);
       });
     } finally {
       db.close();
     }
   }, { ...STORES, schluessel });
+  return textAusLokal(roh);
 }
 
 export function liesEntwurf(page: Page): Promise<string> {

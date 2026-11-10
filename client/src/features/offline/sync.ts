@@ -1,6 +1,4 @@
 import type { Notiz } from '../../../../shared/kern/modell.ts';
-
-type DateiNotiz = Notiz & { ziel?: string; undo?: string };
 import {
   entferneQueueOffen,
   exklusiv,
@@ -16,10 +14,12 @@ import {
   type WarteschlangeEintrag,
 } from './warteschlange.ts';
 
+type DateiNotiz = Notiz & { ziel?: string; undo?: string };
+
 interface SyncTreffer {
   clientId: string;
   notiz: DateiNotiz;
-  text: string;
+  doc: unknown;
 }
 
 interface SyncStand {
@@ -52,7 +52,7 @@ async function spueleOffen(sende: Senden): Promise<SyncStand> {
     try {
       const notiz = await sende(eintrag);
       await entferneQueueOffen(eintrag.clientId);
-      erledigt.push({ clientId: eintrag.clientId, notiz, text: eintrag.text });
+      erledigt.push({ clientId: eintrag.clientId, notiz, doc: eintrag.doc });
     } catch (fehler) {
       dauerhaft = istDauerhaft(httpStatus(fehler));
       grund = fehler instanceof Error ? fehler.message : null;
@@ -66,10 +66,10 @@ export function spuele(sende: Senden): Promise<SyncStand> {
   return exklusiv(() => spueleOffen(sende));
 }
 
-export function legeInWarteschlange(text: string, online: boolean, sende: Senden): Promise<LokalErgebnis> {
+export function legeInWarteschlange(doc: unknown, online: boolean, sende: Senden): Promise<LokalErgebnis> {
   return exklusiv(async () => {
     const liste = await liesQueueOffen();
-    const eintrag = baueEintrag(text, crypto.randomUUID(), naechsteSeq(liste), new Date().toISOString());
+    const eintrag = baueEintrag(doc, crypto.randomUUID(), naechsteSeq(liste), new Date().toISOString());
     try {
       await putQueueOffen(eintrag);
       await putEntwurfOffen('');
@@ -83,7 +83,7 @@ export function legeInWarteschlange(text: string, online: boolean, sende: Senden
     if (treffer) return { art: 'abgelegt', clientId: eintrag.clientId, notiz: treffer.notiz };
     if (stand.dauerhaft && stand.rest[0]?.clientId === eintrag.clientId) {
       await entferneQueueOffen(eintrag.clientId);
-      await putEntwurfOffen(text);
+      await putEntwurfOffen(doc);
       return { art: 'abgelehnt', clientId: eintrag.clientId, grund: stand.grund };
     }
     return { art: 'offline', clientId: eintrag.clientId };

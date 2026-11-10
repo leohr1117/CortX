@@ -5,6 +5,8 @@ import type { EditorView } from 'prosemirror-view';
 import type { Root } from 'react-dom/client';
 import type { Thema } from '../../../../shared/kern/modell.ts';
 import type { Node as PmNode } from 'prosemirror-model';
+import { packeDokument } from '../../../../shared/features/format/dokument.ts';
+import { importiere } from '../../../../shared/features/format/md.ts';
 import { posFuer } from '../../../../shared/features/format/stelle.ts';
 import { speichere } from '../../../../shared/features/format/speichern.ts';
 import { planeAblage } from '../../../../shared/features/seiten/pfad.ts';
@@ -21,12 +23,12 @@ function hatKopf(doc: PmNode): boolean {
   return gefunden;
 }
 
-const speicher = vi.hoisted(() => ({ text: '', schrieb: [] as string[] }));
+const speicher = vi.hoisted(() => ({ roh: '' as unknown, schrieb: [] as unknown[] }));
 
 vi.mock('../offline/index.ts', () => ({
-  liesEntwurf: () => Promise.resolve(speicher.text),
-  schreibEntwurf: (text: string) => {
-    speicher.schrieb.push(text);
+  liesEntwurf: () => Promise.resolve(speicher.roh),
+  schreibEntwurf: (doc: unknown) => {
+    speicher.schrieb.push(doc);
     return Promise.resolve();
   },
 }));
@@ -58,7 +60,7 @@ afterAll(() => {
 });
 
 beforeEach(() => {
-  speicher.text = '';
+  speicher.roh = '';
   speicher.schrieb = [];
 });
 
@@ -296,16 +298,17 @@ describe('capture field', () => {
   });
 
   it('reads and writes the offline draft', async () => {
-    speicher.text = '#school/Seite';
+    const doc = packeDokument(importiere('#school/Seite'));
+    speicher.roh = doc;
     const sitz = await oeffne();
     expect(sitz.stand.text).toBe('#school/Seite');
     expect(speichere(sitz.stand.view!.state.doc)).toBe('#school/Seite');
     expect(klartextVon(sitz.stand.view!.state.doc)).toBe('#school/Seite');
     expect(sitz.stand.view!.state.selection.head).toBe(TextSelection.atEnd(sitz.stand.view!.state.doc).from);
-    expect(speicher.schrieb.at(-1)).toBe('#school/Seite');
+    expect(speicher.schrieb.at(-1)).toEqual(packeDokument(sitz.stand.view!.state.doc));
     await tippe(sitz.stand.view!, '!');
     expect(sitz.stand.text).toBe('#school/Seite!');
-    expect(speicher.schrieb.at(-1)).toBe('#school/Seite!');
+    expect(speicher.schrieb.at(-1)).toEqual(packeDokument(sitz.stand.view!.state.doc));
     await zu(sitz);
   });
 

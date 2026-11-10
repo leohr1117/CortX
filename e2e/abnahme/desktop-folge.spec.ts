@@ -22,6 +22,7 @@ import {
 import {
   ausServer,
   keineDoppelteLeerstelle,
+  ohneSchemaVersion,
   serverUnverfaelscht,
   type MarkName,
   type NotizAntwort,
@@ -219,13 +220,13 @@ for (const feld of ['erfassen', 'notiz'] as const) {
       const editorDoc = await editorJson(page);
       const id = await ablegenPerKlick(page, feld, notizId, 'Einkauf');
       const server = (await (await page.request.get(`/api/notes/${id}`)).json()) as { doc?: unknown };
-      expect(server.doc).toEqual(editorDoc);
+      expect(ohneSchemaVersion(server.doc)).toEqual(editorDoc);
       await page.goto(`/library/note?id=${id}`);
       await warteBereit(page);
       await klickeAn(page, 'header button[aria-label="Edit"]');
       await warteBereit(page);
       await expect(page.locator(FELD)).toBeVisible();
-      expect(await editorJson(page)).toEqual(editorDoc);
+      expect(ohneSchemaVersion(await editorJson(page))).toEqual(editorDoc);
     });
     test('Offline ablegen, online gleich Server-JSON', async ({ page, context }) => {
       await context.setOffline(true);
@@ -247,7 +248,7 @@ for (const feld of ['erfassen', 'notiz'] as const) {
       const koerper = (await antwort.json()) as { id?: number };
       const id = koerper.id ?? notizId;
       const server = (await (await page.request.get(`/api/notes/${id}`)).json()) as { doc?: unknown };
-      expect(server.doc).toEqual(editorDoc);
+      expect(ohneSchemaVersion(server.doc)).toEqual(editorDoc);
     });
   });
   test.describe(`${feld} – Leiste`, { tag: '@F4' }, () => {

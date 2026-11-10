@@ -12,13 +12,30 @@ import { Kopf } from '../library/Kopf.tsx';
 import { liesNotizEntwurf, schreibNotizEntwurf } from '../offline/index.ts';
 import { TerminZeile } from '../termine/index.ts';
 import { ladeNotiz, loescheNotiz, NotizFehler, speichereNotiz } from './api.ts';
+import {
+  entwurfZumSpeichern,
+  gleicherStand,
+  LEERER_STAND,
+  standAusAntwort,
+  standAusEntwurf,
+  standAusPack,
+  standAusText,
+  standNachKonflikt,
+  type DokumentStand,
+} from './dokumentStand.ts';
 import { merkeNotiz } from './Meldung.tsx';
 import { NotizKnopf } from './Menue.tsx';
 import { ThemenWahl } from './ThemenWahl.tsx';
 
 const SPEICHER_PAUSE_MS = 400;
 
-type SchreibFeld = ComponentType<{ text: string; ungueltig?: boolean; onText: (text: string) => void }>;
+type SchreibFeld = ComponentType<{
+  text: string;
+  dokument?: unknown;
+  ungueltig?: boolean;
+  onText: (text: string) => void;
+  onDokument?: (doc: unknown) => void;
+}>;
 
 let schreibLaden: Promise<SchreibFeld> | null = null;
 
@@ -35,17 +52,13 @@ function nummer(roh: string | null): number | null {
   return Number(roh);
 }
 
-function startText(entwurf: string, gespeichert: string): string {
-  return entwurf.trim().length === 0 ? gespeichert : entwurf;
-}
-
 export function NotizSeite() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const id = nummer(params.get('id'));
   const [notiz, setNotiz] = useState<Notiz | null>(null);
-  const [feld, setFeld] = useState('');
-  const [basis, setBasis] = useState('');
+  const [stand, setStand] = useState<DokumentStand>(LEERER_STAND);
+  const [basis, setBasis] = useState<DokumentStand>(LEERER_STAND);
   const [modus, setModus] = useState<Modus>('lesen');
   const [fehler, setFehler] = useState<string | null>(id === null ? TEXTE.notizFehlt : null);
   const [hinweis, setHinweis] = useState<string | null>(null);
@@ -54,14 +67,14 @@ export function NotizSeite() {
   const [wechsel, setWechsel] = useState(false);
   const [schreibFeld, setSchreibFeld] = useState<SchreibFeld | null>(null);
   const kette = useRef(Promise.resolve());
-  const basisRef = useRef('');
-  const feldRef = useRef('');
+  const basisRef = useRef(basis);
+  const standRef = useRef(stand);
   const notizRef = useRef<Notiz | null>(null);
   const da = useRef(true);
   const weg = useRef(false);
   const sichereRef = useRef<(zeigen: boolean) => Promise<Ausgang>>(async () => 'ok');
   basisRef.current = basis;
-  feldRef.current = feld;
+  standRef.current = stand;
   notizRef.current = notiz;
 
   useEffect(() => {
@@ -89,12 +102,14 @@ export function NotizSeite() {
       .then(async (geladen) => {
         const entwurf = await liesNotizEntwurf(geladen.id).catch(() => '');
         if (!aktiv) return;
-        const start = startText(entwurf, geladen.text);
-        if (entwurf.trim().length === 0 && entwurf.length > 0) void schreibNotizEntwurf(geladen.id, '');
-        basisRef.current = geladen.text;
+        const basisStand = standAusAntwort(geladen);
+        const start = standAusEntwurf(entwurf, basisStand);
+        if (start.leeren) void schreibNotizEntwurf(geladen.id, '');
+        basisRef.current = basisStand;
+        standRef.current = start.stand;
         setNotiz(geladen);
-        setBasis(geladen.text);
-        setFeld(start);
+        setBasis(basisStand);
+        setStand(start.stand);
       })
       .catch((grund: unknown) => {
         if (!aktiv) return;
@@ -116,9 +131,8 @@ export function NotizSeite() {
 
   useEffect(() => {
     if (!bereit || !notiz) return;
-    const text = feld === basis || feld.trim().length === 0 ? '' : feld;
-    void schreibNotizEntwurf(notiz.id, text);
-  }, [bereit, basis, feld, notiz]);
+    void schreibNotizEntwurf(notiz.id, entwurfZumSpeichern(stand, basis));
+  }, [bereit, basis, stand, notiz]);
 
   useEffect(() => {
     if (!bereit) return;
@@ -126,7 +140,7 @@ export function NotizSeite() {
       void sichereRef.current(false);
     }, SPEICHER_PAUSE_MS);
     return () => window.clearTimeout(timer);
-  }, [bereit, feld]);
+  }, [bereit, stand]);
 
   useEffect(() => {
     const beiOnline = () => {
@@ -138,26 +152,24 @@ export function NotizSeite() {
 
   async function schreibeEinmal(zeigen: boolean): Promise<Ausgang> {
     const aktuell = notizRef.current;
-    const text = feldRef.current;
+    const jetzt = standRef.current;
     if (!aktuell || weg.current) return 'ok';
-    const plan = planeNotizText(text);
+    const plan = planeNotizText(jetzt.text);
     if (!plan.ok) {
       if (zeigen && da.current) setFehler(textMeldung(plan.grund));
       return 'leer';
     }
-    if (plan.text === basisRef.current) {
+    if (gleicherStand(jetzt, basisRef.current)) {
       if (zeigen && da.current) setFehler(null);
-      if (text !== plan.text && feldRef.current === text && da.current) setFeld(plan.text);
       return 'ok';
     }
     try {
-      const gespeichert = await speichereNotiz(aktuell.id, plan.text, aktuell.version);
+      const gespeichert = await speichereNotiz(aktuell.id, jetzt.doc, aktuell.version);
       if (!da.current || weg.current) return 'ok';
-      basisRef.current = gespeichert.text;
+      basisRef.current = jetzt;
       notizRef.current = gespeichert;
-      setBasis(gespeichert.text);
+      setBasis(jetzt);
       setNotiz(gespeichert);
-      if (feldRef.current === text) setFeld(gespeichert.text);
       if (zeigen) setFehler(null);
       setHinweis(null);
       return 'ok';
@@ -166,11 +178,12 @@ export function NotizSeite() {
         try {
           const neu = await ladeNotiz(aktuell.id);
           if (!da.current || weg.current) return 'ok';
-          basisRef.current = neu.text;
-          feldRef.current = neu.text;
+          const konflikt = standNachKonflikt(neu);
+          basisRef.current = konflikt;
+          standRef.current = konflikt;
           notizRef.current = neu;
-          setBasis(neu.text);
-          setFeld(neu.text);
+          setBasis(konflikt);
+          setStand(konflikt);
           setNotiz(neu);
           setFehler(null);
           setHinweis(TEXTE.seiteNeuGeladen);
@@ -193,8 +206,8 @@ export function NotizSeite() {
       let aus: Ausgang = 'ok';
       for (let runde = 0; runde < 4; runde += 1) {
         aus = await schreibeEinmal(zeigen && runde === 0);
-        const plan = planeNotizText(feldRef.current);
-        if (!plan.ok || plan.text === basisRef.current || aus !== 'ok') return aus;
+        const plan = planeNotizText(standRef.current.text);
+        if (!plan.ok || gleicherStand(standRef.current, basisRef.current) || aus !== 'ok') return aus;
       }
       return aus;
     });
@@ -207,10 +220,11 @@ export function NotizSeite() {
   sichereRef.current = sichere;
 
   function beiKasten(stelle: number) {
-    const neu = schalteKasten(feldRef.current, stelle);
-    if (neu === feldRef.current) return;
-    feldRef.current = neu;
-    setFeld(neu);
+    const text = schalteKasten(standRef.current.text, stelle);
+    if (text === standRef.current.text) return;
+    const neu = standAusText(text);
+    standRef.current = neu;
+    setStand(neu);
     setFehler(null);
     setHinweis(null);
   }
@@ -256,7 +270,7 @@ export function NotizSeite() {
   }
 
   const zeile = notiz ? ablageZeile(notiz, new Date()) : '';
-  const namen = notiz && modus === 'lesen' ? abschnittNamen(feld) : [];
+  const namen = notiz && modus === 'lesen' ? abschnittNamen(stand.text) : [];
   const EditorFeld = schreibFeld;
   const aktion = notiz ? (
     <div className="kopf-aktion">
@@ -313,18 +327,27 @@ export function NotizSeite() {
                 ))}
               </nav>
             ) : null}
-            <LeseText text={feld} verlinken onKasten={beiKasten} />
-            <TerminZeile text={feld} created={notiz.created} />
+            <LeseText text={stand.text} verlinken onKasten={beiKasten} />
+            <TerminZeile text={stand.text} created={notiz.created} />
           </>
         ) : null}
         {notiz && modus === 'schreiben' && EditorFeld ? (
           <EditorFeld
-            text={feld}
+            text={stand.text}
+            dokument={stand.doc}
             ungueltig={Boolean(fehler)}
             onText={(wert) => {
-              setFeld(wert);
+              const neu = { ...standRef.current, text: wert };
+              standRef.current = neu;
+              setStand(neu);
               setFehler(null);
               setHinweis(null);
+            }}
+            onDokument={(pack) => {
+              const neu = standAusPack(pack, standRef.current.text);
+              if (!neu) return;
+              standRef.current = neu;
+              setStand(neu);
             }}
           />
         ) : null}
