@@ -3,6 +3,7 @@ import { expect, test } from './ruhe.ts';
 import { meldeAn } from './anmelden.ts';
 import { erwarteQuelle, setzeQuelle } from './feld.ts';
 import { leereLokal, warteBereit } from './lokal.ts';
+import { setzeAlleNotizZeiten, setzeNotizZeiten, versionsNotizZeit } from './schau.ts';
 
 const BILDER = 'tmp-test/screens';
 const SEITE = ['# Deutsch LK', '', '## Analysis', '', 'First', '', '### Deeper'].join('\n');
@@ -78,21 +79,30 @@ test('a shorthand path shows the target and files into the section', async ({ pa
   expect(nachher).not.toContain('Tail');
   expect(nachher.indexOf('### Deeper')).toBeLessThan(nachher.indexOf('Verb'));
 
-  await page.goto(`/library/topic?name=${encodeURIComponent('school')}`);
-  await expect(page.getByRole('heading', { name: 'school', level: 1 })).toBeVisible();
-  await page.locator(`#note-${id} a.tx`).click();
-  await expect(page).toHaveURL(/\/library\/note\?id=\d+/);
-  await expect(page.locator('.kopf').getByRole('heading', { level: 1, name: 'school', exact: true })).toBeVisible();
-  const verzeichnis = page.getByRole('navigation', { name: 'On this page' });
-  await expect(verzeichnis.getByRole('link')).toHaveText(['Analysis']);
-  await expect(page.locator('#abschnitt-0')).toHaveText('Analysis');
-  await expect(page.locator('.lesetext')).toContainText('Verb');
-  await expect(page.getByRole('heading', { level: 3, name: 'Deeper' })).toBeVisible();
-  if (testInfo.project.name === 'handy') {
-    await page.screenshot({ path: `${BILDER}/handy-ablage-seite.png` });
-    await verzeichnis.screenshot({ path: `${BILDER}/handy-ablage-verzeichnis.png` });
+  const zeitenVorher = setzeAlleNotizZeiten(versionsNotizZeit());
+  try {
+    await page.goto(`/library/topic?name=${encodeURIComponent('school')}`);
+    await expect(page.getByRole('heading', { name: 'school', level: 1 })).toBeVisible();
+    await page.locator(`#note-${id} a.tx`).click();
+    await expect(page).toHaveURL(/\/library\/note\?id=\d+/);
+    await expect(page.locator('.kopf').getByRole('heading', { level: 1, name: 'school', exact: true })).toBeVisible();
+    const verzeichnis = page.getByRole('navigation', { name: 'On this page' });
+    await expect(verzeichnis.getByRole('link')).toHaveText(['Analysis']);
+    await expect(page.locator('#abschnitt-0')).toHaveText('Analysis');
+    await expect(page.locator('.lesetext')).toContainText('Verb');
+    await expect(page.getByRole('heading', { level: 3, name: 'Deeper' })).toBeVisible();
+    await page.reload();
+    await expect(page.locator('.kopf').getByRole('heading', { level: 1, name: 'school', exact: true })).toBeVisible();
+    await expect(verzeichnis.getByRole('link')).toHaveText(['Analysis']);
+    await expect(page.locator('#abschnitt-0')).toHaveText('Analysis');
+    if (testInfo.project.name === 'handy') {
+      await page.screenshot({ path: `${BILDER}/handy-ablage-seite.png` });
+      await verzeichnis.screenshot({ path: `${BILDER}/handy-ablage-verzeichnis.png` });
+    }
+    await verzeichnis.getByRole('link', { name: 'Analysis' }).click();
+  } finally {
+    setzeNotizZeiten(zeitenVorher);
   }
-  await verzeichnis.getByRole('link', { name: 'Analysis' }).click();
   await expect(page.locator('#abschnitt-0')).toBeInViewport();
 
   await page.getByRole('button', { name: 'Back' }).click();

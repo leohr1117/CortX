@@ -3,7 +3,7 @@ import { expect, test, type Page } from './ruhe.ts';
 import { meldeAn } from './anmelden.ts';
 import { leistenAbstand, leistenKante, richteSicht, setzeAuswahl, setzeQuelle, setzeSicht, type LeistenKante } from './feld.ts';
 import { leereLokal } from './lokal.ts';
-import { sichereBestand, stelleBestand } from './schau.ts';
+import { setzeAlleNotizZeiten, sichereBestand, stelleBestand, versionsNotizZeit } from './schau.ts';
 
 const BILDER = 'tmp-test/screens';
 const TASTATUR = 520;
@@ -110,7 +110,10 @@ test('the format bar on a note sits on the keyboard and returns to the bottom ed
     const antwort = await page.request.post('/api/notes', { data: { text: 'A short note' } });
     expect(antwort.ok()).toBeTruthy();
     const id = ((await antwort.json()) as { id: number }).id;
+    setzeAlleNotizZeiten(versionsNotizZeit());
     await page.goto(`/library/note?id=${id}`);
+    await page.reload();
+    await expect(page.locator('.kopf').getByRole('heading', { level: 1 })).toBeVisible();
     await page.getByRole('button', { name: 'Edit' }).click();
     await expect(page.getByRole('toolbar', { name: 'Format' })).toBeVisible();
     await expect(page.locator('footer.fuss')).toHaveCount(0);

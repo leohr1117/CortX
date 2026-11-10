@@ -2,6 +2,7 @@ import { expect, test, type Locator, type Page } from './ruhe.ts';
 import { meldeAn } from './anmelden.ts';
 import { cursorKopf, erwarteQuelle, setzeQuelle } from './feld.ts';
 import { leereLokal } from './lokal.ts';
+import { setzeAlleNotizZeiten, setzeNotizZeiten, versionsNotizZeit } from './schau.ts';
 
 const BILDER = 'tmp-test/screens';
 const SATZ = 'Buy a birthday present for Anna – she mentioned the new Murakami.';
@@ -68,27 +69,33 @@ test('change picker lists topics and closes without a move', async ({ page }, te
   await expect(page.getByRole('status')).toContainText('Added to');
   await expect(page.getByRole('status')).toContainText('Home');
   await expect(page.getByRole('button', { name: 'Change' })).toHaveCount(0);
-  await oeffneSeite(page, 'Home', 'Pay the rent');
-  await expect(page.locator('.kopf').getByRole('heading', { level: 1 })).toHaveText('Home');
-  const dialog = await wechsle(page);
-  await expect(dialog.getByLabel('Search topics')).toBeFocused();
-  await expect(dialog.locator('.wz.sel .n')).toHaveText('Home');
-  await expect(dialog.locator('.wz.sel .ok')).toBeVisible();
-  const zeilen = dialog.locator('.wz');
-  if ((await zeilen.count()) === 7) {
-    await expect(zeilen.locator('.n')).toHaveText(['Inbox', 'Books', 'Home', 'Ideas', LISBON, 'Work', 'Workout']);
-    await expect(zeilen.nth(0).locator('.w')).toHaveText('3');
-    await expect(zeilen.nth(1).locator('.w')).toHaveText('9');
-    await expect(zeilen.nth(3).locator('.w')).toHaveText('23');
-    await expect(zeilen.nth(4).locator('.w')).toHaveText('5');
-    await expect(zeilen.nth(5).locator('.w')).toHaveText('14');
-    await expect(zeilen.nth(6).locator('.w')).toHaveText('6');
+  const aufnahmeVorher = setzeAlleNotizZeiten(versionsNotizZeit());
+  try {
+    await oeffneSeite(page, 'Home', 'Pay the rent');
+    await page.reload();
+    await expect(page.locator('.kopf').getByRole('heading', { level: 1 })).toHaveText('Home');
+    const dialog = await wechsle(page);
+    await expect(dialog.getByLabel('Search topics')).toBeFocused();
+    await expect(dialog.locator('.wz.sel .n')).toHaveText('Home');
+    await expect(dialog.locator('.wz.sel .ok')).toBeVisible();
+    const zeilen = dialog.locator('.wz');
+    if ((await zeilen.count()) === 7) {
+      await expect(zeilen.locator('.n')).toHaveText(['Inbox', 'Books', 'Home', 'Ideas', LISBON, 'Work', 'Workout']);
+      await expect(zeilen.nth(0).locator('.w')).toHaveText('3');
+      await expect(zeilen.nth(1).locator('.w')).toHaveText('9');
+      await expect(zeilen.nth(3).locator('.w')).toHaveText('23');
+      await expect(zeilen.nth(4).locator('.w')).toHaveText('5');
+      await expect(zeilen.nth(5).locator('.w')).toHaveText('14');
+      await expect(zeilen.nth(6).locator('.w')).toHaveText('6');
+    }
+    await page.screenshot({ path: `tmp-test/screens/${testInfo.project.name}-03b-change.png` });
+    await page.keyboard.press('Escape');
+    await expect(dialog).toHaveCount(0);
+    await expect(page.locator('.kopf').getByRole('heading', { level: 1 })).toHaveText('Home');
+    await expect(page).toHaveURL(/\/library\/note\?id=\d+/);
+  } finally {
+    setzeNotizZeiten(aufnahmeVorher);
   }
-  await page.screenshot({ path: `tmp-test/screens/${testInfo.project.name}-03b-change.png` });
-  await page.keyboard.press('Escape');
-  await expect(dialog).toHaveCount(0);
-  await expect(page.locator('.kopf').getByRole('heading', { level: 1 })).toHaveText('Home');
-  await expect(page).toHaveURL(/\/library\/note\?id=\d+/);
 });
 
 test('empty capture', async ({ page }, testInfo) => {
@@ -260,7 +267,14 @@ test('change moves the note onto an existing or new topic', async ({ page }, tes
   await dialog.getByLabel('Search topics').fill(neu);
   await dialog.getByRole('option', { name: /New topic/ }).click();
   await expect(page.getByRole('heading', { level: 1 })).toContainText(neu);
-  await page.screenshot({ path: `tmp-test/screens/${testInfo.project.name}-03-moved.png` });
+  const bewegtVorher = setzeAlleNotizZeiten(versionsNotizZeit());
+  try {
+    await page.reload();
+    await expect(page.getByRole('heading', { level: 1 })).toContainText(neu);
+    await page.screenshot({ path: `tmp-test/screens/${testInfo.project.name}-03-moved.png` });
+  } finally {
+    setzeNotizZeiten(bewegtVorher);
+  }
 
   dialog = await wechsle(page);
   await dialog.getByLabel('Search topics').fill(tastatur);

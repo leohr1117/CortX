@@ -11,6 +11,7 @@ import {
   erstellteFremdeNotiz,
   legeFremdeNotiz,
   merkeNotizZeiten,
+  setzeAlleNotizZeiten,
   setzeNotizZeiten,
   sichereBestand,
   versionsNotizZeit,
@@ -95,7 +96,19 @@ test('an update shows one snackbar, and the dot stays until What\'s new was seen
     await expect(page.getByRole('alertdialog')).toHaveCount(0);
     await expect(page.locator('[data-neu-punkt]')).toBeVisible();
     await ohneSeitlichenUeberlauf(page);
-    await page.screenshot({ path: `${BILDER}/${testInfo.project.name}-update-snackbar.png` });
+    const aufnahmeVorher = setzeAlleNotizZeiten(versionsNotizZeit());
+    const aufnahmeZiel = letzteNotizZeile(versionsNotizZeit(), FESTE_UHR);
+    try {
+      expect((await page.request.patch('/api/version', { data: { notified: '1.0.0' } })).ok()).toBeTruthy();
+      await page.reload();
+      await expect(page.getByRole('heading', { name: 'Library', level: 1 })).toBeVisible();
+      await expect(hinweis).toHaveCount(1);
+      await expect(hinweis.locator('.t')).toHaveText(HINWEIS_TEXT.aktualisiert);
+      await expect(page.locator('.zeile .ne', { hasText: aufnahmeZiel }).first()).toBeVisible();
+      await page.screenshot({ path: `${BILDER}/${testInfo.project.name}-update-snackbar.png` });
+    } finally {
+      setzeNotizZeiten(aufnahmeVorher);
+    }
 
     await hinweis.hover();
     await page.waitForTimeout(11_000);

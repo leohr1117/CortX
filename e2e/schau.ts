@@ -290,6 +290,12 @@ export function setzeNotizZeiten(zeiten: readonly NotizZeit[]): void {
   });
 }
 
+export function setzeAlleNotizZeiten(created: string): NotizZeit[] {
+  const vorher = merkeNotizZeiten();
+  setzeNotizZeiten(vorher.map((zeile) => ({ id: zeile.id, created })));
+  return vorher;
+}
+
 export function erstellteFremdeNotiz(text: string): string | null {
   const db = oeffne();
   try {

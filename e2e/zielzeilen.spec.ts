@@ -3,7 +3,7 @@ import { expect, FESTE_UHR, test, type Page } from './ruhe.ts';
 import { meldeAn } from './anmelden.ts';
 import { cursorKopf, erwarteQuelle, setzeQuelle } from './feld.ts';
 import { leereLokal, warteBereit } from './lokal.ts';
-import { merkeNotizZeiten, versionsNotizZeit } from './schau.ts';
+import { merkeNotizZeiten, setzeAlleNotizZeiten, setzeNotizZeiten, versionsNotizZeit } from './schau.ts';
 
 const BILDER = 'tmp-test/screens';
 const TEILEN = '#school/Thema1 text1\ntext1 text1\n#school/Thema2 text2\ntext2 text2';
@@ -146,7 +146,24 @@ test('an empty topic stays and the last page can be restored', async ({ page }, 
     expect(geerbt.length).toBeGreaterThan(0);
     expect(geerbt.every((eintrag) => eintrag.created === versionsNotizZeit())).toBe(false);
     expect(geerbt.every((eintrag) => eintrag.created === FESTE_UHR.toISOString())).toBe(false);
-    if (handy) await page.screenshot({ path: `${BILDER}/handy-leeres-thema.png` });
+    if (handy) {
+      const vorher = setzeAlleNotizZeiten(versionsNotizZeit());
+      try {
+        await page.reload();
+        await expect(page.getByRole('heading', { name: 'Library', level: 1 })).toBeVisible();
+        await expect(zeile).toContainText('0 pages');
+        await page.screenshot({ path: `${BILDER}/handy-leeres-thema.png` });
+      } finally {
+        setzeNotizZeiten(vorher);
+      }
+      await page.goto(`/library/topic?name=${encodeURIComponent(thema)}`);
+      await expect(page.getByRole('heading', { name: thema, level: 1 })).toBeVisible();
+      await expect(page.getByRole('status')).toContainText('Page deleted');
+      await page.getByRole('link', { name: 'Back to Library' }).click();
+      await expect(page.getByRole('heading', { name: 'Library', level: 1 })).toBeVisible();
+      await expect(zeile).toContainText('0 pages');
+      await expect(page.getByRole('status')).toContainText('Page deleted');
+    }
     await page.getByRole('button', { name: 'Undo' }).click();
     await expect(page.getByRole('status')).toHaveCount(0);
     token = '';
