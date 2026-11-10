@@ -4,11 +4,12 @@ import { DatabaseSync } from 'node:sqlite';
 import { pruefeDokument } from '../../shared/features/format/dokument.ts';
 import { klartext } from '../../shared/features/format/klartext.ts';
 import { SPEICHER } from '../../shared/kern/grenzen.ts';
+import { schemaArt, wandleAltstand } from './bestandsmigration.ts';
 import { MIGRATIONEN } from './migrationen.ts';
 import { istTestlauf, verweigereEchteDatenbank } from './testpfad.ts';
 
 export const ALTES_SCHEMA =
-  'This database uses the old note schema without a doc column. CortX does not migrate existing notes, and the file was not modified.';
+  'This database uses an unknown old note schema. CortX does not migrate existing notes, and the file was not modified.';
 
 function schemaVersion(db: DatabaseSync): number {
   const zeile = db.prepare('PRAGMA user_version').get() as { user_version: number };
@@ -58,32 +59,60 @@ export function registriereSuchtext(db: DatabaseSync): void {
   });
 }
 
-function hatAltesSchema(pfad: string): boolean {
-  let db: DatabaseSync;
+function istGesperrt(fehler: unknown): boolean {
+  const text = fehler instanceof Error ? fehler.message : '';
+  if (text === 'database is locked' || text === 'database table is locked') return true;
+  if (typeof fehler === 'object' && fehler !== null && 'errcode' in fehler) {
+    const code = (fehler as { errcode: unknown }).errcode;
+    if (typeof code === 'number') return (code & 0xff) === 5 || (code & 0xff) === 6;
+  }
+  return false;
+}
+
+// TRUNCATE fails with SQLITE_LOCKED while this connection still has a statement. Startup continues.
+export function checkpointBeimOeffnen(db: DatabaseSync): void {
   try {
-    db = new DatabaseSync(pfad, { readOnly: true });
-  } catch {
-    return false;
+    db.exec('PRAGMA wal_checkpoint(TRUNCATE)');
+    return;
+  } catch (fehler) {
+    if (!istGesperrt(fehler)) throw fehler;
   }
   try {
-    const note = db.prepare(`SELECT 1 AS ok FROM sqlite_master WHERE type = 'table' AND name = 'note'`).get();
-    if (!note) return false;
-    const spalten = db.prepare(`PRAGMA table_info("note")`).all() as Array<{ name: string }>;
-    return !spalten.some((spalte) => spalte.name === 'doc');
-  } finally {
-    db.close();
+    db.exec('PRAGMA wal_checkpoint(PASSIVE)');
+  } catch (fehler) {
+    if (!istGesperrt(fehler)) throw fehler;
+    console.log('wal checkpoint skipped: locked');
   }
 }
 
 export function oeffneDatenbank(pfad: string): DatabaseSync {
   const ziel = istTestlauf() ? verweigereEchteDatenbank(pfad) : pfad === SPEICHER ? pfad : path.resolve(pfad);
   // Read the file before mkdir, WAL, or migriere. A rejected database must stay byte-identical.
-  if (ziel !== SPEICHER && fs.existsSync(ziel) && hatAltesSchema(ziel)) throw new Error(ALTES_SCHEMA);
+  const art = ziel !== SPEICHER && fs.existsSync(ziel) ? schemaArt(ziel) : 'keins';
+  if (art === 'unbekannt') throw new Error(ALTES_SCHEMA);
   if (ziel !== SPEICHER) fs.mkdirSync(path.dirname(ziel), { recursive: true });
   const db = new DatabaseSync(ziel);
   registriereSuchtext(db);
   db.exec('PRAGMA foreign_keys = ON');
-  if (ziel !== SPEICHER) db.exec('PRAGMA journal_mode = WAL');
+  if (art === 'alt1143') {
+    try {
+      const bericht = wandleAltstand(db);
+      const kurz = bericht.summe.slice(0, 12);
+      console.log(
+        `bestand 1.14.3 -> doc: ${bericht.notizen} notes, ${bericht.revisionen} revisions, ${bericht.undo} undo, checksum ${kurz} ok`,
+      );
+      // WAL only after COMMIT, so a rollback leaves the file byte-identical.
+      if (ziel !== SPEICHER) {
+        db.exec('PRAGMA journal_mode = WAL');
+        checkpointBeimOeffnen(db);
+      }
+    } catch (fehler) {
+      db.close();
+      throw fehler;
+    }
+  } else if (ziel !== SPEICHER) {
+    db.exec('PRAGMA journal_mode = WAL');
+  }
   migriere(db);
   return db;
 }

@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.14.4
+
+Notes are now stored as structured documents. All your existing notes were carried over unchanged.
+
 ## 1.14.3
 
 The note header now shows only the topic, and on iPad in window mode the back button is no longer covered.
