@@ -1,3 +1,5 @@
+import type { Node } from 'prosemirror-model';
+import { klartext } from '../format/klartext.ts';
 import { findeTags } from '../tags/index.ts';
 import {
   datumText,
@@ -227,4 +229,8 @@ export function erkenneTermin(text: string, bezug: Date): Termin | null {
     : erste;
   const datum = gewaehlt.datum ?? tag;
   return { datum: datumText(datum), uhrzeit: gewaehlt.uhrzeit };
+}
+
+export function terminAusKnoten(doc: Node, bezug: Date): Termin | null {
+  return erkenneTermin(klartext(doc), bezug);
 }

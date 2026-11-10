@@ -245,4 +245,21 @@ describe('note search', () => {
     expect(trigger.map((zeile) => zeile.name)).toEqual(['note_fts_delete', 'note_fts_insert', 'note_fts_update']);
     indexGanz(db);
   });
+
+  it('indexes marks and headings as plain words and returns the export', async () => {
+    const { server, db } = await app();
+    const id = await lege(server, '**needle**\n\n## Dairy');
+    const nadel = await treffer(server, 'needle');
+    const titel = await treffer(server, 'Dairy');
+    expect(nadel.status).toBe(200);
+    expect(nadel.hits.map((hit) => hit.id)).toEqual([id]);
+    expect(titel.hits.map((hit) => hit.id)).toEqual([id]);
+    expect(nadel.hits[0]?.text).toContain('**needle**');
+    expect(titel.hits[0]?.text).toContain('## Dairy');
+    const index = db.prepare('SELECT text FROM note_fts WHERE rowid = ?').get(id) as { text: string };
+    expect(index.text).toContain('needle');
+    expect(index.text).toContain('Dairy');
+    expect(index.text.includes('**')).toBe(false);
+    expect(index.text.includes('##')).toBe(false);
+  });
 });

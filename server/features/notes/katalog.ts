@@ -1,6 +1,19 @@
 import type { DatabaseSync } from 'node:sqlite';
-import { abschnittNamen, seitentitel, type SeiteKurz } from '../../../shared/features/seiten/index.ts';
-import { textAusSpalte } from './lesen.ts';
+import type { Node } from 'prosemirror-model';
+import { pruefeDokument } from '../../../shared/features/format/dokument.ts';
+import { abschnitteAusKnoten, titelAusKnoten, type SeiteKurz } from '../../../shared/features/seiten/index.ts';
+
+function knotenAusSpalte(spalte: string): Node {
+  let wert: unknown;
+  try {
+    wert = JSON.parse(spalte);
+  } catch (fehler) {
+    throw new Error('Stored note document is invalid.', { cause: fehler });
+  }
+  const doc = pruefeDokument(wert);
+  if (!doc) throw new Error('Stored note document is invalid.');
+  return doc;
+}
 
 export function listeSeiten(db: DatabaseSync, kontoId: string): SeiteKurz[] {
   const roh = db
@@ -13,12 +26,12 @@ export function listeSeiten(db: DatabaseSync, kontoId: string): SeiteKurz[] {
     )
     .all(kontoId) as Array<{ id: number; doc: string; topic: string }>;
   return roh.map((zeile) => {
-    const text = textAusSpalte(zeile.doc);
+    const doc = knotenAusSpalte(zeile.doc);
     return {
       id: Number(zeile.id),
       topic: zeile.topic,
-      titel: seitentitel(text),
-      abschnitte: abschnittNamen(text),
+      titel: titelAusKnoten(doc),
+      abschnitte: abschnitteAusKnoten(doc),
     };
   });
 }

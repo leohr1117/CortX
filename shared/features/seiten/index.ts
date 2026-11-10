@@ -7,6 +7,15 @@ export {
   seitentitel,
 } from './text.ts';
 export {
+  abschnitteAusKnoten,
+  haengeKnoten,
+  istLeer,
+  neueSeiteKnoten,
+  teileDokument,
+  titelAusKnoten,
+  type ZielTeil,
+} from './knoten.ts';
+export {
   planeAblage,
   vorschlaege,
   type AblagePlan,

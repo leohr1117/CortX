@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { pruefeDokument } from '../../shared/features/format/dokument.ts';
-import { exportiere } from '../../shared/features/format/md.ts';
+import { klartext } from '../../shared/features/format/klartext.ts';
 import { SPEICHER } from '../../shared/kern/grenzen.ts';
 import { MIGRATIONEN } from './migrationen.ts';
 import { istTestlauf, verweigereEchteDatenbank } from './testpfad.ts';
@@ -54,7 +54,7 @@ export function registriereSuchtext(db: DatabaseSync): void {
     }
     const knoten = pruefeDokument(wert);
     if (!knoten) throw new Error('Note doc is not a document.');
-    return exportiere(knoten);
+    return klartext(knoten);
   });
 }
 
