@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.14.5
+
+The back arrow in the header sits at the start on every screen size and stays inside the safe area.
+
 ## 1.14.4
 
 Notes are now stored as structured documents. All your existing notes were carried over unchanged.

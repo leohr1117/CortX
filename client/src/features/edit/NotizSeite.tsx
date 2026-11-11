@@ -305,7 +305,6 @@ export function NotizSeite() {
         zurueckLabel={TEXTE.zurueck}
         onZurueck={() => void zurueck()}
         aktion={aktion}
-        fenster
       />
       <main className={modus === 'schreiben' ? 'inhalt rolle notizblatt schreiben' : 'inhalt rolle notizblatt'}>
         {fehler && !notiz ? <p className="leer1">{fehler}</p> : null}

@@ -5,14 +5,11 @@ interface Versionseintrag {
 }
 
 export const VERSIONEN: readonly Versionseintrag[] = [
+  { version: '1.14.5', datum: '2026-11-11', zeilen: ['The back arrow in the header sits at the start on every screen size and stays inside the safe area.'] },
   {
     version: '1.14.4', datum: '2026-11-10', zeilen: ['Notes are now stored as structured documents. All your existing notes were carried over unchanged.'],
   },
-  {
-    version: '1.14.3',
-    datum: '2026-11-09',
-    zeilen: ['The note header now shows only the topic, and on iPad in window mode the back button is no longer covered.'],
-  },
+  { version: '1.14.3', datum: '2026-11-09', zeilen: ['The note header now shows only the topic, and on iPad in window mode the back button is no longer covered.'] },
   {
     version: '1.14.2',
     datum: '2026-11-06',

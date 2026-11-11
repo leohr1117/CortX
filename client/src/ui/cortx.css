@@ -98,15 +98,17 @@ a { color: inherit; text-decoration: none; }
 }
 
 .kopf {
-  height: var(--kopf);
+  height: calc(var(--kopf) + env(safe-area-inset-top, 0px));
   display: flex;
   align-items: center;
-  padding: 0 var(--abstand-4);
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-right: max(var(--abstand-4), calc(env(safe-area-inset-right, 0px) + 2px + 2px));
+  padding-bottom: 0;
+  padding-left: max(var(--abstand-4), calc(env(safe-area-inset-left, 0px) + 2px + 2px));
   flex: none;
   background: var(--grund);
   border-bottom: 1px solid var(--trenner);
 }
-.kopf.fenster-ipad { padding-left: max(var(--rand), 64px); }
 .kopf.leer {
   border-bottom: 0;
   padding: 0 var(--rand);
@@ -403,7 +405,11 @@ html[data-os="mac"] .kbd .mac { display: inline-flex; }
 
 @media (min-width: 900px) {
   :root { --rand: 32px; }
-  .kopf { height: 64px; padding: 0 var(--abstand-20); }
+  .kopf {
+    height: calc(64px + env(safe-area-inset-top, 0px));
+    padding-right: max(var(--abstand-20), calc(env(safe-area-inset-right, 0px) + 2px + 2px));
+    padding-left: max(var(--abstand-20), calc(env(safe-area-inset-left, 0px) + 2px + 2px));
+  }
   .kopf.leer { padding: 0 var(--abstand-32); }
   .cap {
     width: 720px;

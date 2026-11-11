@@ -3,6 +3,9 @@ import path from 'node:path';
 import { defineConfig, devices } from '@playwright/test';
 
 const E2E_PORT = 3110;
+const kopfSpec = /[/\\]kopf\.spec\.ts$/;
+const MAC_WEBKIT =
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/27.2 Safari/605.1.15';
 const datenbank = path.resolve('tmp-test', `e2e-${process.pid}.db`);
 const url = `http://127.0.0.1:${E2E_PORT}`;
 
@@ -52,6 +55,35 @@ export default defineConfig({
       testIgnore: /[/\\]abnahme[/\\]handy\.spec\.ts$/,
       snapshotPathTemplate: '{testDir}/__bilder__/{projectName}/{arg}{ext}',
       use: { viewport: { width: 1440, height: 900 }, serviceWorkers: 'block' },
+    },
+    {
+      name: 'android-pixel',
+      testMatch: kopfSpec,
+      use: { ...devices['Pixel 7'] },
+    },
+    {
+      name: 'ipad-hoch',
+      testMatch: kopfSpec,
+      use: { ...devices['iPad Pro 11'] },
+    },
+    {
+      name: 'ipad-quer',
+      testMatch: kopfSpec,
+      use: { ...devices['iPad Pro 11 landscape'] },
+    },
+    {
+      name: 'desktop-win-webkit',
+      testMatch: kopfSpec,
+      use: { browserName: 'webkit', viewport: { width: 1440, height: 900 } },
+    },
+    {
+      name: 'desktop-mac-webkit',
+      testMatch: kopfSpec,
+      use: {
+        browserName: 'webkit',
+        viewport: { width: 1440, height: 900 },
+        userAgent: MAC_WEBKIT,
+      },
     },
   ],
   webServer: {
