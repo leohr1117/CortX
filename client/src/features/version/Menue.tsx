@@ -75,6 +75,9 @@ export function BibliothekMenue() {
           <Link className="m" role="menuitem" to="/library/whats-new" onClick={() => setOffen(false)}>
             {HINWEIS_TEXT.neuigkeiten}
           </Link>
+          <a className="m absender" role="menuitem" href={TEXTE.absenderUrl}>
+            {TEXTE.absender}
+          </a>
         </div>
       ) : null}
     </div>

@@ -8,8 +8,8 @@ const CODE: FormatStil = {
   schrift: 'ui-monospace, "Cascadia Mono", Consolas, monospace',
   hintergrund: 'var(--flaeche-2)',
 };
-const WICHTIG: FormatStil = { hintergrund: '#f3e2a8', farbe: '#1a1a1a' };
-const BEIDE: FormatStil = { schrift: CODE.schrift, hintergrund: '#f3e2a8', farbe: '#1a1a1a' };
+const WICHTIG: FormatStil = { hintergrund: '#f3e2a8', farbe: '#141414' };
+const BEIDE: FormatStil = { schrift: CODE.schrift, hintergrund: '#f3e2a8', farbe: '#141414' };
 
 function wende(wahl: TextWahl, schritt: (text: string, start: number, ende: number) => TextWahl): TextWahl {
   return schritt(wahl.text, wahl.start, wahl.ende);

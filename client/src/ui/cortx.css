@@ -52,10 +52,9 @@
   --radius-10: 10px;
   --radius-12: 12px;
   --radius-kreis: 50%;
-  --logo-ecke: 8;
   --auswahl: rgba(96, 165, 250, 0.35);
   --wichtig-hintergrund: #f3e2a8;
-  --wichtig-schrift: #1a1a1a;
+  --wichtig-schrift: #141414;
   --wichtig-balken: #b8892e;
   --wichtig-strich: #5c4314;
   --wichtig-marker: #8d8d8d;
@@ -1100,6 +1099,19 @@ input.feld::placeholder { color: var(--leise); }
   line-height: 18px;
   color: var(--leise);
 }
+.login .absender {
+  display: block;
+  margin-top: var(--abstand-16);
+  text-align: center;
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--leise);
+}
+.login .absender:focus-visible {
+  outline: 2px solid var(--fokus);
+  outline-offset: 2px;
+}
+.menue a.absender { color: var(--leise); }
 .abmelden {
   height: 48px;
   padding: 0 var(--abstand-12);

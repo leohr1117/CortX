@@ -130,3 +130,63 @@ test('an offline draft can be filed without an account and syncs after sign-in',
   await expect.poll(() => warteschlangeLaenge(page)).toBe(0);
   await expect.poll(() => inboxEnthaelt(page, text)).toBe(true);
 });
+
+test('the sign-in mark is a hash and the credit sits under the form', async ({ page }) => {
+  await page.goto('/');
+  const logo = page.locator('.marke svg.logo');
+  await expect(logo).toHaveAttribute('viewBox', '0 0 28 28');
+  const kasten = await logo.boundingBox();
+  const marke = await page.locator('.marke').boundingBox();
+  if (!kasten || !marke) throw new Error('logo box missing');
+  expect(Math.round(kasten.width)).toBe(28);
+  expect(Math.round(kasten.height)).toBe(28);
+  expect(kasten.x).toBeLessThanOrEqual(marke.x + 1);
+  expect(kasten.x + kasten.width).toBeLessThan(marke.x + marke.width);
+
+  const teile = await logo.locator('rect').evaluateAll((knoten) =>
+    knoten.map((el) => {
+      const box = el.getBoundingClientRect();
+      return {
+        x: Number(el.getAttribute('x')),
+        y: Number(el.getAttribute('y')),
+        w: Number(el.getAttribute('width')),
+        h: Number(el.getAttribute('height')),
+        links: box.x,
+        oben: box.y,
+        rechts: box.right,
+        unten: box.bottom,
+      };
+    }),
+  );
+  const senkrecht = teile.filter((teil) => teil.h > teil.w).sort((a, b) => a.x - b.x);
+  const waagerecht = teile.filter((teil) => teil.w > teil.h).sort((a, b) => a.y - b.y);
+  expect(senkrecht).toHaveLength(2);
+  expect(waagerecht).toHaveLength(2);
+  expect(senkrecht[0]?.y).toBe(senkrecht[1]?.y);
+  expect((senkrecht[0]?.y ?? 0) + (senkrecht[0]?.h ?? 0)).toBe((senkrecht[1]?.y ?? 0) + (senkrecht[1]?.h ?? 0));
+  expect(senkrecht[0]?.y ?? 0).toBeLessThan((senkrecht[0]?.y ?? 0) + (senkrecht[0]?.h ?? 0));
+  expect(waagerecht[0]?.x).toBe(waagerecht[1]?.x);
+  expect((waagerecht[0]?.x ?? 0) + (waagerecht[0]?.w ?? 0)).toBe((waagerecht[1]?.x ?? 0) + (waagerecht[1]?.w ?? 0));
+  expect(waagerecht[0]?.x ?? 0).toBeLessThan((waagerecht[0]?.x ?? 0) + (waagerecht[0]?.w ?? 0));
+  expect(senkrecht[0]?.x ?? 0).toBeLessThan(senkrecht[1]?.x ?? 0);
+  expect(waagerecht[0]?.y ?? 0).toBeLessThan(waagerecht[1]?.y ?? 0);
+  expect(senkrecht[0]?.y ?? 0).toBeLessThan(waagerecht[0]?.y ?? 0);
+  expect((senkrecht[0]?.y ?? 0) + (senkrecht[0]?.h ?? 0)).toBeGreaterThan((waagerecht[1]?.y ?? 0) + (waagerecht[1]?.h ?? 0));
+  expect(waagerecht[0]?.x ?? 0).toBeLessThan(senkrecht[0]?.x ?? 0);
+  expect((waagerecht[0]?.x ?? 0) + (waagerecht[0]?.w ?? 0)).toBeGreaterThan((senkrecht[1]?.x ?? 0) + (senkrecht[1]?.w ?? 0));
+  expect(senkrecht[0]?.oben ?? 0).toBeLessThan(senkrecht[0]?.unten ?? 0);
+  expect(waagerecht[0]?.links ?? 0).toBeLessThan(waagerecht[0]?.rechts ?? 0);
+  expect(senkrecht[0]?.oben ?? 0).toBeLessThan(waagerecht[0]?.oben ?? 0);
+  expect(waagerecht[0]?.links ?? 0).toBeLessThan(senkrecht[0]?.links ?? 0);
+
+  const form = await page.locator('form').boundingBox();
+  const link = page.getByRole('link', { name: 'by leohr' });
+  await expect(link).toHaveAttribute('href', 'https://leohr.de');
+  await expect(page.locator('form').getByRole('link', { name: 'by leohr' })).toHaveCount(0);
+  await expect(page.locator('.kopf').getByText('by leohr')).toHaveCount(0);
+  const linkKasten = await link.boundingBox();
+  if (!form || !linkKasten) throw new Error('credit box missing');
+  expect(linkKasten.y).toBeGreaterThanOrEqual(form.y + form.height - 1);
+  expect(Math.abs(linkKasten.x + linkKasten.width / 2 - (form.x + form.width / 2))).toBeLessThanOrEqual(2);
+  expect(await link.evaluate((el) => getComputedStyle(el).color)).toBe('rgb(148, 148, 148)');
+});

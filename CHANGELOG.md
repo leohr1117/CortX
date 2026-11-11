@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.14.7
+
+The sign-in mark is a hash. Under sign-in and in the library menu, by leohr links to leohr.de.
+
 ## 1.14.6
 
 Keyboard suggestions and autocorrect replace the word being typed, instead of appending to it.
@@ -190,7 +194,7 @@ Search your notes from the library. The field looks through every topic and Inbo
 
 ## 1.0.0
 
-The first release of Cortex. Write a note and move on. The app files it for you.
+The first release of CortX. Write a note and move on. The app files it for you.
 
 Sign in with your Stride account. Your notes stay with that account. Change your password in Stride, and sign out from the library. A draft stays on the device while you are offline, and notes you file offline sync after you sign in.
 

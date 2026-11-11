@@ -57,15 +57,11 @@ export function Anmeldung() {
       <main className="login">
         <form method="post" noValidate onSubmit={(event) => void sende(event)}>
           <div className="marke">
-            <svg className="logo" viewBox="0 0 28 28" aria-hidden="true">
-              <rect x="1" y="1" width="26" height="26" rx="var(--logo-ecke)" fill="var(--aktion)" />
-              <path
-                d="M9 9.5h10M9 14h10M9 18.5h6"
-                fill="none"
-                stroke="var(--grund)"
-                strokeWidth="2"
-                strokeLinecap="round"
-              />
+            <svg className="logo" viewBox="0 0 28 28" width="28" height="28" aria-hidden="true">
+              <rect x="5" y="2" width="3" height="24" fill="currentColor" />
+              <rect x="20" y="2" width="3" height="24" fill="currentColor" />
+              <rect x="2" y="5" width="24" height="3" fill="currentColor" />
+              <rect x="2" y="20" width="24" height="3" fill="currentColor" />
             </svg>
             {TEXTE.marke || 'CortX'}
           </div>
@@ -125,6 +121,9 @@ export function Anmeldung() {
           </button>
           <p className="hinweis">{TEXTE.passwortHinweis}</p>
         </form>
+        <a className="absender" href={TEXTE.absenderUrl}>
+          {TEXTE.absender}
+        </a>
       </main>
     </div>
   );

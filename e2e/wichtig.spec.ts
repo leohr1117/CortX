@@ -43,6 +43,9 @@ test('the Wichtig button marks words and a line on a phone', async ({ page }, te
     setzeSchauspiel([{ name: 'Work', notizen: [{ text: TEXT, created: versatz(9, 20) }] }]);
     await oeffne(page);
     await expect(page.locator('mark', { hasText: 'Anna' })).toBeVisible();
+    expect(await page.locator('mark', { hasText: 'Anna' }).evaluate((el) => getComputedStyle(el).color)).toBe(
+      'rgb(20, 20, 20)',
+    );
     await expect(page.locator('.wichtigzeile')).toContainText('Bring milk');
     await expect(page.locator('.sr-nur').first()).toHaveText('Wichtig');
     await expect(page.locator('.lauf', { hasText: 'Wow!!' }).locator('mark')).toHaveCount(0);
@@ -59,6 +62,9 @@ test('the Wichtig button marks words and a line on a phone', async ({ page }, te
     await page.screenshot({ path: `${BILDER}/handy-wichtig-edit.png`, fullPage: true });
 
     await expect(page.locator('.schreib .cm-wichtig', { hasText: 'Anna' })).toBeVisible();
+    expect(
+      await page.locator('.schreib .cm-wichtig', { hasText: 'Anna' }).evaluate((el) => getComputedStyle(el).color),
+    ).toBe('rgb(20, 20, 20)');
     await expect(page.locator('.schreib .cm-wichtig', { hasText: 'Anna' })).not.toContainText('!!');
     await expect(page.locator('.schreib .cm-wichtig-zeile')).not.toContainText('!!');
     await expect(page.locator('.schreib')).toContainText('!!not!!');
@@ -105,7 +111,7 @@ test('Wichtig shows inline and as a line on a wide screen', async ({ page }, tes
       return { hintergrund: stil.backgroundColor, schrift: stil.color };
     });
     expect(farben.hintergrund).toBe('rgb(243, 226, 168)');
-    expect(farben.schrift).toBe('rgb(26, 26, 26)');
+    expect(farben.schrift).toBe('rgb(20, 20, 20)');
     const balken = await zeile.evaluate((el) => getComputedStyle(el).borderLeftWidth);
     expect(balken).toBe('3px');
     await page.screenshot({ path: `${BILDER}/desktop-wichtig-read.png`, fullPage: true });

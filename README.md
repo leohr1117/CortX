@@ -13,8 +13,8 @@ Live: [cortx.leohr.de](https://cortx.leohr.de)
 - **Termine:** Datums- und Zeitangaben im Text („morgen 15 Uhr“, „next Monday“, „03.11.“) werden beim Lesen und in der Suche unter dem Text als Datum angezeigt.
 - **Suche:** Durchsucht alle Themen und die Inbox.
 - **Offline:** Entwürfe bleiben auf dem Gerät, offline abgelegte Notizen werden nach der Anmeldung abgeglichen. Installierbar als PWA.
-- **Anmeldung:** Mit einem Konto aus [Stride](https://github.com/leohr1117/Stride).
-- **Neuigkeiten:** Das Menü der Bibliothek zeigt die aktuelle Version, unter "What's new" stehen die Änderungen jeder Version. Nach einem Update erscheint einmal ein Hinweis. Ein X schließt ihn, auch nach dem Neuladen bleibt er weg.
+- **Anmeldung:** Mit einem Konto aus [Stride](https://github.com/leohr1117/Stride). Neben dem Namen steht ein #. Unter dem Formular verlinkt „by leohr“ auf [leohr.de](https://leohr.de).
+- **Neuigkeiten:** Das Menü der Bibliothek zeigt die aktuelle Version, unter "What's new" stehen die Änderungen jeder Version. Darunter steht derselbe Link „by leohr“. Nach einem Update erscheint einmal ein Hinweis. Ein X schließt ihn, auch nach dem Neuladen bleibt er weg.
 
 Die Oberfläche ist englisch. Änderungen je Version stehen in [CHANGELOG.md](CHANGELOG.md).
 

@@ -25,7 +25,7 @@ export const STIL_REGISTER: readonly StilEintrag[] = [
   },
   {
     art: ART.wichtig,
-    stil: { hintergrund: '#f3e2a8', farbe: '#1a1a1a' },
+    stil: { hintergrund: '#f3e2a8', farbe: '#141414' },
   },
 ];
 

@@ -7,7 +7,7 @@ import { setzeSchauspiel, sichereBestand, stelleBestand } from './schau.ts';
 
 const BILDER = 'tmp-test/schicht';
 const GOLD = 'rgb(243, 226, 168)';
-const DUNKEL = 'rgb(26, 26, 26)';
+const DUNKEL = 'rgb(20, 20, 20)';
 const CHIP = 'rgb(38, 38, 38)';
 const MONO = /monospace|Consolas|Cascadia|ui-monospace/i;
 

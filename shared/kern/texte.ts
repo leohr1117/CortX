@@ -10,6 +10,8 @@ export const TEXTE = {
   anmelden: 'Sign in',
   anmeldenPunkt: 'Sign in.',
   passwortHinweis: 'Change your password in Stride.',
+  absender: 'by leohr',
+  absenderUrl: 'https://leohr.de',
   anmeldenNamen: 'Enter your username and password.',
   anmeldenFalsch: 'The username or password is wrong.',
   strideWeg: 'Stride is not reachable. Try again later.',

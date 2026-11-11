@@ -75,7 +75,7 @@ describe('wichtig on the page', () => {
     const balken = wert('--wichtig-balken');
     const strich = wert('--wichtig-strich');
     expect(hintergrund).toBe('#f3e2a8');
-    expect(schrift).toBe('#1a1a1a');
+    expect(schrift).toBe('#141414');
     expect(balken).toBe('#b8892e');
     expect(strich).toBe('#5c4314');
     expect(css).toContain('background: var(--wichtig-hintergrund)');
