@@ -4,6 +4,7 @@ import { defineConfig, devices } from '@playwright/test';
 
 const E2E_PORT = 3110;
 const kopfSpec = /[/\\]kopf\.spec\.ts$/;
+const imeSpec = /[/\\]eingabe-ime\.spec\.ts$/;
 const MAC_WEBKIT =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/27.2 Safari/605.1.15';
 const datenbank = path.resolve('tmp-test', `e2e-${process.pid}.db`);
@@ -58,12 +59,12 @@ export default defineConfig({
     },
     {
       name: 'android-pixel',
-      testMatch: kopfSpec,
+      testMatch: [kopfSpec, imeSpec],
       use: { ...devices['Pixel 7'] },
     },
     {
       name: 'ipad-hoch',
-      testMatch: kopfSpec,
+      testMatch: [kopfSpec, imeSpec],
       use: { ...devices['iPad Pro 11'] },
     },
     {

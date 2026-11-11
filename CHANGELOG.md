@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.14.6
+
+Keyboard suggestions and autocorrect replace the word being typed, instead of appending to it.
+
 ## 1.14.5
 
 The back arrow in the header sits at the start on every screen size and stays inside the safe area.

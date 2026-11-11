@@ -5,6 +5,7 @@ interface Versionseintrag {
 }
 
 export const VERSIONEN: readonly Versionseintrag[] = [
+  { version: '1.14.6', datum: '2026-11-11', zeilen: ['Keyboard suggestions and autocorrect replace the word being typed, instead of appending to it.'] },
   { version: '1.14.5', datum: '2026-11-11', zeilen: ['The back arrow in the header sits at the start on every screen size and stays inside the safe area.'] },
   {
     version: '1.14.4', datum: '2026-11-10', zeilen: ['Notes are now stored as structured documents. All your existing notes were carried over unchanged.'],

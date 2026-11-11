@@ -13,6 +13,7 @@ import { NOTE_TEXT_MAX } from '../../../../shared/kern/grenzen.ts';
 import { TEXTE } from '../../../../shared/kern/texte.ts';
 import { eingabePlugins } from './eingabeKuerzel.ts';
 import { ablageTastePlugin, platzhalterPlugin, type EditorModus } from './editorSchale.ts';
+import { imeErsatz } from './imeErsatz.ts';
 import { modellAblage } from './modellAblage.ts';
 import { modellEingabe } from './modellEingabe.ts';
 import { inlinePlugins } from './inlineKuerzel.ts';
@@ -132,6 +133,7 @@ export function ModellEditor({
         keymap({ 'Mod-z': undo, 'Mod-y': redo, 'Shift-Mod-z': redo }),
         wichtigTastenPlugin(() => onLinkRef.current?.()),
         keymap(formatTasten(() => onLinkRef.current?.())),
+        imeErsatz(),
         ...modellEingabe(),
         modellAblage(),
         ...(modusRef.current === 'erfassen' ? [ablageTastePlugin(() => onAblegenRef.current?.()), buchstabenBleibenText(), tagDekoPlugin()] : []),
@@ -188,7 +190,7 @@ export function ModellEditor({
 
   useLayoutEffect(() => {
     const view = viewRef.current;
-    if (!view || dokument === undefined) return;
+    if (!view || view.composing || dokument === undefined) return;
     const knoten = pruefeDokument(dokument);
     if (!knoten) return;
     const wert = speichere(knoten);
@@ -206,7 +208,7 @@ export function ModellEditor({
 
   useLayoutEffect(() => {
     const view = viewRef.current;
-    if (!view || text === gemeldet.current) return;
+    if (!view || view.composing || text === gemeldet.current) return;
     gemeldet.current = text;
     const zustand = EditorState.create({ doc: lade(text), plugins: view.state.plugins });
     const ende = TextSelection.atEnd(zustand.doc);
