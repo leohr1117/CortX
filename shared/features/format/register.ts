@@ -109,7 +109,7 @@ interface FormatEintrag {
   vorschau?: FormatVorschau;
   kuerzel?: FormatKuerzel;
   readonly modell?: ModellSchalt;
-  readonly kasten?: { text: (text: string, index: number) => string; modell: (zustand: import('prosemirror-state').EditorState, pos: number) => import('prosemirror-state').EditorState };
+  readonly kasten?: { modell: (zustand: import('prosemirror-state').EditorState, pos: number) => import('prosemirror-state').EditorState };
 }
 
 const HAKEN_ZEICHEN = ['[]', '[x]'] as const;

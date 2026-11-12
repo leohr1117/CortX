@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { ART } from '../../../../shared/features/format/index.ts';
 import { importiere } from '../../../../shared/features/format/md.ts';
 import { modell } from '../../../../shared/features/format/modell.ts';
+import { kastenInQuelle } from '../../../../shared/features/format/modellkasten.ts';
 import { standAusText, standNachKasten } from '../edit/dokumentStand.ts';
 import { LeseText } from './LeseText.tsx';
 import { leseKnoten } from './leseKnoten.ts';
@@ -79,5 +80,64 @@ describe('checkbox in the reading view', () => {
 
   it('ignores a position that is not a box', () => {
     expect(standNachKasten(standAusText('plain'), 0)).toBeNull();
+  });
+});
+
+function kaesten(text: string): number[] {
+  const stellen: number[] = [];
+  standAusText(text).knoten.forEach((knoten, pos) => {
+    if (knoten.type.name === 'punkt' && knoten.attrs.art === 'haken') stellen.push(pos);
+  });
+  return stellen;
+}
+
+function abhaken(text: string, nummer = 0): string {
+  const stand = standAusText(text);
+  const pos = kaesten(text)[nummer];
+  if (pos === undefined) throw new Error('no box');
+  const nachher = standNachKasten(stand, pos);
+  if (!nachher) throw new Error('box did not toggle');
+  return nachher.text;
+}
+
+describe('ticking a box changes only the character in the box', () => {
+  it('swaps the box character and keeps every other byte of the line, also in the export', () => {
+    const paare: Array<[string, string]> = [
+      ['[] a', '[x] a'],
+      ['[x] a', '[] a'],
+      ['[]a', '[x]a'],
+      ['[x]a', '[]a'],
+      ['[x]  a  ', '[]  a  '],
+      ['- [ ] a', '- [x] a'],
+      ['- [x] a', '- [ ] a'],
+      ['* [ ] a', '* [x] a'],
+      ['+ [x] a', '+ [ ] a'],
+      ['- [ ]a', '- [x]a'],
+      ['- [x]   viel', '- [ ]   viel'],
+      ['- [ ] **fett** `c` ', '- [x] **fett** `c` '],
+    ];
+    for (const [vorher, nachher] of paare) expect(abhaken(vorher)).toBe(nachher);
+  });
+
+  it('leaves the other lines and their line endings untouched', () => {
+    expect(abhaken('[] a\r\n[x] b\r\n', 1)).toBe('[] a\r\n[] b\r\n');
+    expect(abhaken('T\n\n- [ ] one\n[x] two', 0)).toBe('T\n\n- [x] one\n[x] two');
+    expect(abhaken('- [ ] a\n  b\n- [x] c', 1)).toBe('- [ ] a\n  b\n- [ ] c');
+    expect(abhaken('[] a\n```\n[] b\n```')).toBe('[x] a\n```\n[] b\n```');
+  });
+
+  it('returns to the same bytes when ticked twice', () => {
+    for (const text of ['[] a', '[x]a', '- [ ] a', '* [x] b\n', '[x]  a  ']) {
+      expect(abhaken(abhaken(text))).toBe(text);
+    }
+  });
+
+  it('keeps the stored source line in step with the export', () => {
+    expect(kastenInQuelle('[x] a\n')).toBe('[] a\n');
+    expect(kastenInQuelle('- [ ] a\r\n')).toBe('- [x] a\r\n');
+    expect(kastenInQuelle('plain')).toBe('plain');
+    const stand = standAusText('[x] a');
+    const nachher = standNachKasten(stand, kaesten('[x] a')[0]!)!;
+    expect(nachher.knoten.child(0).attrs.quelle).toBe('[] a');
   });
 });

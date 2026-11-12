@@ -5,14 +5,12 @@ import './modellkasten.ts';
 import { formatVon } from './register.ts';
 
 function schalte(text: string, index = 0): string {
-  const fn = formatVon(ART.haken).kasten?.text;
-  if (!fn) throw new Error('missing toggle');
-  return fn(text, index);
+  return schalteKasten(text, index);
 }
 
 describe('checkbox toggle', () => {
   it('is the register command for a checkbox and for no other format', () => {
-    expect(formatVon(ART.haken).kasten?.text).toBe(schalteKasten);
+    expect(Object.keys(formatVon(ART.haken).kasten ?? {})).toEqual(['modell']);
     expect(typeof formatVon(ART.haken).kasten?.modell).toBe('function');
     expect(formatVon(ART.liste).kasten).toBeUndefined();
     expect(formatVon(ART.fett).kasten).toBeUndefined();

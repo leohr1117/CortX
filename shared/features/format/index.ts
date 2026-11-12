@@ -39,7 +39,6 @@ export {
   type PunktArt,
   type VorschauTag,
 } from './register.ts';
-export { schalteKasten } from './kasten.ts';
 export { sicherZiel } from './sicher.ts';
 export { suchtext } from './suchtext.ts';
 export { schalteUeberschrift, zeileIstUeberschrift, type TextWahl } from './ueberschrift.ts';
