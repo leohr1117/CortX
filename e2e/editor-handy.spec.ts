@@ -35,6 +35,25 @@ async function oeffne(page: Page): Promise<void> {
   await expect(page).toHaveURL(/\/library\/note\?id=\d+/);
 }
 
+async function leseStil(page: Page, wort: string) {
+  const zeile = page.locator('.lesetext .lauf, .lesetext .wichtigzeile').filter({ hasText: new RegExp(`^(Wichtig)?${wort}$`) });
+  return zeile.evaluate((element, gesucht) => {
+    const gang = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+    let knoten = gang.nextNode();
+    while (knoten && knoten.textContent !== gesucht) knoten = gang.nextNode();
+    const huelle = knoten?.parentElement;
+    if (!huelle) return null;
+    const mark = huelle.closest('mark');
+    return {
+      gewicht: getComputedStyle(huelle).fontWeight,
+      schrift: getComputedStyle(huelle).fontStyle,
+      hintergrund: mark ? getComputedStyle(mark).backgroundColor : null,
+      wichtig: element.querySelectorAll('.sr-nur').length,
+      lesung: element.querySelector('.sr-nur')?.textContent ?? null,
+    };
+  }, wort);
+}
+
 test('combined formatting shows together on a phone', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'handy', 'phone width');
   test.setTimeout(90_000);
@@ -42,19 +61,15 @@ test('combined formatting shows together on a phone', async ({ page }, testInfo)
   try {
     setzeSchauspiel([{ name: 'Work', notizen: [{ text: KOMBI, created: versatz(9, 12) }] }]);
     await oeffne(page);
-    await expect(page.locator('.lesetext strong em')).toHaveText(['Test', 'x']);
-    await expect(page.locator('.lesetext em strong')).toHaveText('y');
     await expect(page.locator('.lesetext s strong')).toHaveText('z');
-    const markiert = page.locator('.lesetext strong mark');
-    await expect(markiert.locator('.sr-nur')).toHaveText('Wichtig');
-    const wort = await markiert.evaluate((el) =>
-      [...el.childNodes]
-        .filter((knoten) => knoten.nodeType === Node.TEXT_NODE)
-        .map((knoten) => knoten.textContent ?? '')
-        .join(''),
-    );
-    expect(wort).toBe('w');
-    await expect(page.locator('.lesetext mark strong')).toHaveText(['v', 'fett']);
+    for (const wort of ['Test', 'x', 'y']) {
+      expect(await leseStil(page, wort)).toMatchObject({ gewicht: '600', schrift: 'italic' });
+    }
+    for (const wort of ['w', 'v', 'fett']) {
+      const stil = await leseStil(page, wort);
+      expect(stil).toMatchObject({ gewicht: '600', wichtig: 1, lesung: 'Wichtig' });
+      expect(stil?.hintergrund).not.toBe('rgba(0, 0, 0, 0)');
+    }
     await expect(page.locator('.wichtigzeile strong')).toHaveText('fett');
 
     await page.getByRole('button', { name: 'Edit' }).click();

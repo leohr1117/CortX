@@ -1,6 +1,7 @@
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
+import { importiere } from '../../../../shared/features/format/md.ts';
 import { LeseText } from './LeseText.tsx';
 
 function tags(html: string): string[] {
@@ -11,7 +12,7 @@ describe('rendered notes stay text', () => {
   it('escapes script and image markup and drops unsafe links', () => {
     const html = renderToStaticMarkup(
       createElement(LeseText, {
-        text: '<script>alert(1)</script>\n<img src=x onerror=alert(1)>\n[click](javascript:alert(1))\n[ok](https://example.com/a)',
+        doc: importiere('<script>alert(1)</script>\n<img src=x onerror=alert(1)>\n[click](javascript:alert(1))\n[ok](https://example.com/a)'),
         verlinken: true,
       }),
     );

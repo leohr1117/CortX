@@ -1,6 +1,9 @@
 import type { Node } from 'prosemirror-model';
+import { EditorState } from 'prosemirror-state';
 import { packeDokument, pruefeDokument } from '../../../../shared/features/format/dokument.ts';
 import { exportiere, importiere } from '../../../../shared/features/format/md.ts';
+import { schalteKasten } from '../../../../shared/features/format/kasten.ts';
+import { schalteAbgehakt } from '../../../../shared/features/format/modellkasten.ts';
 import type { Notiz } from '../../../../shared/kern/modell.ts';
 
 export interface DokumentStand {
@@ -47,6 +50,16 @@ export function gleicherStand(aktuell: DokumentStand, basis: DokumentStand): boo
 export function entwurfZumSpeichern(aktuell: DokumentStand, basis: DokumentStand): unknown {
   if (aktuell.text.trim().length === 0 || gleicherStand(aktuell, basis)) return '';
   return aktuell.doc;
+}
+
+export function standNachKasten(aktuell: DokumentStand, pos: number): DokumentStand | null {
+  const vorher = EditorState.create({ doc: aktuell.knoten });
+  const nachher = schalteAbgehakt(vorher, pos);
+  if (nachher === vorher) return null;
+  const punkt = nachher.doc.nodeAt(pos)!;
+  const quelle = String(punkt.attrs.quelle ?? '');
+  const knoten = quelle ? nachher.doc.copy(nachher.doc.content.replaceChild(nachher.doc.resolve(pos).index(), punkt.type.create({ ...punkt.attrs, quelle: schalteKasten(quelle, 0) }, punkt.content, punkt.marks))) : nachher.doc;
+  return { text: exportiere(knoten), doc: packeDokument(knoten), knoten };
 }
 
 export function standNachKonflikt(notiz: Notiz): DokumentStand {

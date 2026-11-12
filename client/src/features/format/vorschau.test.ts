@@ -1,6 +1,7 @@
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
+import { importiere } from '../../../../shared/features/format/md.ts';
 import { TEXTE } from '../../../../shared/kern/texte.ts';
 import { LeseText } from './LeseText.tsx';
 
@@ -25,7 +26,7 @@ const TEXT = [
 ].join('\n');
 
 function html(text: string, verlinken = true): string {
-  return renderToStaticMarkup(createElement(LeseText, { text, verlinken }));
+  return renderToStaticMarkup(createElement(LeseText, { doc: importiere(text), verlinken }));
 }
 
 describe('reading view', () => {
@@ -69,7 +70,7 @@ describe('reading view', () => {
     expect(suche).toContain('aria-hidden="true"');
     const lesen = renderToStaticMarkup(
       createElement(LeseText, {
-        text: '```\n[] a\n```\n[] open\n[x] done\nkeep',
+        doc: importiere('```\n[] a\n```\n[] open\n[x] done\nkeep'),
         verlinken: true,
         onKasten: () => undefined,
       }),

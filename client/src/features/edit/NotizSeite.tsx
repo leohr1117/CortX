@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState, type ComponentType } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { ablageZeile, planeNotizText, textMeldung } from '../../../../shared/features/edit/index.ts';
-import { schalteKasten } from '../../../../shared/features/format/index.ts';
 import { abschnittNamen } from '../../../../shared/features/seiten/index.ts';
 import type { Notiz } from '../../../../shared/kern/modell.ts';
 import { TEXTE } from '../../../../shared/kern/texte.ts';
@@ -19,7 +18,7 @@ import {
   standAusAntwort,
   standAusEntwurf,
   standAusPack,
-  standAusText,
+  standNachKasten,
   type DokumentStand,
 } from './dokumentStand.ts';
 import { merkeNotiz } from './Meldung.tsx';
@@ -237,10 +236,9 @@ export function NotizSeite() {
   }
   sichereRef.current = sichere;
 
-  function beiKasten(stelle: number) {
-    const text = schalteKasten(standRef.current.text, stelle);
-    if (text === standRef.current.text) return;
-    const neu = standAusText(text);
+  function beiKasten(pos: number) {
+    const neu = standNachKasten(standRef.current, pos);
+    if (!neu) return;
     standRef.current = neu;
     setStand(neu);
     setFehler(null);
@@ -343,7 +341,7 @@ export function NotizSeite() {
                 ))}
               </nav>
             ) : null}
-            <LeseText text={stand.text} verlinken onKasten={beiKasten} />
+            <LeseText doc={stand.knoten} verlinken onKasten={beiKasten} />
             <TerminZeile text={stand.text} created={notiz.created} />
           </>
         ) : null}

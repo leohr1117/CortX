@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
+import { importiere } from '../../../../shared/features/format/md.ts';
 import { LeseText } from './LeseText.tsx';
 
 function lin(kanal: number): number {
@@ -48,7 +49,7 @@ describe('wichtig on the page', () => {
   it('renders a mark and keeps script text as text', () => {
     const html = renderToStaticMarkup(
       createElement(LeseText, {
-        text: '!!<script>alert(1)</script>!!\n!!!! <img src=x onerror=alert(1)>',
+        doc: importiere('!!<script>alert(1)</script>!!\n!!!! <img src=x onerror=alert(1)>'),
         verlinken: true,
       }),
     );
@@ -63,7 +64,7 @@ describe('wichtig on the page', () => {
     expect(html).toContain('&lt;img');
     expect(html).toContain('Wichtig');
     expect(html).toContain('wichtigzeile');
-    expect(renderToStaticMarkup(createElement(LeseText, { text: 'Wow!!' }))).not.toContain('<mark');
+    expect(renderToStaticMarkup(createElement(LeseText, { doc: importiere('Wow!!') }))).not.toContain('<mark');
   });
 
   it('uses a gold highlight with enough contrast and no red', () => {

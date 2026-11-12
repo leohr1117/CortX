@@ -1,4 +1,5 @@
 import { Link } from 'react-router';
+import { importiere } from '../../../../shared/features/format/md.ts';
 import { TEXTE } from '../../../../shared/kern/texte.ts';
 import { SUCH_MAX, type SuchTreffer } from '../../../../shared/features/suche/index.ts';
 import { gleicherName } from '../../../../shared/features/tags/index.ts';
@@ -37,7 +38,7 @@ export function Trefferliste({ treffer }: { treffer: SuchTreffer[] }) {
           <Link className="zeile voll" key={zeile.id} to={notizPfad(zeile.id)}>
             <span className="sym">{inbox ? <PosteingangIcon /> : <HashIcon />}</span>
             <span className="tx">
-              <LeseText text={zeile.text} />
+              <LeseText doc={importiere(zeile.text)} />
               <div className="ne">{zeile.topic}</div>
               <TerminZeile text={zeile.text} created={zeile.created} />
             </span>
