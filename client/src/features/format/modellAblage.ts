@@ -2,7 +2,7 @@ import { closeHistory, isHistoryTransaction } from 'prosemirror-history';
 import { DOMParser, DOMSerializer, Fragment, Slice, type Mark, type Node } from 'prosemirror-model';
 import { Plugin, PluginKey, type EditorState, type Transaction } from 'prosemirror-state';
 import type { EditorView } from 'prosemirror-view';
-import { lade } from '../../../../shared/features/format/laden.ts';
+import { importiere } from '../../../../shared/features/format/md.ts';
 import { modell } from '../../../../shared/features/format/modell.ts';
 
 interface RandBild {
@@ -63,7 +63,7 @@ function ohneQuelle(node: Node): Node {
 }
 
 function sliceAusText(text: string, parent: Node): Slice {
-  const doc = lade(text);
+  const doc = importiere(text);
   const kinder: Node[] = [];
   doc.forEach((knoten) => kinder.push(ohneQuelle(knoten)));
   if (kinder.length === 0) return Slice.empty;

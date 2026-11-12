@@ -1,8 +1,7 @@
 import { closeHistory } from 'prosemirror-history';
 import { TextSelection } from 'prosemirror-state';
 import type { EditorView } from 'prosemirror-view';
-import { lade } from '../../../../shared/features/format/laden.ts';
-import { speichere } from '../../../../shared/features/format/speichern.ts';
+import { exportiere, importiere } from '../../../../shared/features/format/md.ts';
 import { grenzen } from './modellStelle.ts';
 import { klartextVon } from './modellHaken.ts';
 
@@ -89,7 +88,7 @@ function waehle(view: EditorView, text: string, anchor: number, head: number): v
 }
 
 export function quellWahl(view: EditorView): { text: string; anchor: number; head: number } {
-  const text = speichere(view.state.doc);
+  const text = exportiere(view.state.doc);
   return {
     text,
     anchor: offset(view, text, view.state.selection.anchor, 'anchor'),
@@ -102,7 +101,7 @@ export function setzeGriff(view: EditorView, text: string, anchor: number, head:
 }
 
 function ersetze(view: EditorView, text: string, anchor: number, head: number, neuGruppe = false): void {
-  const doc = lade(text);
+  const doc = importiere(text);
   let tr = view.state.tr.replaceWith(0, view.state.doc.content.size, doc.content);
   const grenze = grenzen(tr.doc, text);
   const von = stelle(tr.doc, grenze[klemme(anchor, text.length)] ?? 0);
@@ -124,7 +123,7 @@ function quelleLeererMarken(view: EditorView): string | null {
     const probe = view.state.schema.text('x', [...marks]);
     const knoten = absatz.create({ quelle: '' }, probe);
     const doc = view.state.schema.topNodeType.create(null, knoten);
-    const seriell = speichere(doc);
+    const seriell = exportiere(doc);
     if (seriell.split('x').length !== 2) return null;
     return seriell.replace('x', '');
   } catch {
@@ -139,7 +138,7 @@ export function haengeGriff(view: EditorView): void {
       view.focus();
     },
     dispatch(spec) {
-      const alt = speichere(view.state.doc);
+      const alt = exportiere(view.state.doc);
       if (spec.changes) {
         const neu = alt.slice(0, spec.changes.from) + spec.changes.insert + alt.slice(spec.changes.to);
         const anker = spec.selection ? spec.selection.anchor : neu.length;
@@ -151,14 +150,14 @@ export function haengeGriff(view: EditorView): void {
       waehle(view, alt, spec.selection.anchor, spec.selection.head ?? spec.selection.anchor);
     },
     get state() {
-      const text = speichere(view.state.doc);
+      const text = exportiere(view.state.doc);
       return {
         doc: {
           get length() {
-            return speichere(view.state.doc).length;
+            return exportiere(view.state.doc).length;
           },
           toString() {
-            const text = speichere(view.state.doc);
+            const text = exportiere(view.state.doc);
             if (text.length > 0) return text;
             return quelleLeererMarken(view) ?? text;
           },
