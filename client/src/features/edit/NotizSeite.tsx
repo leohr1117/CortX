@@ -11,7 +11,7 @@ import { themaPfad } from '../library/api.ts';
 import { Kopf } from '../library/Kopf.tsx';
 import { liesNotizEntwurf, schreibNotizEntwurf } from '../offline/index.ts';
 import { TerminZeile } from '../termine/index.ts';
-import { ladeNotiz, loescheNotiz, NotizFehler, speichereNotiz } from './api.ts';
+import { ladeNotiz, legeKopieAn, loescheNotiz, NotizFehler, speichereNotiz } from './api.ts';
 import {
   entwurfZumSpeichern,
   gleicherStand,
@@ -20,11 +20,11 @@ import {
   standAusEntwurf,
   standAusPack,
   standAusText,
-  standNachKonflikt,
   type DokumentStand,
 } from './dokumentStand.ts';
 import { merkeNotiz } from './Meldung.tsx';
 import { NotizKnopf } from './Menue.tsx';
+import { kopieDokument, useSofort } from './sofort.ts';
 import { ThemenWahl } from './ThemenWahl.tsx';
 
 const SPEICHER_PAUSE_MS = 400;
@@ -45,7 +45,7 @@ function ladeSchreibfeld(): Promise<SchreibFeld> {
 }
 
 type Modus = 'lesen' | 'schreiben';
-type Ausgang = 'ok' | 'leer' | 'netz' | 'fehler';
+type Ausgang = 'ok' | 'leer' | 'netz' | 'fehler' | 'konflikt';
 
 function nummer(roh: string | null): number | null {
   if (!roh || !/^[1-9]\d*$/.test(roh)) return null;
@@ -61,17 +61,21 @@ export function NotizSeite() {
   const [basis, setBasis] = useState<DokumentStand>(LEERER_STAND);
   const [modus, setModus] = useState<Modus>('lesen');
   const [fehler, setFehler] = useState<string | null>(id === null ? TEXTE.notizFehlt : null);
-  const [hinweis, setHinweis] = useState<string | null>(null);
   const [bereit, setBereit] = useState(false);
   const [menue, setMenue] = useState(false);
   const [wechsel, setWechsel] = useState(false);
   const [schreibFeld, setSchreibFeld] = useState<SchreibFeld | null>(null);
+  const [konflikt, setKonflikt] = useState(false);
+  const [kopiert, setKopiert] = useState(false);
   const kette = useRef(Promise.resolve());
   const basisRef = useRef(basis);
   const standRef = useRef(stand);
   const notizRef = useRef<Notiz | null>(null);
   const da = useRef(true);
   const weg = useRef(false);
+  const konfliktRef = useRef(false);
+  const abbruch = useRef<AbortController | null>(null);
+  const kopieId = useRef('');
   const sichereRef = useRef<(zeigen: boolean) => Promise<Ausgang>>(async () => 'ok');
   basisRef.current = basis;
   standRef.current = stand;
@@ -94,10 +98,11 @@ export function NotizSeite() {
     setBereit(false);
     setModus('lesen');
     setFehler(null);
-    setHinweis(null);
     setMenue(false);
     setWechsel(false);
+    setKonflikt(false);
     weg.current = false;
+    konfliktRef.current = false;
     ladeNotiz(id)
       .then(async (geladen) => {
         const entwurf = await liesNotizEntwurf(geladen.id).catch(() => '');
@@ -142,18 +147,27 @@ export function NotizSeite() {
     return () => window.clearTimeout(timer);
   }, [bereit, stand]);
 
-  useEffect(() => {
-    const beiOnline = () => {
-      void sichereRef.current(false);
-    };
-    window.addEventListener('online', beiOnline);
-    return () => window.removeEventListener('online', beiOnline);
-  }, []);
+  useSofort({ notiz: notizRef, stand: standRef, basis: basisRef, weg, konflikt: konfliktRef, da, abbruch }, {
+    beiOnline: () => void sichereRef.current(false),
+    beiKonflikt: () => markiereKonflikt(),
+    beiUebernahme: (beleg, neu) => {
+      setBasis(beleg);
+      setNotiz(neu);
+    },
+  });
+
+  function markiereKonflikt() {
+    konfliktRef.current = true;
+    kopieId.current = crypto.randomUUID();
+    setKonflikt(true);
+    setFehler(null);
+  }
 
   async function schreibeEinmal(zeigen: boolean): Promise<Ausgang> {
     const aktuell = notizRef.current;
     const jetzt = standRef.current;
     if (!aktuell || weg.current) return 'ok';
+    if (konfliktRef.current) return 'konflikt';
     const plan = planeNotizText(jetzt.text);
     if (!plan.ok) {
       if (zeigen && da.current) setFehler(textMeldung(plan.grund));
@@ -163,41 +177,45 @@ export function NotizSeite() {
       if (zeigen && da.current) setFehler(null);
       return 'ok';
     }
+    const steuer = new AbortController();
+    abbruch.current = steuer;
     try {
-      const gespeichert = await speichereNotiz(aktuell.id, jetzt.doc, aktuell.version);
+      const gespeichert = await speichereNotiz(aktuell.id, jetzt.doc, aktuell.version, steuer.signal);
       if (!da.current || weg.current) return 'ok';
       basisRef.current = jetzt;
       notizRef.current = gespeichert;
       setBasis(jetzt);
       setNotiz(gespeichert);
       if (zeigen) setFehler(null);
-      setHinweis(null);
       return 'ok';
     } catch (grund: unknown) {
       if (grund instanceof NotizFehler && grund.status === 409) {
-        try {
-          const neu = await ladeNotiz(aktuell.id);
-          if (!da.current || weg.current) return 'ok';
-          const konflikt = standNachKonflikt(neu);
-          basisRef.current = konflikt;
-          standRef.current = konflikt;
-          notizRef.current = neu;
-          setBasis(konflikt);
-          setStand(konflikt);
-          setNotiz(neu);
-          setFehler(null);
-          setHinweis(TEXTE.seiteNeuGeladen);
-          void schreibNotizEntwurf(neu.id, '').catch(() => undefined);
-          return 'ok';
-        } catch {
-          if (da.current) setFehler(TEXTE.seiteKonflikt);
-          return 'fehler';
-        }
+        if (da.current && !weg.current) markiereKonflikt();
+        return 'konflikt';
       }
       if (!da.current || weg.current) return 'netz';
       const netz = grund instanceof NotizFehler && grund.status === null;
       if (zeigen) setFehler(grund instanceof NotizFehler ? grund.message : TEXTE.speichernNotiz);
       return netz ? 'netz' : 'fehler';
+    } finally {
+      if (abbruch.current === steuer) abbruch.current = null;
+    }
+  }
+
+  async function speichereKopie() {
+    const aktuell = notizRef.current;
+    if (!aktuell || kopiert) return;
+    setKopiert(true);
+    try {
+      const kopie = await legeKopieAn(aktuell.id, kopieDokument(standRef.current, new Date()), kopieId.current);
+      weg.current = true;
+      await schreibNotizEntwurf(aktuell.id, '');
+      navigate(`/library/note?id=${kopie.id}`);
+    } catch {
+      weg.current = false;
+      if (da.current) setFehler(TEXTE.kopieFehl);
+    } finally {
+      if (da.current) setKopiert(false);
     }
   }
 
@@ -226,7 +244,6 @@ export function NotizSeite() {
     standRef.current = neu;
     setStand(neu);
     setFehler(null);
-    setHinweis(null);
   }
 
   async function oeffneSchreiben() {
@@ -340,7 +357,6 @@ export function NotizSeite() {
               standRef.current = neu;
               setStand(neu);
               setFehler(null);
-              setHinweis(null);
             }}
             onDokument={(pack) => {
               const neu = standAusPack(pack, standRef.current.text);
@@ -355,10 +371,15 @@ export function NotizSeite() {
             {fehler}
           </p>
         ) : null}
-        {hinweis ? (
-          <p className="ablage" role="status">
-            {hinweis}
-          </p>
+        {konflikt ? (
+          <>
+            <p className="ablage" role="status">
+              {TEXTE.seiteNeuGeladen}
+            </p>
+            <button type="button" className="btn" disabled={kopiert} onClick={() => void speichereKopie()}>
+              {TEXTE.alsKopie}
+            </button>
+          </>
         ) : null}
         {notiz ? <p className="ablage">{zeile}</p> : null}
       </main>

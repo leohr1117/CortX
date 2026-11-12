@@ -38,7 +38,10 @@ export const TEXTE = {
   themaLaden: 'Could not load this topic.',
   notizFehlt: 'Note not found.',
   notizLaden: 'Could not load the note.',
-  seiteNeuGeladen: 'This page changed. Reloaded the latest text.',
+  seiteNeuGeladen: 'This note changed elsewhere. Your edits are kept on this device, not saved.',
+  alsKopie: 'Save as copy',
+  konfliktWort: 'Conflict',
+  kopieFehl: 'Could not save the copy. Your edits are still here.',
   seiteKonflikt: 'This page changed. Reload it and try again.',
   speichernNotiz: 'Could not save the note.',
   loeschenNotiz: 'Could not delete the note.',
@@ -149,6 +152,27 @@ export const TEXTE = {
   themenLaden: 'Could not load topics.',
   nichtGefunden: 'Not found.',
 } as const;
+
+export type Sprache = 'en' | 'de';
+
+// German texts rest here until the language step switches the interface; English stays the default.
+export const TEXTE_DE = {
+  seiteNeuGeladen:
+    'Diese Notiz wurde woanders ge\u00e4ndert. Deine \u00c4nderungen bleiben auf diesem Ger\u00e4t, sind aber nicht gespeichert.',
+  alsKopie: 'Als Kopie speichern',
+  konfliktWort: 'Konflikt',
+  kopieFehl: 'Die Kopie konnte nicht gespeichert werden. Deine \u00c4nderungen sind noch da.',
+} as const satisfies Partial<Record<keyof typeof TEXTE, string>>;
+
+const ORT: Record<Sprache, string> = { en: 'en-GB', de: 'de-DE' };
+
+export function konfliktZusatz(wann: Date, sprache: Sprache = 'en'): string {
+  const ort = ORT[sprache];
+  const tag = new Intl.DateTimeFormat(ort, { day: 'numeric', month: 'short' }).format(wann);
+  const uhr = new Intl.DateTimeFormat(ort, { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(wann);
+  const wort = sprache === 'de' ? TEXTE_DE.konfliktWort : TEXTE.konfliktWort;
+  return ` (${wort}${TEXTE.punktMitte}${tag}, ${uhr})`;
+}
 
 export const MONATE = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] as const;
 

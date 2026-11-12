@@ -35,12 +35,13 @@ async function hole(url: string, fallback: string): Promise<Notiz> {
   return (await antwort.json()) as Notiz;
 }
 
-async function sende(url: string, body: unknown): Promise<Response> {
+async function sende(url: string, body: unknown, signal?: AbortSignal): Promise<Response> {
   try {
     return await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
+      signal,
     });
   } catch {
     throw new NotizFehler(TEXTE.netzFehl, null);
@@ -51,9 +52,22 @@ export function ladeNotiz(id: number): Promise<Notiz> {
   return hole(`/api/notes/${id}`, TEXTE.notizLaden);
 }
 
-export async function speichereNotiz(id: number, doc: unknown, version: number): Promise<Notiz> {
-  const antwort = await sende(`/api/notes/${id}`, { doc, version });
+export async function speichereNotiz(id: number, doc: unknown, version: number, signal?: AbortSignal): Promise<Notiz> {
+  const antwort = await sende(`/api/notes/${id}`, { doc, version }, signal);
   if (!antwort.ok) return liesFehler(antwort, TEXTE.speichernNotiz);
+  return (await antwort.json()) as Notiz;
+}
+
+// Same body as speichereNotiz. A Blob keeps the type application/json; a plain string would go out as text/plain.
+export function sendeStand(id: number, doc: unknown, version: number): boolean {
+  if (typeof navigator.sendBeacon !== 'function') return false;
+  const body = new Blob([JSON.stringify({ doc, version })], { type: 'application/json' });
+  return navigator.sendBeacon(`/api/notes/${id}`, body);
+}
+
+export async function legeKopieAn(id: number, doc: unknown, clientId: string): Promise<Notiz> {
+  const antwort = await sende(`/api/notes/${id}/copy`, { doc, clientId });
+  if (!antwort.ok) return liesFehler(antwort, TEXTE.kopieFehl);
   return (await antwort.json()) as Notiz;
 }
 

@@ -10,6 +10,7 @@ import { AppFehler } from '../../kern/fehler.ts';
 import { verlangeKonto } from '../zugang/index.ts';
 import { loescheNotiz, speichereDokument, speichereText, stelleNotizHer } from './aendern.ts';
 import { legeAb } from './ablage.ts';
+import { legeKopieAn } from './kopie.ts';
 import { listeSeiten } from './katalog.ts';
 import { alsNotiz, liesNotizNachId } from './lesen.ts';
 import { verschiebe } from './verschieben.ts';
@@ -40,6 +41,7 @@ const textBody = z
   })
   .strict();
 const undoBody = z.object({ token: z.uuid() }).strict();
+const kopieBody = z.object({ doc: z.unknown(), clientId: z.uuid() }).strict();
 
 type NotizEingabe = { art: 'knoten'; knoten: Node } | { art: 'text'; text: string };
 
@@ -98,6 +100,16 @@ export function notizRouten(api: FastifyInstance, db: DatabaseSync): void {
     const id = notizId(anfrage.params);
     if (wert.art === 'knoten') return speichereDokument(db, id, wert.knoten, body.data.version, konto);
     return speichereText(db, id, wert.text, body.data.version, konto);
+  });
+
+  api.post('/notes/:id/copy', async (anfrage, antwort) => {
+    const konto = verlangeKonto(anfrage);
+    const body = kopieBody.safeParse(anfrage.body);
+    if (!body.success) throw new AppFehler(400, UNGUELTIG);
+    const wert = notizEingabe({ doc: body.data.doc });
+    if (wert.art !== 'knoten') throw new AppFehler(400, UNGUELTIG);
+    const ergebnis = legeKopieAn(db, notizId(anfrage.params), wert.knoten, body.data.clientId, konto);
+    return antwort.status(ergebnis.neu ? 201 : 200).send(ergebnis.notiz);
   });
 
   api.post('/notes/:id/delete', async (anfrage) => loescheNotiz(db, notizId(anfrage.params), verlangeKonto(anfrage)));
