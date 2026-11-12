@@ -319,9 +319,27 @@ describe('list keys in the model editor', () => {
     try {
       setze(leer.view, 3);
       expect(druecke(leer.view, 'enter')).toBe(true);
+      expect(leer.view.state.doc.toString()).toBe('doc(absatz)');
       expect(speichere(leer.view.state.doc)).toBe('');
     } finally {
       await zu(leer);
+    }
+    const zurueck = await oeffne('1. ');
+    try {
+      setze(zurueck.view, 3);
+      expect(druecke(zurueck.view, 'zurueck')).toBe(true);
+      expect(zurueck.view.state.doc.toString()).toBe('doc(absatz)');
+      expect(speichere(zurueck.view.state.doc)).toBe('');
+    } finally {
+      await zu(zurueck);
+    }
+    const telefonLeer = await oeffne('A. ');
+    try {
+      setze(telefonLeer.view, 3);
+      expect(tippe(telefonLeer.view, 'zurueck')).toBe(true);
+      expect(telefonLeer.view.state.doc.toString()).toBe('doc(absatz)');
+    } finally {
+      await zu(telefonLeer);
     }
   });
 

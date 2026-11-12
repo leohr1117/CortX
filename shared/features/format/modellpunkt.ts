@@ -168,15 +168,6 @@ function istNummerPunkt(node: Node): boolean {
   return node.type.name === 'punkt' && node.attrs.art === ART.nummer;
 }
 
-function kindIndex(doc: Node, pos: number): number {
-  let lauf = 0;
-  for (let i = 0; i < doc.childCount; i += 1) {
-    if (lauf === pos) return i;
-    lauf += doc.child(i).nodeSize;
-  }
-  return -1;
-}
-
 function zeilenEnde(quelle: unknown): string {
   const text = String(quelle ?? '');
   if (text.endsWith('\r\n')) return '\r\n';
@@ -217,14 +208,6 @@ function schliesse(zustand: EditorState, tr: Transaction, pos: number): EditorSt
   tr.setSelection(auswahlAn(tr.doc, pos));
   tr.scrollIntoView();
   return zustand.apply(closeHistory(tr));
-}
-
-function leerenPunkt(zustand: EditorState, tr: Transaction, start: number): EditorState | null {
-  const node = tr.doc.nodeAt(start);
-  const index = kindIndex(tr.doc, start);
-  if (!node || index < 0) return null;
-  tr.delete(start, start + node.nodeSize);
-  return schliesse(zustand, tr, Math.min(start, tr.doc.content.size));
 }
 
 function teilePunkt(zustand: EditorState, tr: Transaction): EditorState | null {
@@ -268,8 +251,18 @@ export function nummerEnter(zustand: EditorState): EditorState | null {
   if (!selection.empty) tr.delete(selection.from, selection.to);
   const node = tr.selection.$from.parent;
   if (!istNummer(node)) return null;
-  if (node.textContent.trim() === '') return leerenPunkt(zustand, tr, tr.selection.$from.before());
+  if (node.textContent.trim() === '') return beendeListe(zustand, tr);
   return teilePunkt(zustand, tr);
+}
+
+export function nummerZurueck(zustand: EditorState): EditorState | null {
+  const { selection } = zustand;
+  if (!(selection instanceof TextSelection) || !selection.empty) return null;
+  const $from = selection.$from;
+  const eltern = $from.parent;
+  if (!istNummerPunkt(eltern) || $from.parentOffset > 0) return null;
+  if (eltern.textContent.trim() !== '') return null;
+  return beendeListe(zustand, zustand.tr);
 }
 
 export function nummerBruch(zustand: EditorState): EditorState | null {

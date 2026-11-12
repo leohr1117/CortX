@@ -1,4 +1,5 @@
-import { expect, test, type Page, type TestInfo } from '@playwright/test';
+import { type Page, type TestInfo } from '@playwright/test';
+import { expect, test } from '../saat-fix.ts';
 import { packeDokument } from '../../shared/features/format/dokument.ts';
 import { modell } from '../../shared/features/format/modell.ts';
 import { meldeAn } from '../anmelden.ts';

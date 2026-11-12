@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.14.9
+
+Nummerierte Listen lassen sich wieder mit Backspace und Enter beenden. Eingefuegter Markdown-Text wird auch dann formatiert, wenn die Zwischenablage zusaetzlich HTML enthaelt.
+
 ## 1.14.8
 
 Markdown is now formatted right in the editor, also when you paste it. Checklists, numbered lists and tags now work in the new editor. Export any note as Markdown from the note menu.

@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import { cookieFuer } from './anmelden.ts';
+import { merkeSaat } from './schau.ts';
 
 interface Lauf {
   url: string;
@@ -25,4 +26,5 @@ export default async function globalSetup(): Promise<void> {
   const cookie = await cookieFuer(lauf.url);
   await saee(lauf.url, cookie, 'Work', 14);
   await saee(lauf.url, cookie, 'Workout', 6);
+  merkeSaat();
 }

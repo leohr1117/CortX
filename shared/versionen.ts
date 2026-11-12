@@ -2,6 +2,14 @@ import { VERSIONEN_ALT, type Versionseintrag } from './versionen-alt.ts';
 
 export const VERSIONEN: readonly Versionseintrag[] = [
   {
+    version: '1.14.9',
+    datum: '2026-11-12',
+    zeilen: [
+      'Nummerierte Listen lassen sich wieder mit Backspace und Enter beenden.',
+      'Eingefuegter Markdown-Text wird auch dann formatiert, wenn die Zwischenablage zusaetzlich HTML enthaelt.',
+    ],
+  },
+  {
     version: '1.14.8',
     datum: '2026-11-12',
     zeilen: [

@@ -3,9 +3,9 @@ import { keymap } from 'prosemirror-keymap';
 import type { Node } from 'prosemirror-model';
 import { Plugin, TextSelection, type Command } from 'prosemirror-state';
 import type { EditorView } from 'prosemirror-view';
-import { nummerEnter, punktModell } from '../../../../shared/features/format/modellpunkt.ts';
+import { nummerBruch, nummerEnter, nummerZurueck, punktModell } from '../../../../shared/features/format/modellpunkt.ts';
+import { setzeZustand } from '../format/modellLauf.ts';
 import { punktArt } from '../../../../shared/features/format/punkt.ts';
-import { quellWahl, setzeGriff } from '../format/modellGriff.ts';
 
 function buchstabeWeg(rueckwaerts: boolean): Command {
   return (state, dispatch) => {
@@ -60,23 +60,27 @@ export function erfassenTasten(): Plugin[] {
     kanal = null;
     return true;
   };
-  const fremd = (view: EditorView, rueckwaerts: boolean): boolean => {
-    if (!rueckwaerts) return false;
-    return punktModell(view.state, 'zurueck') !== null;
-  };
+  const listeZurueck = (view: EditorView) => punktModell(view.state, 'zurueck') ?? nummerZurueck(view.state);
   const loescheZeichen = (view: EditorView, rueckwaerts: boolean, von: Kanal): boolean => {
-    if (view.composing || fremd(view, rueckwaerts)) return false;
+    if (view.composing) return false;
+    if (rueckwaerts) {
+      const liste = listeZurueck(view);
+      if (liste) {
+        setzeZustand(view, liste);
+        merke(view, von);
+        return true;
+      }
+    }
     const befehl = rueckwaerts ? ruecktaste : vorwaerts;
     if (!befehl(view.state, view.dispatch, view)) return false;
     merke(view, von);
     return true;
   };
   const enter = (view: EditorView, von: Kanal): boolean => {
-    if (view.composing || !nummerEnter(view.state)) return false;
-    const wahl = quellWahl(view);
-    const start = Math.min(wahl.anchor, wahl.head);
-    const ende = Math.max(wahl.anchor, wahl.head);
-    setzeGriff(view, `${wahl.text.slice(0, start)}\n${wahl.text.slice(ende)}`, start + 1, start + 1);
+    if (view.composing) return false;
+    const naechster = nummerEnter(view.state) ?? nummerBruch(view.state);
+    if (!naechster) return false;
+    setzeZustand(view, naechster);
     merke(view, von);
     return true;
   };

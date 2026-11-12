@@ -174,6 +174,29 @@ function setzeSlice(view: EditorView, slice: Slice): boolean {
   return true;
 }
 
+function reichtum(schnitt: Slice): { marks: number; struktur: number; roh: number } {
+  let marks = 0;
+  let struktur = 0;
+  let roh = 0;
+  schnitt.content.descendants((node) => {
+    marks += node.marks.length;
+    if (node.type.name === 'ueberschrift' || node.type.name === 'punkt') struktur += 1;
+    const text = node.isText ? (node.text ?? '') : '';
+    if (text && /(?:\*\*|__|~~|`)/.test(text)) roh += 1;
+  });
+  return { marks, struktur, roh };
+}
+
+function waehleSchnitt(ausText: Slice | null, ausHtml: Slice | null): Slice | null {
+  if (!ausHtml) return ausText;
+  if (!ausText) return ausHtml;
+  const text = reichtum(ausText);
+  const html = reichtum(ausHtml);
+  if (text.marks + text.struktur > html.marks + html.struktur) return ausText;
+  if (html.roh > text.roh && text.marks + text.struktur >= html.marks + html.struktur) return ausText;
+  return ausHtml;
+}
+
 function fuegeEin(view: EditorView, event: Event): boolean {
   const daten = ablageVon(event);
   if (!daten) return false;
@@ -185,13 +208,12 @@ function fuegeEin(view: EditorView, event: Event): boolean {
   }
   const parent = view.state.selection.$from.parent;
   const html = htmlVon(daten);
-  if (html) {
-    const slice = sliceAusHtml(html, parent, view.state.selection.$from);
-    if (setzeSlice(view, slice)) return true;
-  }
   const text = textVon(daten);
-  if (!text) return false;
-  return setzeSlice(view, sliceAusText(text, parent));
+  const ausHtml = html ? sliceAusHtml(html, parent, view.state.selection.$from) : null;
+  const ausText = text ? sliceAusText(text, parent) : null;
+  const schnitt = waehleSchnitt(ausText, ausHtml);
+  if (!schnitt) return false;
+  return setzeSlice(view, schnitt);
 }
 
 function schreibe(view: EditorView, event: Event, ausschneiden: boolean): boolean {

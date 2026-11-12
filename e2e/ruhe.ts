@@ -1,4 +1,5 @@
-import { test as basis, expect, type Locator, type Page, type TestInfo } from '@playwright/test';
+import { expect, type Locator, type Page, type TestInfo } from '@playwright/test';
+import { test as basis } from './saat-fix.ts';
 
 const JAHR = 2026;
 const MONAT = 10;

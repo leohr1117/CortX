@@ -1,4 +1,5 @@
-import { expect, test, type Page } from '@playwright/test';
+import { type Page } from '@playwright/test';
+import { expect, test } from '../saat-fix.ts';
 import { meldeAn } from '../anmelden.ts';
 import { warteBereit } from '../lokal.ts';
 import {

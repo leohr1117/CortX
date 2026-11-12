@@ -3,6 +3,7 @@ import { act } from 'react';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { EditorView } from 'prosemirror-view';
 import type { Root } from 'react-dom/client';
+import { TextSelection } from 'prosemirror-state';
 import { speichere } from '../../../../shared/features/format/speichern.ts';
 import { ModellEditor } from './ModellEditor.tsx';
 import { entfernePruefDom, richtePruefDom } from './modellPruef.ts';
@@ -44,8 +45,9 @@ async function zu(sitz: Sitz) {
   sitz.host.remove();
 }
 
-function ablage(text: string) {
+function ablage(text: string, html?: string) {
   const werte = new Map<string, string>([['text/plain', text]]);
+  if (html !== undefined) werte.set('text/html', html);
   return {
     getData: (art: string) => werte.get(art) ?? '',
     setData: (art: string, wert: string) => {
@@ -149,6 +151,62 @@ describe('pasted numbered lists', () => {
       expect(sitz.view.state.doc.child(0).attrs.quelle).toBe('keep');
       expect(sitz.view.state.doc.child(1).textContent).toBe('milk');
       expect(speichere(sitz.view.state.doc)).toBe('keep\nA. milk');
+    } finally {
+      await zu(sitz);
+    }
+  });
+});
+
+
+describe('pasted markdown with html on the clipboard', () => {
+  it('formats markdown from plain text when html still shows the markers', async () => {
+    const probe = '# Titel\n**fett** und `code`\n- a\n1. b\nText danach';
+    const html = '<div># Titel</div><div>**fett** und `code`</div><div>- a</div><div>1. b</div><div>Text danach</div>';
+    const sitz = await oeffne('', () => undefined);
+    try {
+      zwischenablage(sitz.view, ablage(probe, html));
+      const doc = sitz.view.state.doc;
+      expect(speichere(doc)).toBe(probe);
+      expect(doc.child(0).type.name).toBe('ueberschrift');
+      expect(doc.child(0).textContent).toBe('Titel');
+      expect(doc.child(1).textContent).toBe('fett und code');
+      const marks: string[] = [];
+      doc.child(1).descendants((node) => {
+        for (const mark of node.marks) marks.push(mark.type.name);
+      });
+      expect(marks).toEqual(expect.arrayContaining(['fett', 'code']));
+      expect(doc.child(2).attrs.art).toBe('liste');
+      expect(doc.child(3).attrs.art).toBe('nummer');
+      expect(doc.lastChild?.textContent).toBe('Text danach');
+      expect(sitz.view.dom.textContent ?? '').not.toMatch(/\*\*|\# Titel/);
+    } finally {
+      await zu(sitz);
+    }
+  });
+
+  it('keeps real html formatting when plain text has no markdown markers', async () => {
+    const sitz = await oeffne('', () => undefined);
+    try {
+      zwischenablage(sitz.view, ablage('fett', '<p><strong>fett</strong></p>'));
+      const marks: string[] = [];
+      sitz.view.state.doc.descendants((node) => {
+        for (const mark of node.marks) marks.push(mark.type.name);
+      });
+      expect(sitz.view.state.doc.textContent).toBe('fett');
+      expect(marks).toContain('fett');
+    } finally {
+      await zu(sitz);
+    }
+  });
+
+  it('formats markdown pasted into an existing line, including text after the caret', async () => {
+    const sitz = await oeffne('Hallo Welt', () => undefined);
+    try {
+      const pos = 1 + 'Hallo '.length;
+      sitz.view.dispatch(sitz.view.state.tr.setSelection(TextSelection.create(sitz.view.state.doc, pos)));
+      zwischenablage(sitz.view, ablage('**fett**', '<p>**fett**</p>'));
+      expect(speichere(sitz.view.state.doc)).toBe('Hallo **fett**Welt');
+      expect(sitz.view.state.doc.child(0).textContent).toBe('Hallo fettWelt');
     } finally {
       await zu(sitz);
     }

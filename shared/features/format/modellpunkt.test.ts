@@ -3,7 +3,7 @@ import { EditorState, TextSelection } from 'prosemirror-state';
 import { describe, expect, it } from 'vitest';
 import { lade } from './laden.ts';
 import { enterTrenntFormat } from './listenbefehl.ts';
-import { nummerBruch, nummerEnter, punktModell, stelleImModell } from './modellpunkt.ts';
+import { nummerBruch, nummerEnter, nummerZurueck, punktModell, stelleImModell } from './modellpunkt.ts';
 import { NUMMER_ART } from './nummer.ts';
 import { speichere } from './speichern.ts';
 
@@ -64,19 +64,21 @@ describe('numbered enter', () => {
     expect(enter('A. eins\n1. zwei', 7)).toBe('A. eins\nB. \n1. zwei');
   });
 
-  it('ends an empty point and closes the following numbers', () => {
-    expect(enter('1. ', 3)).toBe('');
-    expect(enter('A. ', 3)).toBe('');
-    expect(enter('a. ', 3)).toBe('');
-    expect(enter('I. ', 3)).toBe('');
-    expect(enter('i. ', 3)).toBe('');
+  it('ends an empty point as a paragraph and does not empty the document', () => {
+    for (const text of ['1. ', 'A. ', 'a. ', 'I. ', 'i. ']) {
+      const naechster = nummerEnter(zustand(text, 3));
+      expect(naechster, text).toBeTruthy();
+      expect(naechster!.doc.toString()).toBe('doc(absatz)');
+      expect(naechster!.selection.$from.parent.type.name).toBe('absatz');
+      expect(speichere(naechster!.doc)).toBe('');
+    }
     expect(enter('1. eins\n2. ', '1. eins\n2. '.length)).toBe('1. eins\n');
-    expect(enter('1. eins\n2. \n3. zwei', '1. eins\n2. '.length)).toBe('1. eins\n2. zwei');
-    expect(enter('A. eins\nB. \nC. zwei', 'A. eins\nB. '.length)).toBe('A. eins\nB. zwei');
-    expect(enter('a. eins\nb. \nc. zwei', 'a. eins\nb. '.length)).toBe('a. eins\nb. zwei');
-    expect(enter('I. eins\nII. \nIII. zwei', 'I. eins\nII. '.length)).toBe('I. eins\nII. zwei');
-    expect(enter('i. eins\nii. \niii. zwei', 'i. eins\nii. '.length)).toBe('i. eins\nii. zwei');
-    expect(enter('1. \n2. zwei', 3)).toBe('1. zwei');
+    expect(enter('1. eins\n2. \n3. zwei', '1. eins\n2. '.length)).toBe('1. eins\n\n1. zwei');
+    expect(enter('A. eins\nB. \nC. zwei', 'A. eins\nB. '.length)).toBe('A. eins\n\nA. zwei');
+    expect(enter('a. eins\nb. \nc. zwei', 'a. eins\nb. '.length)).toBe('a. eins\n\na. zwei');
+    expect(enter('I. eins\nII. \nIII. zwei', 'I. eins\nII. '.length)).toBe('I. eins\n\nI. zwei');
+    expect(enter('i. eins\nii. \niii. zwei', 'i. eins\nii. '.length)).toBe('i. eins\n\ni. zwei');
+    expect(enter('1. \n2. zwei', 3)).toBe('\n1. zwei');
   });
 
   it('ignores bullets, plain text, a code fence, and a pasted number without a kind', () => {
@@ -88,6 +90,31 @@ describe('numbered enter', () => {
     const bruch = nummerBruch(roh);
     expect(bruch).not.toBeNull();
     expect(speichere(bruch!.doc)).toBe('1. milk\n1. ');
+  });
+});
+
+
+describe('numbered backspace', () => {
+  it('turns an empty numbered point into a paragraph and does not empty the document', () => {
+    for (const text of ['1. ', 'A. ', 'a. ', 'I. ', 'i. ']) {
+      const naechster = nummerZurueck(zustand(text, 3));
+      expect(naechster, text).toBeTruthy();
+      expect(naechster!.doc.toString()).toBe('doc(absatz)');
+      expect(naechster!.selection.$from.parent.type.name).toBe('absatz');
+      expect(speichere(naechster!.doc)).toBe('');
+    }
+    const mitte = nummerZurueck(zustand('1. eins\n2. \n3. zwei', '1. eins\n2. '.length));
+    expect(mitte).toBeTruthy();
+    expect(speichere(mitte!.doc)).toBe('1. eins\n\n1. zwei');
+    expect(mitte!.doc.child(1).type.name).toBe('absatz');
+  });
+
+  it('leaves a filled point and a mid-item cursor alone', () => {
+    expect(nummerZurueck(zustand('1. milk', 7))).toBeNull();
+    expect(nummerZurueck(zustand('1. milk', 3))).toBeNull();
+    expect(nummerZurueck(zustand('1. milk', 5))).toBeNull();
+    expect(nummerZurueck(zustand('- ', 2))).toBeNull();
+    expect(nummerZurueck(auswahl('1. milk', 3, 7))).toBeNull();
   });
 });
 

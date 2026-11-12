@@ -179,6 +179,18 @@ export function stelleBestand(bestand: Bestand): void {
   });
 }
 
+export function merkeSaat(): void {
+  fs.mkdirSync('tmp-test', { recursive: true });
+  fs.writeFileSync('tmp-test/e2e-saat.json', JSON.stringify(sichereBestand()));
+}
+
+export function stelleSaat(): void {
+  if (!fs.existsSync('tmp-test/e2e-saat.json')) {
+    throw new Error('e2e seed snapshot missing');
+  }
+  stelleBestand(JSON.parse(fs.readFileSync('tmp-test/e2e-saat.json', 'utf8')) as Bestand);
+}
+
 export function setzeSchauspiel(themen: readonly SaatThema[]): void {
   schreib((db) => {
     const konto = kontoId(db);

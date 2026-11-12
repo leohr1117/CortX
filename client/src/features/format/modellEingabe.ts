@@ -3,7 +3,7 @@ import { keymap } from 'prosemirror-keymap';
 import { Plugin, type Command, type EditorState } from 'prosemirror-state';
 import type { EditorView } from 'prosemirror-view';
 import { PUNKT_TASTEN, punktArt, type PunktArt } from '../../../../shared/features/format/index.ts';
-import { enterTrenntFormat, nummerBruch, nummerEnter, punktModell } from '../../../../shared/features/format/modellpunkt.ts';
+import { enterTrenntFormat, nummerBruch, nummerEnter, nummerZurueck, punktModell } from '../../../../shared/features/format/modellpunkt.ts';
 import { setzeZustand } from './modellLauf.ts';
 
 const SPRUNG_MS = 40;
@@ -47,6 +47,7 @@ export function modellEingabe(): Plugin[] {
   const naechsterZustand = (state: EditorState, art: PunktArt): EditorState | null => {
     const liste = punktModell(state, art);
     if (liste) return liste;
+    if (art === 'zurueck') return nummerZurueck(state);
     if (art !== 'enter') return null;
     return nummerEnter(state) ?? nummerBruch(state) ?? enterTrenntFormat(state);
   };

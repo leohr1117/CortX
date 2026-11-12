@@ -127,6 +127,8 @@ test('an update shows one snackbar, and the dot stays until What\'s new was seen
     expect(text.indexOf(AKTUELLE_VERSION)).toBeLessThan(text.indexOf('1.5.2'));
     expect(text.indexOf('1.5.2')).toBeLessThan(text.indexOf('0.1.0'));
     expect(text.indexOf('November 2, 2026')).toBeLessThan(text.indexOf('November 1, 2026'));
+    await expect(page.getByRole('region', { name: 'Version 1.14.9' })).toContainText('Nummerierte Listen lassen sich wieder mit Backspace und Enter beenden');
+    await expect(page.getByRole('region', { name: 'Version 1.14.9' })).toContainText('Eingefuegter Markdown-Text wird auch dann formatiert, wenn die Zwischenablage zusaetzlich HTML enthaelt');
     await expect(page.getByRole('region', { name: 'Version 1.14.7' })).toContainText('by leohr');
     await expect(page.getByRole('region', { name: 'Version 1.14.7' })).toContainText('hash');
     await expect(page.getByRole('region', { name: 'Version 0.1.0' })).toHaveCount(1);

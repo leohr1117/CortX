@@ -139,7 +139,7 @@ async function druck(view: EditorView, key: string, extra: { ctrl?: boolean; met
       type: 'keydown',
       key,
       code: key,
-      keyCode: key === 'Enter' ? 13 : 0,
+      keyCode: key === 'Enter' ? 13 : key === 'Backspace' ? 8 : 0,
       ctrlKey: extra.ctrl === true,
       metaKey: extra.meta === true,
       altKey: false,
@@ -476,5 +476,64 @@ describe('capture field', () => {
     expect(zeilen[1]?.textContent).toBe('');
     expect(erstesElement(zeilen[0] ?? null)?.classList.contains('cm-marker')).toBe(true);
     await zu(liste);
+  });
+
+  it('continues a numbered list and ends an empty numbered item with enter or backspace', async () => {
+    const weiter = await oeffne();
+    await act(async () => {
+      weiter.stand.setze('1. milk');
+    });
+    await druck(weiter.stand.view!, 'Enter');
+    expect(weiter.stand.text).toBe('1. milk\n2. ');
+    expect(klartextVon(weiter.stand.view!.state.doc)).toBe('milk\n');
+    expect(weiter.stand.view!.state.doc.child(1).attrs).toMatchObject({ art: 'nummer', nummer: 2 });
+    await zu(weiter);
+
+    const enterLeer = await oeffne();
+    await act(async () => {
+      enterLeer.stand.setze('1. ');
+    });
+    await druck(enterLeer.stand.view!, 'Enter');
+    expect(enterLeer.stand.view!.state.doc.toString()).toBe('doc(absatz)');
+    expect(enterLeer.stand.text).toBe('');
+    await zu(enterLeer);
+
+    const weg = await oeffne();
+    await act(async () => {
+      weg.stand.setze('1. ');
+    });
+    await druck(weg.stand.view!, 'Backspace');
+    expect(weg.stand.view!.state.doc.toString()).toBe('doc(absatz)');
+    expect(weg.stand.text).toBe('');
+    await zu(weg);
+  });
+
+  it('formats pasted markdown when html still shows the markers, including text afterwards', async () => {
+    const sitz = await oeffne();
+    const view = sitz.stand.view!;
+    const probe = '# Titel\n**fett** und `code`\n- a\n1. b\nText danach';
+    const html = '<div># Titel</div><div>**fett** und `code`</div><div>- a</div><div>1. b</div><div>Text danach</div>';
+    await act(async () => {
+      const werte = new Map<string, string>([
+        ['text/plain', probe],
+        ['text/html', html],
+      ]);
+      const ereignis = {
+        type: 'paste',
+        clipboardData: { getData: (art: string) => werte.get(art) ?? '' },
+        defaultPrevented: false,
+        preventDefault() {
+          this.defaultPrevented = true;
+        },
+        stopPropagation() {},
+      };
+      view.dom.dispatchEvent(ereignis as unknown as Event);
+    });
+    expect(speichere(view.state.doc)).toBe(probe);
+    expect(sitz.stand.text).toBe(probe);
+    expect(view.state.doc.child(0).type.name).toBe('ueberschrift');
+    expect(view.state.doc.lastChild?.textContent).toBe('Text danach');
+    expect(view.dom.textContent ?? '').not.toContain('**');
+    await zu(sitz);
   });
 });

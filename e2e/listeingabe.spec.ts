@@ -67,7 +67,7 @@ test('enter, shift enter, and backspace edit a list on a phone width', async ({ 
 
   await setzeQuelle(page, '1. milk');
   await page.keyboard.press('Enter');
-  await erwarteQuelle(page, '1. milk\n');
+  await erwarteQuelle(page, '1. milk\n2. ');
 });
 
 test('a phone insert event edits the list before the editor does', async ({ page }) => {
