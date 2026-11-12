@@ -3,8 +3,7 @@ import { TextSelection } from 'prosemirror-state';
 import type { EditorView } from 'prosemirror-view';
 import type { Thema } from '../../../../shared/kern/modell.ts';
 import { VORSCHLAG_BREITE } from '../../../../shared/kern/grenzen.ts';
-import { lade } from '../../../../shared/features/format/laden.ts';
-import { speichere } from '../../../../shared/features/format/speichern.ts';
+import { exportiere, importiere } from '../../../../shared/features/format/md.ts';
 import { offsetFuer, posFuer } from '../../../../shared/features/format/stelle.ts';
 import type { SeiteKurz } from '../../../../shared/features/seiten/pfad.ts';
 import { setzeVorschlag, zielAmCursor, type ZielAmCursor } from '../../../../shared/features/seiten/zielvorschlag.ts';
@@ -81,7 +80,7 @@ function caretVon(view: EditorView, wert: string): number {
 }
 
 function setzeImFeld(view: EditorView, wert: string, stelle: number) {
-  const doc = lade(wert);
+  const doc = importiere(wert);
   let tr = view.state.tr.replaceWith(0, view.state.doc.content.size, doc.content);
   const pos = posFuer(tr.doc, wert, stelle);
   const safe = Math.max(0, Math.min(pos, tr.doc.content.size));
@@ -330,7 +329,7 @@ export function ErfassenFeld({
         onAuswahl={() => {
           const view = viewRef.current;
           if (view) {
-            const wert = speichere(view.state.doc);
+            const wert = exportiere(view.state.doc);
             const stelle = caretVon(view, wert);
             caretRef.current = stelle;
             setCaret(stelle);
@@ -339,7 +338,7 @@ export function ErfassenFeld({
         }}
         onAblegen={() => {
           const view = viewRef.current;
-          const wert = view ? speichere(view.state.doc) : rohRef.current;
+          const wert = view ? exportiere(view.state.doc) : rohRef.current;
           onAblegenRef.current?.(wert);
         }}
         onLink={() => onZielRef.current?.()}

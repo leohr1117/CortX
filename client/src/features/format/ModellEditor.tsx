@@ -7,8 +7,7 @@ import { ReplaceStep } from 'prosemirror-transform';
 import { EditorView } from 'prosemirror-view';
 import 'prosemirror-view/style/prosemirror.css';
 import { packeDokument, pruefeDokument } from '../../../../shared/features/format/dokument.ts';
-import { lade } from '../../../../shared/features/format/laden.ts';
-import { speichere } from '../../../../shared/features/format/speichern.ts';
+import { exportiere, importiere } from '../../../../shared/features/format/md.ts';
 import { NOTE_TEXT_MAX } from '../../../../shared/kern/grenzen.ts';
 import { TEXTE } from '../../../../shared/kern/texte.ts';
 import { eingabePlugins } from './eingabeKuerzel.ts';
@@ -117,8 +116,8 @@ export function ModellEditor({
     if (!el) return;
     const anfang = textRef.current;
     const vorgegeben = dokumentRef.current === undefined ? null : pruefeDokument(dokumentRef.current);
-    const anfangDoc = vorgegeben ?? lade(anfang);
-    const anfangText = speichere(anfangDoc);
+    const anfangDoc = vorgegeben ?? importiere(anfang);
+    const anfangText = exportiere(anfangDoc);
     gemeldet.current = anfangText;
     const basis = EditorState.create({
       doc: anfangDoc,
@@ -163,7 +162,7 @@ export function ModellEditor({
           if (auswahlGeaendert) onAuswahlRef.current?.();
           return;
         }
-        const wert = speichere(next.doc);
+        const wert = exportiere(next.doc);
         if (wert.length > NOTE_TEXT_MAX) return;
         komposition = gruppe.komposition;
         view.updateState(next);
@@ -193,7 +192,7 @@ export function ModellEditor({
     if (!view || view.composing || dokument === undefined) return;
     const knoten = pruefeDokument(dokument);
     if (!knoten) return;
-    const wert = speichere(knoten);
+    const wert = exportiere(knoten);
     if (knoten.eq(view.state.doc)) {
       gemeldet.current = wert;
       return;
@@ -210,7 +209,7 @@ export function ModellEditor({
     const view = viewRef.current;
     if (!view || view.composing || text === gemeldet.current) return;
     gemeldet.current = text;
-    const zustand = EditorState.create({ doc: lade(text), plugins: view.state.plugins });
+    const zustand = EditorState.create({ doc: importiere(text), plugins: view.state.plugins });
     const ende = TextSelection.atEnd(zustand.doc);
     view.updateState(zustand.apply(zustand.tr.setSelection(ende).setMeta('addToHistory', false)));
     merkeEnde(view, text);

@@ -5,7 +5,7 @@ import type { Attrs, NodeType } from 'prosemirror-model';
 import { Plugin, TextSelection, type Command, type EditorState, type Transaction } from 'prosemirror-state';
 import type { EditorView } from 'prosemirror-view';
 import { ART } from '../../../../shared/features/format/baum.ts';
-import { lade } from '../../../../shared/features/format/laden.ts';
+import { importiere } from '../../../../shared/features/format/md.ts';
 import { modell } from '../../../../shared/features/format/modell.ts';
 import { KUERZEL_ART, formatVon, kuerzelEintraege } from '../../../../shared/features/format/register.ts';
 import { kuerzelAn } from './kuerzelSpeicher.ts';
@@ -194,7 +194,7 @@ function baueZaun(state: EditorState, zaun: string): Transaction | null {
   const { $from } = state.selection;
   if (!$from.parent.isTextblock || $from.parent.type.spec.code) return null;
   if ($from.parent.textContent !== zaun) return null;
-  const inhalt = lade(`${zaun}\n\n${zaun}`);
+  const inhalt = importiere(`${zaun}\n\n${zaun}`);
   const von = $from.before();
   let tr = state.tr.replaceWith(von, $from.after(), inhalt.content);
   const cursor = von + inhalt.child(0).nodeSize + 1;

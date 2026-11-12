@@ -4,7 +4,7 @@ import type { Attrs, Node, NodeType } from 'prosemirror-model';
 import { Plugin, TextSelection, type Command, type EditorState, type Transaction } from 'prosemirror-state';
 import type { EditorView } from 'prosemirror-view';
 import { ART } from '../../../../shared/features/format/baum.ts';
-import { lade } from '../../../../shared/features/format/laden.ts';
+import { importiere } from '../../../../shared/features/format/md.ts';
 import { modell } from '../../../../shared/features/format/modell.ts';
 import { istNummerArt } from '../../../../shared/features/format/nummer.ts';
 import { formatVon } from '../../../../shared/features/format/register.ts';
@@ -79,7 +79,7 @@ function nummerKnoten(text: string): Node | null {
   if (!NUMMER_ZEILE.test(text)) return null;
   let doc: Node;
   try {
-    doc = lade(text);
+    doc = importiere(text);
   } catch {
     return null;
   }

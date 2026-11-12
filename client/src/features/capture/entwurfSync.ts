@@ -2,7 +2,6 @@ import { useEffect, useRef, useState, type MutableRefObject } from 'react';
 import type { EditorView } from 'prosemirror-view';
 import { packeDokument, pruefeDokument } from '../../../../shared/features/format/dokument.ts';
 import { exportiere, importiere } from '../../../../shared/features/format/md.ts';
-import { speichere } from '../../../../shared/features/format/speichern.ts';
 import { liesEntwurf, schreibEntwurf } from '../offline/index.ts';
 
 export function textVonDokument(doc: unknown): string {
@@ -33,7 +32,7 @@ function entwurfZuStand(roh: unknown): { text: string; doc: unknown } | null {
 
 function packZumSchreiben(view: EditorView | null, text: string): unknown {
   if (text.length === 0) return '';
-  if (view && speichere(view.state.doc) === text) return packeDokument(view.state.doc);
+  if (view && exportiere(view.state.doc) === text) return packeDokument(view.state.doc);
   return packVonText(text);
 }
 
