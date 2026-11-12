@@ -1,13 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { formatVon, leistenEintraege, type BefehlAktiv, type BefehlRun, type FormatBefehl } from './register.ts';
+import { textBefehl } from './zeilen.ts';
 
 function befehl(id: FormatBefehl): { run: BefehlRun; isActive: BefehlAktiv } {
   const ausLeiste = leistenEintraege().find((eintrag) => eintrag.id === id);
   const ausRegister = formatVon(id);
   expect(ausLeiste).toBe(ausRegister);
-  expect(typeof ausRegister.run).toBe('function');
-  expect(typeof ausRegister.isActive).toBe('function');
-  return ausRegister as { run: BefehlRun; isActive: BefehlAktiv };
+  return textBefehl(id);
 }
 
 describe('format commands', () => {

@@ -1,12 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { schalteCode, schalteFett, schalteWichtig } from './befehl.ts';
 import { leseDokument } from './lesen.ts';
-import { formatVon, type FormatBefehl } from './register.ts';
+import type { FormatBefehl } from './register.ts';
+import { textBefehl } from './zeilen.ts';
 
 function lauf(id: FormatBefehl, text: string, start = 0, ende = text.length, ziel?: string) {
-  const run = formatVon(id).run;
-  if (!run) throw new Error('missing command');
-  return run(text, start, ende, ziel);
+  return textBefehl(id).run(text, start, ende, ziel);
 }
 
 describe('formats on several lines', () => {

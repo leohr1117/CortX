@@ -4,11 +4,12 @@ import {
   leistenEintraege,
   type FormatBefehl,
 } from '../../../../shared/features/format/index.ts';
+import { textBefehl } from '../../../../shared/features/format/zeilen.ts';
 
 function befehl(id: FormatBefehl) {
   const eintrag = leistenEintraege().find((kandidat) => kandidat.id === id);
   if (!eintrag) throw new Error('unknown command');
-  return eintrag;
+  return textBefehl(id);
 }
 
 function leuchtet(id: FormatBefehl, text: string, start: number, ende = start): boolean {
@@ -18,7 +19,7 @@ function leuchtet(id: FormatBefehl, text: string, start: number, ende = start): 
 describe('format bar state', () => {
   it('lights a button only while the caret or the selection sits inside that format', () => {
     for (const eintrag of leistenEintraege()) {
-      expect(eintrag.isActive('', 0, 0)).toBe(false);
+      expect(textBefehl(eintrag.id).isActive('', 0, 0)).toBe(false);
     }
     expect(leuchtet(ART.fett, '**bold**', 2)).toBe(true);
     expect(leuchtet(ART.fett, '**bold**', 0)).toBe(false);

@@ -1,6 +1,28 @@
+import {
+  aktivCode,
+  aktivFett,
+  aktivHaken,
+  aktivKopf,
+  aktivKursiv,
+  aktivLink,
+  aktivListe,
+  aktivStrich,
+  aktivWichtig,
+} from './aktiv.ts';
 import { ART, type Beleg } from './baum.ts';
+import {
+  schalteCode,
+  schalteFett,
+  schalteHaken,
+  schalteKopf,
+  schalteKursiv,
+  schalteListe,
+  schalteStrich,
+  schalteVerknuepfung,
+  schalteWichtig,
+} from './befehl.ts';
 import { leseDokument } from './lesen.ts';
-import { formatVon, klemme, type BefehlRun, type FormatBefehl } from './register.ts';
+import { formatVon, klemme, type BefehlAktiv, type BefehlRun, type FormatBefehl } from './register.ts';
 import type { TextWahl } from './ueberschrift.ts';
 import { zeilenStuecke, type ZeilenStueck } from './zeile.ts';
 
@@ -196,4 +218,24 @@ export function schalteMarkierung(
 
 export function alsBefehl(id: FormatBefehl, roh: BefehlRun): BefehlRun {
   return (text, start, ende, ziel) => schalteMarkierung(id, roh, text, start, ende, ziel ?? '');
+}
+
+function laufLink(text: string, start: number, ende: number, ziel = ''): TextWahl {
+  return schalteVerknuepfung(text, start, ende, ziel);
+}
+
+export function textBefehl(id: FormatBefehl): { run: BefehlRun; isActive: BefehlAktiv } {
+  const tabelle: Record<FormatBefehl, readonly [BefehlRun, BefehlAktiv]> = {
+    [ART.fett]: [schalteFett, aktivFett],
+    [ART.kursiv]: [schalteKursiv, aktivKursiv],
+    strich: [schalteStrich, aktivStrich],
+    [ART.wichtig]: [schalteWichtig, aktivWichtig],
+    [ART.code]: [schalteCode, aktivCode],
+    [ART.ueberschrift]: [schalteKopf, aktivKopf],
+    [ART.liste]: [schalteListe, aktivListe],
+    [ART.haken]: [schalteHaken, aktivHaken],
+    [ART.link]: [laufLink, aktivLink],
+  };
+  const [roh, isActive] = tabelle[id];
+  return { run: alsBefehl(id, roh), isActive };
 }
