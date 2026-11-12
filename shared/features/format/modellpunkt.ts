@@ -2,12 +2,10 @@ import { type Node } from 'prosemirror-model';
 import { closeHistory } from 'prosemirror-history';
 import { EditorState, NodeSelection, Selection, TextSelection, type Transaction } from 'prosemirror-state';
 import { ART, type Beleg } from './baum.ts';
-import { lade } from './laden.ts';
 import { leseDokument } from './lesen.ts';
 import { istNummerArt } from './nummer.ts';
 import { enterTrenntFormat, listenTaste } from './listenbefehl.ts';
 import { punktInhalt, type PunktArt } from './punkt.ts';
-import { speichere } from './speichern.ts';
 
 interface Spanne {
   von: number;
@@ -156,15 +154,6 @@ function auswahlAn(doc: Node, pos: number): Selection {
   return Selection.near($pos);
 }
 
-function wende(zustand: EditorState, text: string, doc: Node, index: number): EditorState | null {
-  const pos = stelleImModell(doc, text, index);
-  if (pos === null) return null;
-  const tr = zustand.tr.replaceWith(0, zustand.doc.content.size, doc.content);
-  tr.setSelection(auswahlAn(tr.doc, pos));
-  tr.scrollIntoView();
-  return zustand.apply(closeHistory(tr));
-}
-
 export function punktModell(zustand: EditorState, art: PunktArt): EditorState | null {
   return listenTaste(zustand, art);
 }
@@ -173,6 +162,10 @@ export { enterTrenntFormat };
 
 function istNummer(node: Node): boolean {
   return node.type.name === 'punkt' && node.attrs.art === ART.nummer && istNummerArt(String(node.attrs.nummerArt ?? ''));
+}
+
+function istNummerPunkt(node: Node): boolean {
+  return node.type.name === 'punkt' && node.attrs.art === ART.nummer;
 }
 
 function kindIndex(doc: Node, pos: number): number {
@@ -237,7 +230,7 @@ function leerenPunkt(zustand: EditorState, tr: Transaction, start: number): Edit
 function teilePunkt(zustand: EditorState, tr: Transaction): EditorState | null {
   const $pos = tr.selection.$from;
   const node = $pos.parent;
-  if (!istNummer(node)) return null;
+  if (!istNummerPunkt(node)) return null;
   const start = $pos.before();
   const offset = $pos.parentOffset;
   const davor = node.content.cut(0, offset);
@@ -253,6 +246,16 @@ function teilePunkt(zustand: EditorState, tr: Transaction): EditorState | null {
   );
   tr.replaceWith(start, start + node.nodeSize, [alt, neu]);
   return schliesse(zustand, tr, start + alt.nodeSize + 1);
+}
+
+function beendeListe(zustand: EditorState, tr: Transaction): EditorState | null {
+  const absatz = tr.doc.type.schema.nodes.absatz;
+  if (!absatz) return null;
+  const start = tr.selection.$from.before();
+  const node = tr.doc.nodeAt(start);
+  if (!node) return null;
+  tr.replaceWith(start, start + node.nodeSize, absatz.create());
+  return schliesse(zustand, tr, start + 1);
 }
 
 export function nummerEnter(zustand: EditorState): EditorState | null {
@@ -273,19 +276,11 @@ export function nummerBruch(zustand: EditorState): EditorState | null {
   const { selection } = zustand;
   if (!(selection instanceof TextSelection)) return null;
   const eltern = selection.$from.parent;
-  if (eltern.type.name !== 'punkt' || eltern.attrs.art !== ART.nummer || istNummer(eltern)) return null;
+  if (!istNummerPunkt(eltern) || istNummer(eltern)) return null;
   if (!selection.empty && selection.$to.parent !== eltern) return null;
-  const text = speichere(zustand.doc);
-  const von = quelleAn(zustand.doc, text, selection.from);
-  const bis = quelleAn(zustand.doc, text, selection.to);
-  if (von === null || bis === null || bis < von) return null;
-  let neu = `${text.slice(0, von)}\n${text.slice(bis)}`;
-  if (quellzeilen(neu).length === quellzeilen(text).length) neu = `${neu}\n`;
-  let doc: Node;
-  try {
-    doc = lade(neu);
-  } catch {
-    return null;
-  }
-  return wende(zustand, neu, doc, von + 1);
+  const tr = zustand.tr;
+  if (!selection.empty) tr.delete(selection.from, selection.to);
+  const node = tr.selection.$from.parent;
+  if (istNummerPunkt(node) && node.textContent.trim() === '') return beendeListe(zustand, tr);
+  return teilePunkt(zustand, tr);
 }
