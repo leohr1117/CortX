@@ -17,7 +17,8 @@ export type KnotenBlock =
   | { art: typeof ART.liste; geordnet: boolean; schrift: string; punkte: Node[][] }
   | { art: typeof ART.haken; punkte: LeseHaken[] }
   | { art: typeof ART.codeblock; text: string }
-  | { art: typeof ART.absatz; zeilen: Array<Node | null> };
+  | { art: typeof ART.absatz; zeilen: Array<Node | null> }
+  | { art: 'trennlinie' };
 
 function ohneEnde(quelle: string): string {
   const ohne = quelle.endsWith('\n') ? quelle.slice(0, -1) : quelle;
@@ -116,6 +117,11 @@ export function leseKnoten(doc: Node): KnotenBlock[] {
     }
     if (name === 'ueberschrift') {
       bloecke.push({ art: ART.ueberschrift, stufe: Number(knoten.attrs.stufe ?? 0), knoten });
+      i += 1;
+      continue;
+    }
+    if (name === 'trennlinie') {
+      bloecke.push({ art: 'trennlinie' });
       i += 1;
       continue;
     }

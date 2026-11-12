@@ -3,6 +3,7 @@ import { ART, type Beleg, type BelegArt, type LeseBlock, type LeseTeil } from '.
 import { leseDokument } from './lesen.ts';
 import { modell } from './modell.ts';
 import { formatVon, type FormatId } from './register.ts';
+import { istTrennZeile, trennTextAusFlucht, trennlinieAus } from './trennlinie.ts';
 
 interface Ziel {
   marke?: string;
@@ -241,6 +242,18 @@ export function lade(text: string, arten = true): Node {
     const zeile = zeilen[index];
     if (!zeile) {
       if (eintrag.fort || !leer(eintrag.teile)) throw new Error('unaligned line');
+      continue;
+    }
+    const davorLeer = index === 0 || kern(zeilen[index - 1]!.quelle).length === 0;
+    if (!eintrag.fort && davorLeer && istTrennZeile(kern(zeile.quelle))) {
+      kinder.push(trennlinieAus(zeile.quelle));
+      index += 1;
+      continue;
+    }
+    const wortlaut = eintrag.fort ? null : trennTextAusFlucht(kern(zeile.quelle));
+    if (wortlaut !== null) {
+      kinder.push(modell.nodes.absatz!.createChecked({ quelle: zeile.quelle }, modell.text(wortlaut)));
+      index += 1;
       continue;
     }
     kinder.push(zeileKnoten(text, zeile, eintrag.teile, dokument.belege, eintrag.fort));

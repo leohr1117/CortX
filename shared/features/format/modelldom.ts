@@ -180,6 +180,15 @@ function leerzeileDom(): Pick<NodeSpec, 'toDOM' | 'parseDOM'> {
   };
 }
 
+function trennlinieDom(): Pick<NodeSpec, 'toDOM' | 'parseDOM'> {
+  return {
+    toDOM() {
+      return ['hr'];
+    },
+    parseDOM: [{ tag: 'hr' }],
+  };
+}
+
 const ZEILE_DOM: Readonly<Record<string, () => Pick<NodeSpec, 'toDOM' | 'parseDOM'>>> = {
   absatz: absatzDom,
   ueberschrift: kopfDom,
@@ -187,6 +196,7 @@ const ZEILE_DOM: Readonly<Record<string, () => Pick<NodeSpec, 'toDOM' | 'parseDO
   punkt: punktDom,
   codeblock: codeblockDom,
   leerzeile: leerzeileDom,
+  trennlinie: trennlinieDom,
 };
 
 export function zeileDom(name: string): Pick<NodeSpec, 'toDOM' | 'parseDOM'> {

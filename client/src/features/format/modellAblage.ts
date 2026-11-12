@@ -1,6 +1,6 @@
 import { closeHistory, isHistoryTransaction } from 'prosemirror-history';
 import { DOMParser, DOMSerializer, Fragment, Slice, type Mark, type Node } from 'prosemirror-model';
-import { Plugin, PluginKey, type EditorState, type Transaction } from 'prosemirror-state';
+import { Plugin, PluginKey, TextSelection, type EditorState, type Transaction } from 'prosemirror-state';
 import type { EditorView } from 'prosemirror-view';
 import { importiere } from '../../../../shared/features/format/md.ts';
 import { modell } from '../../../../shared/features/format/modell.ts';
@@ -182,9 +182,47 @@ function reichtum(schnitt: Slice): { marks: number; struktur: number; roh: numbe
     marks += node.marks.length;
     if (node.type.name === 'ueberschrift' || node.type.name === 'punkt') struktur += 1;
     const text = node.isText ? (node.text ?? '') : '';
-    if (text && /(?:\*\*|__|~~|`)/.test(text)) roh += 1;
+    if (text && /(?:\*\*|__|~~|`|\]\()/.test(text)) roh += 1;
+    if (node.isTextblock && /^(?:#{1,6} |\d+\. |[-*+] )/.test(node.textContent)) roh += 1;
   });
   return { marks, struktur, roh };
+}
+
+const BLOCK_TAGS = /^(?:P|DIV|LI|H[1-6]|PRE|BLOCKQUOTE|TR|UL|OL|TABLE|SECTION|ARTICLE|HEADER|FOOTER)$/;
+
+function textAusDom(knoten: globalThis.Node, aus: string[]): void {
+  if (knoten.nodeType === 3) {
+    aus.push((knoten.textContent ?? '').replace(/\s*\n\s*/g, ' '));
+    return;
+  }
+  if (knoten.nodeType !== 1) return;
+  const element = knoten as HTMLElement;
+  const tag = element.tagName;
+  if (tag === 'BR') {
+    aus.push('\n');
+    return;
+  }
+  if (tag === 'HR') {
+    aus.push('\n\n---\n\n');
+    return;
+  }
+  if (tag === 'PRE') {
+    aus.push('\n', element.textContent ?? '', '\n');
+    return;
+  }
+  const block = BLOCK_TAGS.test(tag);
+  if (block) aus.push('\n');
+  element.childNodes.forEach((kind) => textAusDom(kind, aus));
+  if (block) aus.push('\n');
+}
+
+export function textAusHtml(html: string): string {
+  if (typeof document === 'undefined' || typeof document.createElement !== 'function') return '';
+  const wrap = document.createElement('div');
+  wrap.innerHTML = fragmentHtml(html);
+  const aus: string[] = [];
+  wrap.childNodes.forEach((kind) => textAusDom(kind, aus));
+  return aus.join('').replace(/\u00a0/g, ' ').replace(/\n{3,}/g, '\n\n').replace(/^\n+|\n+$/g, '');
 }
 
 function waehleSchnitt(ausText: Slice | null, ausHtml: Slice | null): Slice | null {
@@ -208,12 +246,123 @@ function fuegeEin(view: EditorView, event: Event): boolean {
   }
   const parent = view.state.selection.$from.parent;
   const html = htmlVon(daten);
-  const text = textVon(daten);
+  const text = textVon(daten) ?? (html ? textAusHtml(html) || null : null);
   const ausHtml = html ? sliceAusHtml(html, parent, view.state.selection.$from) : null;
   const ausText = text ? sliceAusText(text, parent) : null;
   const schnitt = waehleSchnitt(ausText, ausHtml);
   if (!schnitt) return false;
   return setzeSlice(view, schnitt);
+}
+
+interface Eingabe extends Event {
+  inputType?: string;
+  data?: string | null;
+  isComposing?: boolean;
+  dataTransfer?: DataTransfer | null;
+  ctrlKey?: boolean;
+  metaKey?: boolean;
+  altKey?: boolean;
+}
+
+function einheitlich(text: string): string {
+  return text.replaceAll('\r\n', '\n').replaceAll('\r', '\n');
+}
+
+function eingabeText(eingabe: Eingabe): string | null {
+  if (typeof eingabe.data === 'string') return eingabe.data;
+  const daten = eingabe.dataTransfer;
+  if (daten && typeof daten.getData === 'function') return daten.getData('text/plain') || null;
+  return null;
+}
+
+export function istTastaturAblage(text: string | null): text is string {
+  if (!text) return false;
+  const zeichen = einheitlich(text);
+  return zeichen.includes('\n') && zeichen.replaceAll('\n', '').length > 0;
+}
+
+function fuegeTextEin(view: EditorView, text: string): boolean {
+  if (imCode(view)) {
+    wortlaut(view, text);
+    return true;
+  }
+  return setzeSlice(view, sliceAusText(einheitlich(text), view.state.selection.$from.parent));
+}
+
+function abfangen(view: EditorView, event: Event): boolean {
+  const eingabe = event as Eingabe;
+  if (event.defaultPrevented || !event.cancelable) return false;
+  if (eingabe.inputType !== 'insertText' && eingabe.inputType !== 'insertFromPaste') return false;
+  if (eingabe.isComposing === true) return false;
+  if (eingabe.ctrlKey === true || eingabe.metaKey === true || eingabe.altKey === true) return false;
+  const text = eingabeText(eingabe);
+  if (!istTastaturAblage(text)) return false;
+  event.preventDefault();
+  return fuegeTextEin(view, text) || true;
+}
+
+interface Offen {
+  text: string;
+  zeit: number;
+}
+
+const NACHLAUF_MS = 1_500;
+
+interface Zeichenfolge {
+  text: string;
+  stellen: number[];
+}
+
+function zeichenVon(doc: Node): Zeichenfolge {
+  const teile: string[] = [];
+  const stellen: number[] = [];
+  doc.descendants((knoten, pos) => {
+    if (!knoten.isText) return true;
+    const text = knoten.text ?? '';
+    teile.push(text);
+    for (let i = 0; i < text.length; i += 1) stellen.push(pos + i);
+    return false;
+  });
+  return { text: teile.join(''), stellen };
+}
+
+function nurText(doc: Node, von: number, bis: number): boolean {
+  let ok = true;
+  doc.nodesBetween(von, bis, (knoten) => {
+    if (knoten.isInline && !knoten.isText) ok = false;
+    return ok;
+  });
+  return ok;
+}
+
+function endetAm(doc: Node, bis: number, kopf: number): boolean {
+  if (kopf === bis) return true;
+  if (kopf < bis || kopf - bis > 2) return false;
+  return doc.resolve(bis).parentOffset === doc.resolve(bis).parent.content.size && doc.textBetween(bis, kopf, '\n') === '';
+}
+
+function nachziehen(view: EditorView, offen: Offen): boolean {
+  const state = view.state;
+  const ziel = einheitlich(offen.text);
+  const kern = ziel.replaceAll('\n', '');
+  if (kern.length === 0) return false;
+  const folge = zeichenVon(state.doc);
+  const kopf = state.selection.to;
+  let suche = folge.text.lastIndexOf(kern);
+  while (suche >= 0) {
+    const von = folge.stellen[suche]!;
+    const bis = folge.stellen[suche + kern.length - 1]! + 1;
+    if (endetAm(state.doc, bis, kopf) && nurText(state.doc, von, bis)) {
+      const auswahl = state.tr.setSelection(TextSelection.create(state.doc, von, bis));
+      const slice = sliceAusText(ziel, auswahl.selection.$from.parent);
+      if (slice.size === 0) return false;
+      const tr = auswahl.replaceSelection(slice).scrollIntoView();
+      view.dispatch(tr.setMeta('paste', true).setMeta('uiEvent', 'paste'));
+      return true;
+    }
+    suche = suche === 0 ? -1 : folge.text.lastIndexOf(kern, suche - 1);
+  }
+  return false;
 }
 
 function schreibe(view: EditorView, event: Event, ausschneiden: boolean): boolean {
@@ -229,6 +378,58 @@ function schreibe(view: EditorView, event: Event, ausschneiden: boolean): boolea
   const tr = closeHistory(view.state.tr.deleteSelection().scrollIntoView());
   view.dispatch(tr.setMeta('uiEvent', 'cut'));
   return true;
+}
+
+export function tastaturAblage(): Plugin {
+  let offen: Offen | null = null;
+  let geplant = false;
+  const pruefe = (view: EditorView) => {
+    geplant = false;
+    const jetzt = offen;
+    if (!jetzt || view.isDestroyed) return;
+    if (Date.now() - jetzt.zeit > NACHLAUF_MS || imCode(view)) {
+      offen = null;
+      return;
+    }
+    if (nachziehen(view, jetzt)) offen = null;
+  };
+  const plane = (view: EditorView) => {
+    if (geplant || !offen) return;
+    geplant = true;
+    setTimeout(() => pruefe(view), 0);
+  };
+  return new Plugin({
+    view: () => ({
+      update(view) {
+        if (offen) plane(view);
+      },
+    }),
+    props: {
+      handleDOMEvents: {
+        beforeinput(view, event) {
+          if (abfangen(view, event)) {
+            offen = null;
+            return true;
+          }
+          const eingabe = event as Eingabe;
+          const art = eingabe.inputType ?? '';
+          if (art !== 'insertCompositionText' && art !== 'insertText' && art !== 'insertFromPaste') return false;
+          const text = eingabeText(eingabe);
+          if (!istTastaturAblage(text) || event.defaultPrevented) return false;
+          offen = { text, zeit: Date.now() };
+          return false;
+        },
+        compositionend(view) {
+          plane(view);
+          return false;
+        },
+        input(view) {
+          plane(view);
+          return false;
+        },
+      },
+    },
+  });
 }
 
 export function modellAblage(): Plugin {

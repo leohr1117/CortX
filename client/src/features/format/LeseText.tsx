@@ -196,6 +196,7 @@ function Block({
   if (block.art === ART.haken) {
     return <Haken punkte={block.punkte} verlinken={verlinken} onKasten={onKasten} />;
   }
+  if (block.art === 'trennlinie') return <hr />;
   if (block.art === ART.codeblock) {
     return (
       <pre>

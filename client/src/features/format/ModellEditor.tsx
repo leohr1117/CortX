@@ -13,7 +13,8 @@ import { TEXTE } from '../../../../shared/kern/texte.ts';
 import { eingabePlugins } from './eingabeKuerzel.ts';
 import { ablageTastePlugin, platzhalterPlugin, type EditorModus } from './editorSchale.ts';
 import { imeErsatz } from './imeErsatz.ts';
-import { modellAblage } from './modellAblage.ts';
+import { modellAblage, tastaturAblage } from './modellAblage.ts';
+import { trennlinienPlugins } from './trennlinie.ts';
 import { modellEingabe } from './modellEingabe.ts';
 import { inlinePlugins } from './inlineKuerzel.ts';
 import { randPlugins } from './randMarken.ts';
@@ -122,6 +123,8 @@ export function ModellEditor({
     const basis = EditorState.create({
       doc: anfangDoc,
       plugins: [
+        tastaturAblage(),
+        ...trennlinienPlugins(),
         ...(modusRef.current === 'erfassen' ? erfassenTasten() : []),
         history(),
         platzhalterPlugin(() => platzhalterRef.current ?? TEXTE.platzhalter, modusRef.current === 'erfassen'),

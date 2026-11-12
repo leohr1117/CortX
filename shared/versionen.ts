@@ -2,6 +2,15 @@ import { VERSIONEN_ALT, type Versionseintrag } from './versionen-alt.ts';
 
 export const VERSIONEN: readonly Versionseintrag[] = [
   {
+    version: '1.14.10',
+    datum: '2026-11-12',
+    zeilen: [
+      'Markdown pasted from the Android keyboard clipboard is now formatted too.',
+      'A line with --- becomes a divider in the editor, in reading view and in export.',
+      'Start typing only shows in a note that is really empty.',
+    ],
+  },
+  {
     version: '1.14.9',
     datum: '2026-11-12',
     zeilen: [

@@ -833,6 +833,20 @@ a.tx:focus-visible {
 .lesetext h3 strong,
 .lesetext h2.titel strong,
 .lesetext h2.abschnitt strong { font-weight: 700; }
+.lesetext hr,
+.schreib .ProseMirror hr {
+  box-sizing: content-box;
+  height: 0;
+  margin: 24px 0;
+  padding: 0;
+  border: 0;
+  border-top: 1px solid var(--rand-ruhig); /* #3a3a3a */
+  background: none;
+}
+.schreib .ProseMirror hr.ProseMirror-selectednode {
+  outline: 2px solid var(--fokus);
+  outline-offset: 2px;
+}
 .verzeichnis {
   display: flex;
   flex-wrap: wrap;

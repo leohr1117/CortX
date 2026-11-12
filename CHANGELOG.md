@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.14.10
+
+Markdown pasted from the Android keyboard clipboard is now formatted too. A line with --- becomes a divider in the editor, in reading view and in export. Start typing only shows in a note that is really empty.
+
 ## 1.14.9
 
 Nummerierte Listen lassen sich wieder mit Backspace und Enter beenden. Eingefuegter Markdown-Text wird auch dann formatiert, wenn die Zwischenablage zusaetzlich HTML enthaelt.

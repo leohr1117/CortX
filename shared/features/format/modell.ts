@@ -47,6 +47,7 @@ const ZEILEN: readonly ZeileAngabe[] = [
     attribute: { zaun: { format: ART.codeblock } },
   },
   { name: 'leerzeile' },
+  { name: 'trennlinie' },
 ];
 
 function erstesZeichen(id: FormatId): string {

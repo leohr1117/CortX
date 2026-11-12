@@ -23,6 +23,13 @@ function ohneText(doc: Node): boolean {
   return doc.textContent.length === 0;
 }
 
+function ganzLeer(doc: Node): boolean {
+  if (doc.childCount === 0) return true;
+  if (doc.childCount > 1) return false;
+  const erste = doc.firstChild!;
+  return erste.type.name === 'absatz' && erste.content.size === 0;
+}
+
 function platzhalterStelle(doc: Node): number {
   const erste = doc.firstChild;
   if (!erste) return 0;
@@ -35,7 +42,7 @@ export function platzhalterPlugin(lies: () => string, unsichtbar = false): Plugi
     props: {
       decorations(state) {
         const hinweis = lies();
-        if (hinweis.length === 0 || !ohneText(state.doc)) return null;
+        if (hinweis.length === 0 || !(unsichtbar ? ohneText(state.doc) : ganzLeer(state.doc))) return null;
         const stelle = platzhalterStelle(state.doc);
         const widget = Decoration.widget(stelle, () => {
           const knoten = document.createElement('span');

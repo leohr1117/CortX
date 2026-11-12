@@ -5,6 +5,7 @@ import { lade } from './laden.ts';
 import { formatVon, inlineFormate, type FormatId } from './register.ts';
 import { prefixNummer } from './nummer.ts';
 import { LISTEN_EINFUEGEN, hakenVon, kopfZeichen, listenLaenge } from './zeile.ts';
+import { TRENNLINIE, TRENNLINIE_ZEICHEN, mitTrennAbstand, trennFlucht } from './trennlinie.ts';
 
 interface Stueck {
   text: string;
@@ -333,6 +334,7 @@ function codeKern(knoten: Node, index: number, kinder: readonly Node[]): string 
 function kernVon(knoten: Node, index: number, kinder: readonly Node[], voll: boolean, ausweichen: boolean): string {
   const name = knoten.type.name;
   if (name === 'leerzeile') return '';
+  if (name === TRENNLINIE) return TRENNLINIE_ZEICHEN;
   if (name === 'codeblock') return codeKern(knoten, index, kinder);
   const inline = schreibeInline(knoten, voll, ausweichen);
   if (name === 'wichtigZeile') return `${wichtigPrefix()}${inline}`;
@@ -375,6 +377,10 @@ function mitZeilenFlucht(text: string): string {
 function schreibeZeile(knoten: Node, index: number, kinder: readonly Node[]): string {
   const bruch = umbruchVon(knoten, index, kinder);
   const gebaut = VERSUCHE.map((versuch) => kernVon(knoten, index, kinder, versuch.voll, versuch.ausweichen) + bruch);
+  const linienText = knoten.type.name === 'absatz' && knoten.childCount === 1 && knoten.firstChild!.marks.length === 0
+    ? trennFlucht(knoten.textContent)
+    : null;
+  if (linienText !== null) gebaut.unshift(linienText + bruch);
   if (knoten.attrs.flucht === true && knoten.type.name === 'absatz') {
     gebaut.push(mitZeilenFlucht(kernVon(knoten, index, kinder, true, false)) + bruch);
   }
@@ -423,5 +429,10 @@ function setze(doc: Node): string {
 export function speichere(doc: Node): string {
   const roh = rohtext(doc);
   const erneut = roh === null ? null : ladeStill(roh);
-  return roh !== null && erneut && gleicheQuelle(erneut, doc) ? roh : setze(doc);
+  if (roh !== null && erneut && gleicheQuelle(erneut, doc)) return roh;
+  const geordnet = mitTrennAbstand(doc);
+  if (geordnet === doc) return setze(doc);
+  const neu = rohtext(geordnet);
+  const wieder = neu === null ? null : ladeStill(neu);
+  return neu !== null && wieder && gleicheQuelle(wieder, geordnet) ? neu : setze(geordnet);
 }

@@ -1,5 +1,5 @@
 import type { Mark, Node } from 'prosemirror-model';
-import { Plugin } from 'prosemirror-state';
+import { NodeSelection, Plugin } from 'prosemirror-state';
 import type { EditorView, MarkView, NodeView, NodeViewConstructor } from 'prosemirror-view';
 import { ART } from '../../../../shared/features/format/baum.ts';
 import { stilAttribut } from '../../../../shared/features/format/stil.ts';
@@ -128,6 +128,17 @@ function gleicheZeile(vorher: Node, nachher: Node): boolean {
 }
 
 function zeile(node: Node, view: EditorView, getPos: () => number | undefined): NodeView {
+  if (node.type.name === 'trennlinie') {
+    const linie = document.createElement('hr');
+    linie.addEventListener('mousedown', (event) => {
+      const pos = getPos();
+      if (pos === undefined || event.button !== 0) return;
+      event.preventDefault();
+      view.focus();
+      view.dispatch(view.state.tr.setSelection(NodeSelection.create(view.state.doc, pos)));
+    });
+    return { dom: linie, update: (nachher) => nachher.type === node.type };
+  }
   const dom = document.createElement(TAG[node.type.name] ?? 'div');
   for (const klasse of blockKlassen(node)) dom.classList.add(klasse);
   if (node.isLeaf) {
