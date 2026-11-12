@@ -2,6 +2,15 @@ import { VERSIONEN_ALT, type Versionseintrag } from './versionen-alt.ts';
 
 export const VERSIONEN: readonly Versionseintrag[] = [
   {
+    version: '1.14.8',
+    datum: '2026-11-12',
+    zeilen: [
+      'Markdown is now formatted right in the editor, also when you paste it.',
+      'Checklists, numbered lists and tags now work in the new editor.',
+      'Export any note as Markdown from the note menu.',
+    ],
+  },
+  {
     version: '1.14.7',
     datum: '2026-11-11',
     zeilen: [

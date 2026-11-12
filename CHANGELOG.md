@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.14.8
+
+Markdown is now formatted right in the editor, also when you paste it. Checklists, numbered lists and tags now work in the new editor. Export any note as Markdown from the note menu.
+
 ## 1.14.7
 
 The sign-in mark is a hash. Under sign-in and in the library menu, by leohr links to leohr.de.

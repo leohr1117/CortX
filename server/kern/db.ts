@@ -6,6 +6,7 @@ import { klartext } from '../../shared/features/format/klartext.ts';
 import { SPEICHER } from '../../shared/kern/grenzen.ts';
 import { schemaArt, wandleAltstand } from './bestandsmigration.ts';
 import { MIGRATIONEN } from './migrationen.ts';
+import { migriereSuchindex } from './suchindex.ts';
 import { istTestlauf, verweigereEchteDatenbank } from './testpfad.ts';
 
 export const ALTES_SCHEMA =
@@ -114,6 +115,7 @@ export function oeffneDatenbank(pfad: string): DatabaseSync {
     db.exec('PRAGMA journal_mode = WAL');
   }
   migriere(db);
+  migriereSuchindex(db);
   return db;
 }
 
