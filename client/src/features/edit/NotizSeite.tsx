@@ -23,6 +23,7 @@ import {
 } from './dokumentStand.ts';
 import { merkeNotiz } from './Meldung.tsx';
 import { NotizKnopf } from './Menue.tsx';
+import { dateinameZumExport, ladeBlob, markdownZumExport, teileOderLade } from './exportMarkdown.ts';
 import { kopieDokument, useSofort } from './sofort.ts';
 import { ThemenWahl } from './ThemenWahl.tsx';
 
@@ -307,6 +308,7 @@ export function NotizSeite() {
           setMenue(false);
           setWechsel(true);
         }}
+        onExport={() => { setMenue(false); void teileOderLade(markdownZumExport(standRef.current.knoten), dateinameZumExport(standRef.current.knoten), navigator, ladeBlob); }}
         onDelete={() => void entfernen()}
       />
     </div>

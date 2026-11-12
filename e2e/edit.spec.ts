@@ -216,7 +216,7 @@ test('change and delete stay on the note menu and on the note page', async ({ pa
     await page.goto('/library/topic?name=Work');
     await oeffne(page, SEITE);
     await page.getByRole('banner').getByRole('button', { name: 'Note actions' }).click();
-    await expect(page.getByRole('menuitem')).toHaveText([/^Change$/, /^Delete$/]);
+    await expect(page.getByRole('menuitem')).toHaveText([/^Change$/, /^Export as Markdown$/, /^Delete$/]);
     await page.getByRole('menuitem', { name: 'Change', exact: true }).click();
     await dialog.getByRole('option', { name: /^Home\b/ }).click();
     await expect(dialog).toHaveCount(0);

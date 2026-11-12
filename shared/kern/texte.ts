@@ -85,6 +85,7 @@ export const TEXTE = {
   themaAktionen: 'Topic actions',
   menueBibliothek: 'Library menu',
   aendern: 'Change',
+  exportMarkdown: 'Export as Markdown',
   loeschen: 'Delete',
   umbenennen: 'Rename',
   zusammenfuehren: 'Merge into\u2026',
@@ -162,6 +163,7 @@ export const TEXTE_DE = {
   alsKopie: 'Als Kopie speichern',
   konfliktWort: 'Konflikt',
   kopieFehl: 'Die Kopie konnte nicht gespeichert werden. Deine \u00c4nderungen sind noch da.',
+  exportMarkdown: 'Als Markdown exportieren',
 } as const satisfies Partial<Record<keyof typeof TEXTE, string>>;
 
 const ORT: Record<Sprache, string> = { en: 'en-GB', de: 'de-DE' };

@@ -9,6 +9,7 @@ export function NotizKnopf({
   onOeffnen,
   onSchliessen,
   onChange,
+  onExport,
   onDelete,
 }: {
   id: number;
@@ -17,6 +18,7 @@ export function NotizKnopf({
   onOeffnen: () => void;
   onSchliessen: () => void;
   onChange: () => void;
+  onExport?: () => void;
   onDelete: () => void;
 }) {
   const kasten = useRef<HTMLDivElement>(null);
@@ -59,6 +61,11 @@ export function NotizKnopf({
             <HashIcon />
             <span>{TEXTE.aendern}</span>
           </button>
+          {onExport ? (
+            <button type="button" className="m" role="menuitem" onClick={onExport} disabled={gesperrt}>
+              <span>{TEXTE.exportMarkdown}</span>
+            </button>
+          ) : null}
           <div className="tr" role="separator" />
           <button type="button" className="m gef" role="menuitem" onClick={onDelete} disabled={gesperrt}>
             <PapierkorbIcon />
