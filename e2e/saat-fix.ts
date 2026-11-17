@@ -2,7 +2,7 @@ import { test as basis, expect } from '@playwright/test';
 
 let projektSaat = '';
 
-export const test = basis.extend({
+export const test = basis.extend<{ _stelleSaat: void }>({
   _stelleSaat: [async ({}, nutzen, testInfo) => {
     if (projektSaat !== testInfo.project.name) {
       projektSaat = testInfo.project.name;
