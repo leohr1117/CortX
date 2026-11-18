@@ -349,7 +349,7 @@ function mitFlucht(kern: SchreibStueck): SchreibStueck {
   return plus(ausZeichen('\\', true), kern);
 }
 
-export function schreibStuecke(knoten: Node, index: number, kinder: readonly Node[]): { bevorzugt: SchreibStueck[]; alle: SchreibStueck[] } {
+export function schreibStuecke(knoten: Node, index: number, kinder: readonly Node[]): { bevorzugt: SchreibStueck[]; alle: SchreibStueck[]; fallback: SchreibStueck } {
   const bruch = umbruchVon(knoten, index, kinder);
   const versuche = (flach: boolean) => VERSUCHE.map((versuch) => mitBruch(kernVon(knoten, index, kinder, versuch.voll, versuch.ausweichen, flach), bruch));
   const baum = versuche(false);
@@ -361,5 +361,6 @@ export function schreibStuecke(knoten: Node, index: number, kinder: readonly Nod
   }
   const reihe = linien === null ? baum : [mitBruch(linien, bruch), ...baum];
   const alle = [...reihe, ...gebaut];
-  return { bevorzugt: istFortsetzung(knoten) ? gebaut.slice(0, 1) : alle, alle };
+  const fallback = gebaut[2] ?? gebaut[0] ?? ausZeichen(bruch, false);
+  return { bevorzugt: istFortsetzung(knoten) ? gebaut.slice(0, 1) : alle, alle, fallback };
 }

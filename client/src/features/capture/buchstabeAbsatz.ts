@@ -1,8 +1,9 @@
 import type { Node } from 'prosemirror-model';
 import { Plugin } from 'prosemirror-state';
 import { ART } from '../../../../shared/features/format/baum.ts';
-import { NUMMER_ART } from '../../../../shared/features/format/nummer.ts';
-import { speichere } from '../../../../shared/features/format/speichern.ts';
+import { knotenZuMarkdownOffset } from '../../../../shared/features/format/knotenOffset.ts';
+import { schreibStuecke } from '../../../../shared/features/format/knotenSyntax.ts';
+import { NUMMER_ART, erkenne } from '../../../../shared/features/format/nummer.ts';
 
 function istBuchstabe(node: Node): boolean {
   if (node.type.name !== 'punkt') return false;
@@ -22,16 +23,65 @@ function ohneBruch(text: string): string {
   return text.replace(/\r?\n$/, '');
 }
 
-function zeilenQuelle(node: Node): string {
+function zeichen(stueck: { text: string } | undefined): string {
+  return ohneBruch(stueck?.text ?? '');
+}
+
+function versuch(node: Node) {
+  return schreibStuecke(node, 0, [node]);
+}
+
+function inhaltAbsatz(node: Node): Node | null {
+  const absatz = node.type.schema.nodes.absatz;
+  if (!absatz) return null;
+  if (node.content.size === 0) return absatz.create();
+  return absatz.create(null, node.content);
+}
+
+function hatMarken(node: Node): boolean {
+  let marken = false;
+  node.descendants((kind) => {
+    if (kind.isText && kind.marks.length > 0) marken = true;
+  });
+  return marken;
+}
+
+function sichtbar(text: string, syntax: readonly boolean[]): string {
+  let aus = '';
+  for (let i = 0; i < text.length; i += 1) {
+    const z = text[i] ?? '';
+    if (syntax[i] || z === '\n' || z === '\r') continue;
+    aus += z;
+  }
+  return aus;
+}
+
+function quelleKern(node: Node): string | null {
+  const roh = String(node.attrs.quelle ?? '');
+  const kern = ohneBruch(roh);
+  if (kern.length === 0) return null;
+  const fund = erkenne(kern);
+  if (!fund || fund.art !== String(node.attrs.nummerArt ?? '')) return null;
+  if (Number(node.attrs.nummer) !== 1) return null;
   const doc = node.type.schema.topNodeType.create(null, node);
-  return ohneBruch(speichere(doc));
+  if (sichtbar(roh, knotenZuMarkdownOffset(doc, roh).syntax) !== node.textContent) return null;
+  const inline = inhaltAbsatz(node);
+  if (!inline) return null;
+  const rest = kern.slice(fund.laenge);
+  const texte = new Set(versuch(inline).alle.map((stueck) => zeichen(stueck)));
+  if (texte.has(rest)) return kern;
+  if (rest === node.textContent && !hatMarken(node)) return kern;
+  return null;
+}
+
+function zeilenQuelle(node: Node): string {
+  return quelleKern(node) ?? zeichen(versuch(node).bevorzugt[0]);
 }
 
 function inlineQuelle(node: Node): string {
-  const absatz = node.type.schema.nodes.absatz;
-  if (!absatz || node.content.size === 0) return '';
-  const doc = node.type.schema.topNodeType.create(null, absatz.create(null, node.content));
-  return ohneBruch(speichere(doc));
+  if (node.content.size === 0) return '';
+  const inline = inhaltAbsatz(node);
+  return inline ? zeichen(versuch(inline).bevorzugt[0]) : '';
 }
 
 function alsAbsatz(node: Node): Node | null {
@@ -45,8 +95,7 @@ function alsAbsatz(node: Node): Node | null {
   let inhalt = node.content;
   if (prefix.length > 0) inhalt = inhalt.addToStart(schema.text(prefix));
   const ersatz = inhalt.size > 0 ? absatz.create(null, inhalt) : absatz.create();
-  const probe = schema.topNodeType.create(null, ersatz);
-  if (ohneBruch(speichere(probe)) !== ganz) return null;
+  if (zeichen(versuch(ersatz).fallback) !== ganz) return null;
   return ersatz;
 }
 
