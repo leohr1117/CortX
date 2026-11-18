@@ -126,9 +126,35 @@ function waehleMarker(id: string, inhalt: string, aus: string, aktion: string, a
   return basis;
 }
 
-function sortiere(marks: readonly Mark[]): Mark[] {
+interface Spanne {
+  mark: Mark;
+  von: number;
+  bis: number;
+}
+
+function spannen(stuecke: readonly Stueck[]): Spanne[] {
+  const aus: Spanne[] = [];
+  for (let index = 0; index < stuecke.length; index += 1) {
+    for (const mark of stuecke[index]!.marks) {
+      const letzte = aus.find((eintrag) => eintrag.bis === index && eintrag.mark.eq(mark));
+      if (letzte) letzte.bis = index + 1;
+      else aus.push({ mark, von: index, bis: index + 1 });
+    }
+  }
+  return aus;
+}
+
+function ordne(marks: readonly Mark[], index: number, liste: readonly Spanne[]): Mark[] {
   const rang = new Map<string, number>(inlineFormate().map((format) => [format.id, format.reihenfolge]));
-  return [...marks].sort((a, b) => (rang.get(b.type.name) ?? 0) - (rang.get(a.type.name) ?? 0));
+  const fund = (mark: Mark) => liste.find((eintrag) => eintrag.mark.eq(mark) && eintrag.von <= index && index < eintrag.bis);
+  return [...marks].sort((a, b) => {
+    const links = fund(a);
+    const rechts = fund(b);
+    const weite = (rechts?.bis ?? 0) - (rechts?.von ?? 0) - ((links?.bis ?? 0) - (links?.von ?? 0));
+    if (weite !== 0) return weite;
+    if ((links?.von ?? 0) !== (rechts?.von ?? 0)) return (links?.von ?? 0) - (rechts?.von ?? 0);
+    return (rang.get(b.type.name) ?? 0) - (rang.get(a.type.name) ?? 0);
+  });
 }
 
 function zeichenVon(knoten: Node): Array<{ z: string; marks: readonly Mark[] }> {
@@ -232,20 +258,25 @@ function maskiere(text: string, voll: boolean): string {
   return aus;
 }
 
-function schreibeInline(knoten: Node, voll: boolean, ausweichen: boolean): string {
+function schreibeInline(knoten: Node, voll: boolean, ausweichen: boolean, flach = false): string {
   const stuecke = gruppiere(randNachAussen(zeichenVon(knoten)));
+  const liste = flach ? [] : spannen(stuecke);
   const gewaehlt = new Map<string, string>();
   let offen: Mark[] = [];
   let aus = '';
   let aktion = 'text';
   for (let index = 0; index < stuecke.length; index += 1) {
     const stueck = stuecke[index]!;
-    const ziel = sortiere(stueck.marks);
-    for (let k = offen.length - 1; k >= 0; k -= 1) {
+    const ziel = ordne(stueck.marks, index, liste);
+    let gleich = 0;
+    if (!flach) {
+      while (gleich < offen.length && gleich < ziel.length && offen[gleich]!.eq(ziel[gleich]!)) gleich += 1;
+    }
+    for (let k = offen.length - 1; k >= gleich; k -= 1) {
       aus += schliesse(offen[k]!, gewaehlt);
       aktion = 'zu';
     }
-    for (let k = 0; k < ziel.length; k += 1) {
+    for (let k = gleich; k < ziel.length; k += 1) {
       const mark = ziel[k]!;
       aus += oeffne(mark, stueck.text, ausweichen, gewaehlt, aus, aktion);
       aktion = 'auf';
@@ -331,12 +362,12 @@ function codeKern(knoten: Node, index: number, kinder: readonly Node[]): string 
   return '';
 }
 
-function kernVon(knoten: Node, index: number, kinder: readonly Node[], voll: boolean, ausweichen: boolean): string {
+function kernVon(knoten: Node, index: number, kinder: readonly Node[], voll: boolean, ausweichen: boolean, flach = false): string {
   const name = knoten.type.name;
   if (name === 'leerzeile') return '';
   if (name === TRENNLINIE) return TRENNLINIE_ZEICHEN;
   if (name === 'codeblock') return codeKern(knoten, index, kinder);
-  const inline = schreibeInline(knoten, voll, ausweichen);
+  const inline = schreibeInline(knoten, voll, ausweichen, flach);
   if (name === 'wichtigZeile') return `${wichtigPrefix()}${inline}`;
   if (name === 'ueberschrift') return `${kopfPrefix(knoten)}${inline}`;
   if (name === 'punkt') return `${punktPrefix(knoten)}${inline}`;
@@ -376,16 +407,19 @@ function mitZeilenFlucht(text: string): string {
 
 function schreibeZeile(knoten: Node, index: number, kinder: readonly Node[]): string {
   const bruch = umbruchVon(knoten, index, kinder);
-  const gebaut = VERSUCHE.map((versuch) => kernVon(knoten, index, kinder, versuch.voll, versuch.ausweichen) + bruch);
+  const versuche = (flach: boolean) => VERSUCHE.map((versuch) => kernVon(knoten, index, kinder, versuch.voll, versuch.ausweichen, flach) + bruch);
+  const baum = versuche(false);
+  const gebaut = versuche(true);
   const linienText = knoten.type.name === 'absatz' && knoten.childCount === 1 && knoten.firstChild!.marks.length === 0
     ? trennFlucht(knoten.textContent)
     : null;
   if (linienText !== null) gebaut.unshift(linienText + bruch);
   if (knoten.attrs.flucht === true && knoten.type.name === 'absatz') {
-    gebaut.push(mitZeilenFlucht(kernVon(knoten, index, kinder, true, false)) + bruch);
+    gebaut.push(mitZeilenFlucht(kernVon(knoten, index, kinder, true, false, true)) + bruch);
   }
   if (istFortsetzung(knoten)) return gebaut[0] ?? bruch;
-  for (const text of gebaut) {
+  const reihe = linienText === null ? baum : [linienText + bruch, ...baum];
+  for (const text of [...reihe, ...gebaut]) {
     if (passtZeile(knoten, text)) return text;
   }
   return gebaut[2] ?? gebaut[0] ?? bruch;
