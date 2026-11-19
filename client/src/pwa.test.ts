@@ -43,10 +43,10 @@ function pngKante(buf: Buffer): { width: number; height: number } {
 }
 
 describe('home screen name', () => {
-  it('shows CortX in the title and on the sign-in page', () => {
+  it('shows Styra in the title and on the sign-in page', () => {
     const html = lies('index.html');
-    expect(html).toContain('<title>CortX</title>');
-    expect(html).toContain('name="apple-mobile-web-app-title" content="CortX"');
+    expect(html).toContain('<title>Styra</title>');
+    expect(html).toContain('name="apple-mobile-web-app-title" content="Styra"');
     expect(html).toContain('name="theme-color" content="#141414"');
     const svg = html.indexOf('<link rel="icon" type="image/svg+xml" href="/icons/cortx-favicon-16.svg" />');
     const png32 = html.indexOf('<link rel="icon" type="image/png" sizes="32x32" href="/icons/cortx-icon-32.png" />');
@@ -59,7 +59,7 @@ describe('home screen name', () => {
     expect(html).not.toContain('-v3');
     expect(html).not.toContain('/icons/icon-192.png');
     expect(html).not.toContain('/icons/icon-512.png');
-    expect(lies('src/features/zugang/Anmeldung.tsx')).toContain('CortX');
+    expect(lies('src/features/zugang/Anmeldung.tsx')).toContain('Styra');
     for (const text of [html, ...quellen(path.join(CLIENT, 'src'))]) {
       expect(text).not.toMatch(/\bCortex\b/);
     }
@@ -82,7 +82,7 @@ describe('service worker cache', () => {
 });
 
 describe('install icon', () => {
-  it('names the app CortX and publishes the brand icons', () => {
+  it('names the app Styra and publishes the brand icons', () => {
     const manifestText = lies('public/manifest.webmanifest');
     const manifest = JSON.parse(manifestText) as {
       id: string;
@@ -92,8 +92,8 @@ describe('install icon', () => {
       icons: Array<{ src: string; sizes: string; type: string; purpose: string }>;
     };
     expect(manifest.id).toBe('/');
-    expect(manifest.name).toBe('CortX');
-    expect(manifest.short_name).toBe('CortX');
+    expect(manifest.name).toBe('Styra');
+    expect(manifest.short_name).toBe('Styra');
     expect(manifest.theme_color).toBe('#141414');
     expect(manifest.icons).toEqual(MANIFEST_ICONS);
     expect(manifestText).not.toContain('-v2');

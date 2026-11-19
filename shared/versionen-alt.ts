@@ -54,7 +54,7 @@ export const VERSIONEN_ALT: readonly Versionseintrag[] = [
   {
     version: '1.5.5',
     datum: '2026-11-02',
-    zeilen: ['Housekeeping only. CortX looks and works the same.'],
+    zeilen: ['Housekeeping only. Styra looks and works the same.'],
   },
   {
     version: '1.5.4',
@@ -66,7 +66,7 @@ export const VERSIONEN_ALT: readonly Versionseintrag[] = [
     datum: '2026-11-02',
     zeilen: [
       "What's new lists every version, newest first.",
-      'After an update, CortX tells you once.',
+      'After an update, Styra tells you once.',
       "A dot on the library menu stays until you open What's new.",
     ],
   },
@@ -83,7 +83,7 @@ export const VERSIONEN_ALT: readonly Versionseintrag[] = [
     version: '1.5.1',
     datum: '2026-11-02',
     zeilen: [
-      'The home screen name is CortX.',
+      'The home screen name is Styra.',
       'The icon is three lines of a note on a dark square.',
       "It fills the phone's icon shape, so no white ring shows around it.",
     ],
@@ -193,7 +193,7 @@ export const VERSIONEN_ALT: readonly Versionseintrag[] = [
     zeilen: [
       'Write a note and file it.',
       'A #topic picks the topic. Without one, the note goes to Inbox.',
-      'You can install CortX on your phone.',
+      'You can install Styra on your phone.',
     ],
   },
 ];

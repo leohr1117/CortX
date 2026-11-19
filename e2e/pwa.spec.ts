@@ -18,12 +18,12 @@ function pngKante(bytes: Buffer): { width: number; height: number } {
   return { width: bytes.readUInt32BE(16), height: bytes.readUInt32BE(20) };
 }
 
-test('the page title and sign-in page say CortX and the icons load', async ({ page }, testInfo) => {
+test('the page title and sign-in page say Styra and the icons load', async ({ page }, testInfo) => {
   await page.goto('/');
-  await expect(page).toHaveTitle('CortX');
-  await expect(page.locator('.marke')).toHaveText('CortX');
+  await expect(page).toHaveTitle('Styra');
+  await expect(page.locator('.marke')).toHaveText('Styra');
   await expect(page.getByText('Cortex', { exact: true })).toHaveCount(0);
-  await expect(page.locator('meta[name="apple-mobile-web-app-title"]')).toHaveAttribute('content', 'CortX');
+  await expect(page.locator('meta[name="apple-mobile-web-app-title"]')).toHaveAttribute('content', 'Styra');
   await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute('content', '#141414');
 
   const icons = page.locator('link[rel="icon"]');
@@ -53,8 +53,8 @@ test('the page title and sign-in page say CortX and the icons load', async ({ pa
     theme_color: string;
     icons: Array<{ src: string; sizes: string; purpose?: string }>;
   };
-  expect(manifest.name).toBe('CortX');
-  expect(manifest.short_name).toBe('CortX');
+  expect(manifest.name).toBe('Styra');
+  expect(manifest.short_name).toBe('Styra');
   expect(manifest.id).toBe('/');
   expect(manifest.theme_color).toBe('#141414');
   expect(manifest.icons.map((icon) => icon.src)).toEqual([

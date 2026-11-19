@@ -1,8 +1,12 @@
 # Changelog
 
+## 1.15.0
+
+CortX is now called Styra. Your notes stay as they are.
+
 ## 1.14.12
 
-CortX has a new logo: a note sheet with a folded corner, on the login screen, in the browser tab and as the app icon.
+Styra has a new logo: a note sheet with a folded corner, on the login screen, in the browser tab and as the app icon.
 
 ## 1.14.11
 
@@ -106,7 +110,7 @@ Words that are both important and code show the gold highlight and the code font
 
 ## 1.8.8
 
-Housekeeping only. CortX looks and works the same.
+Housekeeping only. Styra looks and works the same.
 
 ## 1.8.7
 
@@ -170,7 +174,7 @@ Notes stay as text. Bold, italic, strike, code, lists, checkboxes, links, and he
 
 ## 1.5.5
 
-Housekeeping only. CortX looks and works the same.
+Housekeeping only. Styra looks and works the same.
 
 ## 1.5.4
 
@@ -178,7 +182,7 @@ Change password in a password manager opens the Stride page.
 
 ## 1.5.3
 
-What's new lists each version, newest first. After an update, CortX tells you once. A dot on the library menu stays until you open What's new.
+What's new lists each version, newest first. After an update, Styra tells you once. A dot on the library menu stays until you open What's new.
 
 ## 1.5.2
 
@@ -186,7 +190,7 @@ Sign in with a password manager. The username stays if the password is wrong, an
 
 ## 1.5.1
 
-The home screen name is CortX. The icon is three lines of a note, the top one white and the ones under it gray, on a full dark square. A maskable icon fills the phone's shape, so no white ring shows around it.
+The home screen name is Styra. The icon is three lines of a note, the top one white and the ones under it gray, on a full dark square. A maskable icon fills the phone's shape, so no white ring shows around it.
 
 ## 1.5.0
 
@@ -214,7 +218,7 @@ Search your notes from the library. The field looks through every topic and Inbo
 
 ## 1.0.0
 
-The first release of CortX. Write a note and move on. The app files it for you.
+The first release of Styra. Write a note and move on. The app files it for you.
 
 Sign in with your Stride account. Your notes stay with that account. Change your password in Stride, and sign out from the library. A draft stays on the device while you are offline, and notes you file offline sync after you sign in.
 

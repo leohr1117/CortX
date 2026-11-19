@@ -7,7 +7,7 @@ import { SPEICHER } from '../../shared/kern/grenzen.ts';
 import { erstelleApp } from './app.ts';
 import { oeffneDatenbank } from './db.ts';
 
-const HTML = '<!doctype html><html><head><title>CortX</title></head><body><div id="root"></div></body></html>';
+const HTML = '<!doctype html><html><head><title>Styra</title></head><body><div id="root"></div></body></html>';
 const ORDNER = path.resolve('tmp-test', 'html-marke');
 
 describe('test mark in html', () => {
@@ -40,7 +40,7 @@ describe('test mark in html', () => {
     const start = await server.inject({ method: 'GET', url: '/' });
     const route = await server.inject({ method: 'GET', url: '/library' });
     expect(start.statusCode).toBe(200);
-    expect(start.body).toContain('<head><script>globalThis.__CORTX_TEST="1"</script><title>CortX</title>');
+    expect(start.body).toContain('<head><script>globalThis.__CORTX_TEST="1"</script><title>Styra</title>');
     expect(route.body).toContain('globalThis.__CORTX_TEST="1"');
     expect(start.headers['content-type']).toContain('text/html');
     const json = await server.inject({ method: 'GET', url: '/api/library' });

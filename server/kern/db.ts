@@ -10,7 +10,7 @@ import { migriereSuchindex } from './suchindex.ts';
 import { istTestlauf, verweigereEchteDatenbank } from './testpfad.ts';
 
 export const ALTES_SCHEMA =
-  'This database uses an unknown old note schema. CortX does not migrate existing notes, and the file was not modified.';
+  'This database uses an unknown old note schema. Styra does not migrate existing notes, and the file was not modified.';
 
 function schemaVersion(db: DatabaseSync): number {
   const zeile = db.prepare('PRAGMA user_version').get() as { user_version: number };

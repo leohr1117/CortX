@@ -1,6 +1,6 @@
-# CortX
+# Styra
 
-CortX ist eine Notiz-App: Du schreibst eine Notiz auf, und sie landet über ein `#thema` im passenden Thema oder sonst in der Inbox.
+Styra ist eine Notiz-App: Du schreibst eine Notiz auf, und sie landet über ein `#thema` im passenden Thema oder sonst in der Inbox.
 
 Live: [cortx.leohr.de](https://cortx.leohr.de)
 

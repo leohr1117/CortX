@@ -1,5 +1,5 @@
 export const TEXTE = {
-  marke: 'CortX',
+  marke: 'Styra',
   anmeldenUntertitel: 'Sign in with your Stride account.',
   benutzer: 'Username',
   passwort: 'Password',
@@ -135,7 +135,7 @@ export const TEXTE = {
   abgelegt: 'Filed',
   um: ' at ',
   via: ' via #',
-  aktualisiert: 'CortX was updated',
+  aktualisiert: 'Styra was updated',
   neuigkeiten: "What's new",
   rueckgaengig: 'Undo',
   oeffnen: 'Open',

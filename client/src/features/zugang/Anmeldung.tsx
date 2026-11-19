@@ -61,7 +61,7 @@ export function Anmeldung() {
               <path d="M19.1 14.5H44.9A3.6 3.6 0 0 1 48.5 18.1V35.5L35.5 48.5H19.1A3.6 3.6 0 0 1 15.5 44.9V18.1A3.6 3.6 0 0 1 19.1 14.5Z" fill="#f2f2f2" />
               <path d="M37.4 35.5H48.5L35.5 48.5V37.4A1.9 1.9 0 0 1 37.4 35.5Z" fill="#707070" />
             </svg>
-            {TEXTE.marke || 'CortX'}
+            {TEXTE.marke || 'Styra'}
           </div>
           <p className="sub">{TEXTE.anmeldenUntertitel}</p>
           <label className="lab" htmlFor="username">

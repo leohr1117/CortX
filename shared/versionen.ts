@@ -2,10 +2,15 @@ import { VERSIONEN_ALT, type Versionseintrag } from './versionen-alt.ts';
 
 export const VERSIONEN: readonly Versionseintrag[] = [
   {
+    version: '1.15.0',
+    datum: '2026-11-19',
+    zeilen: ['CortX is now called Styra. Your notes stay as they are.'],
+  },
+  {
     version: '1.14.12',
     datum: '2026-11-19',
     zeilen: [
-      'CortX has a new logo: a note sheet with a folded corner, on the login screen, in the browser tab and as the app icon.',
+      'Styra has a new logo: a note sheet with a folded corner, on the login screen, in the browser tab and as the app icon.',
     ],
   },
   {
@@ -176,7 +181,7 @@ export const VERSIONEN: readonly Versionseintrag[] = [
   {
     version: '1.8.8',
     datum: '2026-11-03',
-    zeilen: ['Housekeeping only. CortX looks and works the same.'],
+    zeilen: ['Housekeeping only. Styra looks and works the same.'],
   },
   {
     version: '1.8.7',

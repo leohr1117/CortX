@@ -127,7 +127,8 @@ test('an update shows one snackbar, and the dot stays until What\'s new was seen
     expect(text.indexOf(AKTUELLE_VERSION)).toBeLessThan(text.indexOf('1.5.2'));
     expect(text.indexOf('1.5.2')).toBeLessThan(text.indexOf('0.1.0'));
     expect(text.indexOf('November 2, 2026')).toBeLessThan(text.indexOf('November 1, 2026'));
-    await expect(page.getByRole('region', { name: 'Version 1.14.12' })).toContainText('CortX has a new logo: a note sheet with a folded corner, on the login screen, in the browser tab and as the app icon.');
+    await expect(page.getByRole('region', { name: 'Version 1.15.0' })).toContainText('CortX is now called Styra. Your notes stay as they are.');
+    await expect(page.getByRole('region', { name: 'Version 1.14.12' })).toContainText('Styra has a new logo: a note sheet with a folded corner, on the login screen, in the browser tab and as the app icon.');
     await expect(page.getByRole('region', { name: 'Version 1.14.11' })).toContainText('Overlapping formats, like bold inside italic, now stay intact when a note is saved');
     await expect(page.getByRole('region', { name: 'Version 1.14.11' })).toContainText('Internal cleanup of the editor, nothing else changes for you');
     await expect(page.getByRole('region', { name: 'Version 1.14.10' })).toContainText('Markdown pasted from the Android keyboard clipboard is now formatted too');
