@@ -3,12 +3,13 @@ import { expect, test } from './ruhe.ts';
 const BILDER = 'tmp-test/screens';
 
 const MARKEN: Array<{ src: string; bytes: number; typ: string; kante?: number }> = [
-  { src: '/icons/favicon-v3.svg', bytes: 343, typ: 'image/svg+xml' },
-  { src: '/icons/favicon-v3.png', bytes: 1053, typ: 'image/png', kante: 32 },
-  { src: '/icons/apple-touch-icon-v3.png', bytes: 5325, typ: 'image/png', kante: 180 },
-  { src: '/icons/icon-192-v3.png', bytes: 4740, typ: 'image/png', kante: 192 },
-  { src: '/icons/icon-512-v3.png', bytes: 15087, typ: 'image/png', kante: 512 },
-  { src: '/icons/icon-maskable-512-v3.png', bytes: 9050, typ: 'image/png', kante: 512 },
+  { src: '/icons/cortx-favicon-16.svg', bytes: 262, typ: 'image/svg+xml' },
+  { src: '/icons/cortx-icon-32.png', bytes: 542, typ: 'image/png', kante: 32 },
+  { src: '/icons/cortx-icon-16.png', bytes: 274, typ: 'image/png', kante: 16 },
+  { src: '/icons/cortx-icon-180.png', bytes: 1431, typ: 'image/png', kante: 180 },
+  { src: '/icons/cortx-icon-192.png', bytes: 2990, typ: 'image/png', kante: 192 },
+  { src: '/icons/cortx-icon-512.png', bytes: 8919, typ: 'image/png', kante: 512 },
+  { src: '/icons/cortx-icon-maskable-512.png', bytes: 3678, typ: 'image/png', kante: 512 },
 ];
 
 function pngKante(bytes: Buffer): { width: number; height: number } {
@@ -26,20 +27,25 @@ test('the page title and sign-in page say CortX and the icons load', async ({ pa
   await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute('content', '#141414');
 
   const icons = page.locator('link[rel="icon"]');
-  await expect(icons).toHaveCount(2);
+  await expect(icons).toHaveCount(3);
   await expect(icons.nth(0)).toHaveAttribute('type', 'image/svg+xml');
-  await expect(icons.nth(0)).toHaveAttribute('href', '/icons/favicon-v3.svg');
-  await expect(icons.nth(1)).toHaveAttribute('href', '/icons/favicon-v3.png');
-  await expect(page.locator('link[rel="apple-touch-icon"]')).toHaveAttribute('href', '/icons/apple-touch-icon-v3.png');
+  await expect(icons.nth(0)).toHaveAttribute('href', '/icons/cortx-favicon-16.svg');
+  await expect(icons.nth(1)).toHaveAttribute('href', '/icons/cortx-icon-32.png');
+  await expect(icons.nth(1)).toHaveAttribute('sizes', '32x32');
+  await expect(icons.nth(2)).toHaveAttribute('href', '/icons/cortx-icon-16.png');
+  await expect(icons.nth(2)).toHaveAttribute('sizes', '16x16');
+  await expect(page.locator('link[rel="apple-touch-icon"]')).toHaveAttribute('href', '/icons/cortx-icon-180.png');
 
   const html = await page.content();
   expect(html).not.toContain('-v2');
+  expect(html).not.toContain('-v3');
   await page.screenshot({ path: `${BILDER}/${testInfo.project.name}-marke.png` });
 
   const manifestAntwort = await page.request.get('/manifest.webmanifest');
   expect(manifestAntwort.status()).toBe(200);
   const manifestText = await manifestAntwort.text();
   expect(manifestText).not.toContain('-v2');
+  expect(manifestText).not.toContain('-v3');
   const manifest = JSON.parse(manifestText) as {
     id: string;
     name: string;
@@ -52,11 +58,11 @@ test('the page title and sign-in page say CortX and the icons load', async ({ pa
   expect(manifest.id).toBe('/');
   expect(manifest.theme_color).toBe('#141414');
   expect(manifest.icons.map((icon) => icon.src)).toEqual([
-    '/icons/icon-192-v3.png',
-    '/icons/icon-512-v3.png',
-    '/icons/icon-maskable-512-v3.png',
+    '/icons/cortx-icon-192.png',
+    '/icons/cortx-icon-512.png',
+    '/icons/cortx-icon-maskable-512.png',
   ]);
-  expect(manifest.icons.some((icon) => icon.purpose === 'maskable' && icon.src === '/icons/icon-maskable-512-v3.png')).toBe(
+  expect(manifest.icons.some((icon) => icon.purpose === 'maskable' && icon.src === '/icons/cortx-icon-maskable-512.png')).toBe(
     true,
   );
 

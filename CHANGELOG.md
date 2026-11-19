@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.14.12
+
+CortX has a new logo: a note sheet with a folded corner, on the login screen, in the browser tab and as the app icon.
+
 ## 1.14.11
 
 Overlapping formats, like bold inside italic, now stay intact when a note is saved. Internal cleanup of the editor, nothing else changes for you.

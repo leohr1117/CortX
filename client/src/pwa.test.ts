@@ -7,18 +7,19 @@ import { AKTUELLE_VERSION } from '../../shared/versionen.ts';
 const CLIENT = path.resolve('client');
 
 const MARKEN: ReadonlyArray<{ relativ: string; bytes: number; kante?: number }> = [
-  { relativ: 'public/icons/favicon-v3.svg', bytes: 343 },
-  { relativ: 'public/icons/favicon-v3.png', bytes: 1053, kante: 32 },
-  { relativ: 'public/icons/apple-touch-icon-v3.png', bytes: 5325, kante: 180 },
-  { relativ: 'public/icons/icon-192-v3.png', bytes: 4740, kante: 192 },
-  { relativ: 'public/icons/icon-512-v3.png', bytes: 15087, kante: 512 },
-  { relativ: 'public/icons/icon-maskable-512-v3.png', bytes: 9050, kante: 512 },
+  { relativ: 'public/icons/cortx-favicon-16.svg', bytes: 262 },
+  { relativ: 'public/icons/cortx-icon-32.png', bytes: 542, kante: 32 },
+  { relativ: 'public/icons/cortx-icon-16.png', bytes: 274, kante: 16 },
+  { relativ: 'public/icons/cortx-icon-180.png', bytes: 1431, kante: 180 },
+  { relativ: 'public/icons/cortx-icon-192.png', bytes: 2990, kante: 192 },
+  { relativ: 'public/icons/cortx-icon-512.png', bytes: 8919, kante: 512 },
+  { relativ: 'public/icons/cortx-icon-maskable-512.png', bytes: 3678, kante: 512 },
 ];
 
 const MANIFEST_ICONS = [
-  { src: '/icons/icon-192-v3.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
-  { src: '/icons/icon-512-v3.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
-  { src: '/icons/icon-maskable-512-v3.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+  { src: '/icons/cortx-icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+  { src: '/icons/cortx-icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+  { src: '/icons/cortx-icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
 ];
 
 function lies(relativ: string): string {
@@ -47,12 +48,15 @@ describe('home screen name', () => {
     expect(html).toContain('<title>CortX</title>');
     expect(html).toContain('name="apple-mobile-web-app-title" content="CortX"');
     expect(html).toContain('name="theme-color" content="#141414"');
-    const svg = html.indexOf('<link rel="icon" type="image/svg+xml" href="/icons/favicon-v3.svg" />');
-    const png = html.indexOf('<link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-v3.png" />');
+    const svg = html.indexOf('<link rel="icon" type="image/svg+xml" href="/icons/cortx-favicon-16.svg" />');
+    const png32 = html.indexOf('<link rel="icon" type="image/png" sizes="32x32" href="/icons/cortx-icon-32.png" />');
+    const png16 = html.indexOf('<link rel="icon" type="image/png" sizes="16x16" href="/icons/cortx-icon-16.png" />');
     expect(svg).toBeGreaterThanOrEqual(0);
-    expect(png).toBeGreaterThan(svg);
-    expect(html).toContain('/icons/apple-touch-icon-v3.png');
+    expect(png32).toBeGreaterThan(svg);
+    expect(png16).toBeGreaterThan(png32);
+    expect(html).toContain('/icons/cortx-icon-180.png');
     expect(html).not.toContain('-v2');
+    expect(html).not.toContain('-v3');
     expect(html).not.toContain('/icons/icon-192.png');
     expect(html).not.toContain('/icons/icon-512.png');
     expect(lies('src/features/zugang/Anmeldung.tsx')).toContain('CortX');
@@ -93,11 +97,13 @@ describe('install icon', () => {
     expect(manifest.theme_color).toBe('#141414');
     expect(manifest.icons).toEqual(MANIFEST_ICONS);
     expect(manifestText).not.toContain('-v2');
+    expect(manifestText).not.toContain('-v3');
     expect(manifestText).not.toContain('/icons/icon-192.png');
     expect(manifestText).not.toContain('/icons/icon-512.png"');
     const sw = lies('public/sw.js');
     expect(sw).toContain('/.well-known/');
     expect(sw).not.toContain('-v2');
+    expect(sw).not.toContain('-v3');
     expect(sw).not.toContain('/icons/icon-192.png');
 
     for (const marke of MARKEN) {

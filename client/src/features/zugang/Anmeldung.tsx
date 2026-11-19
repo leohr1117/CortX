@@ -57,11 +57,9 @@ export function Anmeldung() {
       <main className="login">
         <form method="post" noValidate onSubmit={(event) => void sende(event)}>
           <div className="marke">
-            <svg className="logo" viewBox="0 0 28 28" width="28" height="28" aria-hidden="true">
-              <rect x="5" y="2" width="3" height="24" fill="currentColor" />
-              <rect x="20" y="2" width="3" height="24" fill="currentColor" />
-              <rect x="2" y="5" width="24" height="3" fill="currentColor" />
-              <rect x="2" y="20" width="24" height="3" fill="currentColor" />
+            <svg className="logo" xmlns="http://www.w3.org/2000/svg" viewBox="11 10 42 42" width="28" height="28" aria-hidden="true">
+              <path d="M19.1 14.5H44.9A3.6 3.6 0 0 1 48.5 18.1V35.5L35.5 48.5H19.1A3.6 3.6 0 0 1 15.5 44.9V18.1A3.6 3.6 0 0 1 19.1 14.5Z" fill="#f2f2f2" />
+              <path d="M37.4 35.5H48.5L35.5 48.5V37.4A1.9 1.9 0 0 1 37.4 35.5Z" fill="#707070" />
             </svg>
             {TEXTE.marke || 'CortX'}
           </div>

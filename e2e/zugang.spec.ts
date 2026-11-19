@@ -131,10 +131,13 @@ test('an offline draft can be filed without an account and syncs after sign-in',
   await expect.poll(() => inboxEnthaelt(page, text)).toBe(true);
 });
 
-test('the sign-in mark is a hash and the credit sits under the form', async ({ page }) => {
+test('the sign-in mark is a note sheet with a folded corner and the credit sits under the form', async ({ page }) => {
   await page.goto('/');
   const logo = page.locator('.marke svg.logo');
-  await expect(logo).toHaveAttribute('viewBox', '0 0 28 28');
+  await expect(logo).toHaveAttribute('viewBox', '11 10 42 42');
+  await expect(logo).toHaveAttribute('width', '28');
+  await expect(logo).toHaveAttribute('height', '28');
+  await expect(logo).toHaveAttribute('aria-hidden', 'true');
   const kasten = await logo.boundingBox();
   const marke = await page.locator('.marke').boundingBox();
   if (!kasten || !marke) throw new Error('logo box missing');
@@ -143,41 +146,30 @@ test('the sign-in mark is a hash and the credit sits under the form', async ({ p
   expect(kasten.x).toBeLessThanOrEqual(marke.x + 1);
   expect(kasten.x + kasten.width).toBeLessThan(marke.x + marke.width);
 
-  const teile = await logo.locator('rect').evaluateAll((knoten) =>
+  await expect(logo.locator('rect')).toHaveCount(0);
+  const pfade = logo.locator('path');
+  await expect(pfade).toHaveCount(2);
+  await expect(pfade.nth(0)).toHaveAttribute('d', 'M19.1 14.5H44.9A3.6 3.6 0 0 1 48.5 18.1V35.5L35.5 48.5H19.1A3.6 3.6 0 0 1 15.5 44.9V18.1A3.6 3.6 0 0 1 19.1 14.5Z');
+  await expect(pfade.nth(0)).toHaveAttribute('fill', '#f2f2f2');
+  await expect(pfade.nth(1)).toHaveAttribute('d', 'M37.4 35.5H48.5L35.5 48.5V37.4A1.9 1.9 0 0 1 37.4 35.5Z');
+  await expect(pfade.nth(1)).toHaveAttribute('fill', '#707070');
+  const kaesten = await pfade.evaluateAll((knoten) =>
     knoten.map((el) => {
       const box = el.getBoundingClientRect();
-      return {
-        x: Number(el.getAttribute('x')),
-        y: Number(el.getAttribute('y')),
-        w: Number(el.getAttribute('width')),
-        h: Number(el.getAttribute('height')),
-        links: box.x,
-        oben: box.y,
-        rechts: box.right,
-        unten: box.bottom,
-      };
+      return { links: box.x, oben: box.y, rechts: box.right, unten: box.bottom };
     }),
   );
-  const senkrecht = teile.filter((teil) => teil.h > teil.w).sort((a, b) => a.x - b.x);
-  const waagerecht = teile.filter((teil) => teil.w > teil.h).sort((a, b) => a.y - b.y);
-  expect(senkrecht).toHaveLength(2);
-  expect(waagerecht).toHaveLength(2);
-  expect(senkrecht[0]?.y).toBe(senkrecht[1]?.y);
-  expect((senkrecht[0]?.y ?? 0) + (senkrecht[0]?.h ?? 0)).toBe((senkrecht[1]?.y ?? 0) + (senkrecht[1]?.h ?? 0));
-  expect(senkrecht[0]?.y ?? 0).toBeLessThan((senkrecht[0]?.y ?? 0) + (senkrecht[0]?.h ?? 0));
-  expect(waagerecht[0]?.x).toBe(waagerecht[1]?.x);
-  expect((waagerecht[0]?.x ?? 0) + (waagerecht[0]?.w ?? 0)).toBe((waagerecht[1]?.x ?? 0) + (waagerecht[1]?.w ?? 0));
-  expect(waagerecht[0]?.x ?? 0).toBeLessThan((waagerecht[0]?.x ?? 0) + (waagerecht[0]?.w ?? 0));
-  expect(senkrecht[0]?.x ?? 0).toBeLessThan(senkrecht[1]?.x ?? 0);
-  expect(waagerecht[0]?.y ?? 0).toBeLessThan(waagerecht[1]?.y ?? 0);
-  expect(senkrecht[0]?.y ?? 0).toBeLessThan(waagerecht[0]?.y ?? 0);
-  expect((senkrecht[0]?.y ?? 0) + (senkrecht[0]?.h ?? 0)).toBeGreaterThan((waagerecht[1]?.y ?? 0) + (waagerecht[1]?.h ?? 0));
-  expect(waagerecht[0]?.x ?? 0).toBeLessThan(senkrecht[0]?.x ?? 0);
-  expect((waagerecht[0]?.x ?? 0) + (waagerecht[0]?.w ?? 0)).toBeGreaterThan((senkrecht[1]?.x ?? 0) + (senkrecht[1]?.w ?? 0));
-  expect(senkrecht[0]?.oben ?? 0).toBeLessThan(senkrecht[0]?.unten ?? 0);
-  expect(waagerecht[0]?.links ?? 0).toBeLessThan(waagerecht[0]?.rechts ?? 0);
-  expect(senkrecht[0]?.oben ?? 0).toBeLessThan(waagerecht[0]?.oben ?? 0);
-  expect(waagerecht[0]?.links ?? 0).toBeLessThan(senkrecht[0]?.links ?? 0);
+  const blatt = kaesten[0];
+  const ecke = kaesten[1];
+  if (!blatt || !ecke) throw new Error('logo paths missing');
+  expect(blatt.links).toBeLessThan(ecke.links);
+  expect(blatt.oben).toBeLessThan(ecke.oben);
+  expect(Math.abs(blatt.rechts - ecke.rechts)).toBeLessThanOrEqual(1);
+  expect(Math.abs(blatt.unten - ecke.unten)).toBeLessThanOrEqual(1);
+  expect(ecke.rechts - ecke.links).toBeLessThan(blatt.rechts - blatt.links);
+  expect(ecke.unten - ecke.oben).toBeLessThan(blatt.unten - blatt.oben);
+  expect(ecke.links).toBeLessThan(ecke.rechts);
+  expect(ecke.oben).toBeLessThan(ecke.unten);
 
   const form = await page.locator('form').boundingBox();
   const link = page.getByRole('link', { name: 'by leohr' });

@@ -2,6 +2,13 @@ import { VERSIONEN_ALT, type Versionseintrag } from './versionen-alt.ts';
 
 export const VERSIONEN: readonly Versionseintrag[] = [
   {
+    version: '1.14.12',
+    datum: '2026-11-19',
+    zeilen: [
+      'CortX has a new logo: a note sheet with a folded corner, on the login screen, in the browser tab and as the app icon.',
+    ],
+  },
+  {
     version: '1.14.11',
     datum: '2026-11-19',
     zeilen: [
