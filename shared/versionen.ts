@@ -2,6 +2,14 @@ import { VERSIONEN_ALT, type Versionseintrag } from './versionen-alt.ts';
 
 export const VERSIONEN: readonly Versionseintrag[] = [
   {
+    version: '1.14.11',
+    datum: '2026-11-19',
+    zeilen: [
+      'Overlapping formats, like bold inside italic, now stay intact when a note is saved.',
+      'Internal cleanup of the editor, nothing else changes for you.',
+    ],
+  },
+  {
     version: '1.14.10',
     datum: '2026-11-12',
     zeilen: [

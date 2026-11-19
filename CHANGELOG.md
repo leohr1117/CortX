@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.14.11
+
+Overlapping formats, like bold inside italic, now stay intact when a note is saved. Internal cleanup of the editor, nothing else changes for you.
+
 ## 1.14.10
 
 Markdown pasted from the Android keyboard clipboard is now formatted too. A line with --- becomes a divider in the editor, in reading view and in export. Start typing only shows in a note that is really empty.
