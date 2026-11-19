@@ -65,7 +65,7 @@ test('sign-in rejects a bad password, opens the app, and signs out', async ({ pa
   await page.goto('/');
   await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible();
   await expect(page.getByLabel('Username')).toBeFocused();
-  await expect(page.getByText('Change your password in Stride.')).toBeVisible();
+  await expect(page.getByText('Change your password in Wupo.')).toBeVisible();
   await page.screenshot({ path: `${BILDER}/${testInfo.project.name}-08-login.png` });
 
   await page.getByLabel('Username').fill(ANMELDE_NAME);

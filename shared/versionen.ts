@@ -2,6 +2,11 @@ import { VERSIONEN_ALT, type Versionseintrag } from './versionen-alt.ts';
 
 export const VERSIONEN: readonly Versionseintrag[] = [
   {
+    version: '1.15.1',
+    datum: '2026-11-19',
+    zeilen: ['Sign-in now says Wupo, not Stride.'],
+  },
+  {
     version: '1.15.0',
     datum: '2026-11-19',
     zeilen: ['CortX is now called Styra. Your notes stay as they are.'],

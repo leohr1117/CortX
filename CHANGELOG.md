@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.15.1
+
+Sign-in now says Wupo, not Stride.
+
 ## 1.15.0
 
 CortX is now called Styra. Your notes stay as they are.

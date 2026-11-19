@@ -13,7 +13,7 @@ Live: [cortx.leohr.de](https://cortx.leohr.de)
 - **Termine:** Datums- und Zeitangaben im Text („morgen 15 Uhr“, „next Monday“, „03.11.“) werden beim Lesen und in der Suche unter dem Text als Datum angezeigt.
 - **Suche:** Durchsucht alle Themen und die Inbox. The search index is rebuilt once on first start of 1.14.8, from the plain text of every existing note. A later start does not rebuild it again. Markdown is used when you paste and when you export a note from the note menu; what is stored is the editor document.
 - **Offline:** Entwürfe bleiben auf dem Gerät, offline abgelegte Notizen werden nach der Anmeldung abgeglichen. Installierbar als PWA.
-- **Anmeldung:** Mit einem Konto aus [Stride](https://github.com/leohr1117/Stride). Neben dem Namen steht ein #. Unter dem Formular verlinkt „by leohr“ auf [leohr.de](https://leohr.de).
+- **Anmeldung:** Mit einem Konto aus [Wupo](https://github.com/leohr1117/Stride). Neben dem Namen steht ein #. Unter dem Formular verlinkt „by leohr“ auf [leohr.de](https://leohr.de).
 - **Neuigkeiten:** Das Menü der Bibliothek zeigt die aktuelle Version, unter "What's new" stehen die Änderungen jeder Version. Darunter steht derselbe Link „by leohr“. Nach einem Update erscheint einmal ein Hinweis. Ein X schließt ihn, auch nach dem Neuladen bleibt er weg.
 
 Die Oberfläche ist englisch. Änderungen je Version stehen in [CHANGELOG.md](CHANGELOG.md).
@@ -32,7 +32,7 @@ Die Abnahme in `e2e/abnahme` prüft das Erfassen-Feld und den Notiz-Editor an de
 
 ## Lokal starten
 
-Voraussetzung: Node.js 23.6 oder neuer. Für die Anmeldung muss eine Stride-Instanz laufen, standardmäßig unter `http://127.0.0.1:3000`.
+Voraussetzung: Node.js 23.6 oder neuer. Für die Anmeldung muss eine Wupo-Instanz laufen, standardmäßig unter `http://127.0.0.1:3000`.
 
 ```bash
 npm install
@@ -60,10 +60,10 @@ npm start              # Server mit fertigem Build
 | `PORT` | Port des Servers, Standard 3100 |
 | `CORTX_DB` | Pfad der Datenbank, Standard `data/cortex.db` |
 | `CORTX_CLIENT_DIST` | Ordner der ausgelieferten Oberfläche, Standard `../cortx-betrieb/dist-live` (Live). Build und Tests nutzen `client/dist` |
-| `CORTX_STRIDE_URL` | Anmeldeadresse von Stride, Standard `http://127.0.0.1:3000/api/zugang` |
-| `CORTX_STRIDE_PUBLIC_URL` | Öffentliche Stride-Adresse für „Passwort ändern“, Standard `https://stride.leohr.de` |
+| `CORTX_STRIDE_URL` | Anmeldeadresse von Wupo, Standard `http://127.0.0.1:3000/api/zugang` |
+| `CORTX_STRIDE_PUBLIC_URL` | Öffentliche Wupo-Adresse für „Passwort ändern“, Standard `https://stride.leohr.de` |
 | `LOG_LEVEL` | Log-Stufe, Standard `warn` |
-| `CORTX_TEST` | `1` markiert einen Testlauf: Der Server verlangt dann `CORTX_DB` außerhalb von `data/` und ruft Stride nicht auf; Browser-Tests lesen das Editor-Dokument dann über `window.__cortxModell` |
+| `CORTX_TEST` | `1` markiert einen Testlauf: Der Server verlangt dann `CORTX_DB` außerhalb von `data/` und ruft Wupo nicht auf; Browser-Tests lesen das Editor-Dokument dann über `window.__cortxModell` |
 
 Fehlt ein neuer Name, liest der Server weiter `CORTEX_DB`, `CORTEX_STRIDE_URL` und `CORTEX_TEST`. Platzhalter stehen in [.env.example](.env.example).
 

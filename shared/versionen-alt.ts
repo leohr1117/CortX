@@ -59,7 +59,7 @@ export const VERSIONEN_ALT: readonly Versionseintrag[] = [
   {
     version: '1.5.4',
     datum: '2026-11-02',
-    zeilen: ['Change password in a password manager opens the Stride page.'],
+    zeilen: ['Change password in a password manager opens the Wupo page.'],
   },
   {
     version: '1.5.3',
@@ -76,7 +76,7 @@ export const VERSIONEN_ALT: readonly Versionseintrag[] = [
     zeilen: [
       'Sign in with a password manager.',
       'If the password is wrong, the username stays, and you can show the password while you type.',
-      'Change your password in Stride.',
+      'Change your password in Wupo.',
     ],
   },
   {
@@ -102,7 +102,7 @@ export const VERSIONEN_ALT: readonly Versionseintrag[] = [
     version: '1.4.1',
     datum: '2026-11-02',
     zeilen: [
-      'Sign in with your Stride username and password.',
+      'Sign in with your Wupo username and password.',
       'A wrong password, too many attempts, or a rejected sign-in is reported as that.',
     ],
   },
@@ -146,7 +146,7 @@ export const VERSIONEN_ALT: readonly Versionseintrag[] = [
     version: '1.0.0',
     datum: '2026-11-02',
     zeilen: [
-      'Sign in with your Stride account. Your notes stay on that account.',
+      'Sign in with your Wupo account. Your notes stay on that account.',
       'Sign out from the library.',
       'A draft stays on this device while you are offline, and notes filed offline sync after you sign in.',
     ],

@@ -226,7 +226,7 @@ describe('account session', () => {
       payload: { name: 'ada@example.com', passwort: 'secret' },
     });
     expect(aus.statusCode).toBe(502);
-    expect(aus.json()).toEqual({ error: 'Stride is not reachable. Try again later.' });
+    expect(aus.json()).toEqual({ error: 'Wupo is not reachable. Try again later.' });
     art = 'ok';
     const login = await server.inject({
       method: 'POST',
