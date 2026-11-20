@@ -144,6 +144,7 @@ export const TEXTE = {
   notizGeloescht: 'Note deleted',
   offline: 'Filed offline \u00b7 syncs later',
   versionWort: 'Version',
+  betaWort: 'Beta',
   speicherWeg: 'Local storage is unavailable.',
   entwurfLesen: 'Could not read the draft.',
   entwurfSchreiben: 'Could not save the draft.',
@@ -213,7 +214,11 @@ export function zusammenTitel(zitiert: string): string {
 }
 
 export function versionsZeile(version: string): string {
-  return `${TEXTE.versionWort} ${version}`;
+  return `${TEXTE.versionWort} ${version} (${TEXTE.betaWort})`;
+}
+
+export function neuigkeitenKopf(): string {
+  return `${TEXTE.neuigkeiten} (${TEXTE.betaWort})`;
 }
 
 export function ablageWann(label: string): string {

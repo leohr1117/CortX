@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.15.3
+
+Styra is now marked as a beta in the menu and in What's new.
+
 ## 1.15.2
 
 The public app address can be configured, for example https://getstyra.app.

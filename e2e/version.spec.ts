@@ -120,13 +120,14 @@ test('an update shows one snackbar, and the dot stays until What\'s new was seen
 
     await hinweis.getByRole('button', { name: HINWEIS_TEXT.neuigkeiten }).click();
     await expect(page).toHaveURL(/\/library\/whats-new$/);
-    await expect(page.getByRole('heading', { name: HINWEIS_TEXT.neuigkeiten, level: 1 })).toBeVisible();
+    await expect(page.getByRole('heading', { name: `${HINWEIS_TEXT.neuigkeiten} (Beta)`, level: 1 })).toBeVisible();
     await expect(page.locator('[data-update-hinweis]')).toHaveCount(0);
     const text = await page.locator('[data-versionen]').innerText();
     expect(text.indexOf(AKTUELLE_VERSION)).toBeGreaterThanOrEqual(0);
     expect(text.indexOf(AKTUELLE_VERSION)).toBeLessThan(text.indexOf('1.5.2'));
     expect(text.indexOf('1.5.2')).toBeLessThan(text.indexOf('0.1.0'));
     expect(text.indexOf('November 2, 2026')).toBeLessThan(text.indexOf('November 1, 2026'));
+    await expect(page.getByRole('region', { name: 'Version 1.15.3' })).toContainText('Styra is now marked as a beta in the menu and in What\'s new.');
     await expect(page.getByRole('region', { name: 'Version 1.15.2' })).toContainText('The public app address can be configured, for example https://getstyra.app.');
     await expect(page.getByRole('region', { name: 'Version 1.15.1' })).toContainText('Sign-in now says Wupo, not Stride.');
     await expect(page.getByRole('region', { name: 'Version 1.15.0' })).toContainText('CortX is now called Styra. Your notes stay as they are.');
@@ -157,7 +158,7 @@ test('an update shows one snackbar, and the dot stays until What\'s new was seen
       await expect(page.locator('[data-neu-punkt]')).toHaveCount(0);
       await expect(page.getByText('by leohr')).toHaveCount(0);
       await page.getByRole('button', { name: 'Library menu' }).click();
-      await expect(page.locator('[data-version]')).toHaveText(`Version ${AKTUELLE_VERSION}`);
+      await expect(page.locator('[data-version]')).toHaveText(`Version ${AKTUELLE_VERSION} (Beta)`);
       const neu = page.getByRole('menuitem', { name: HINWEIS_TEXT.neuigkeiten });
       const absender = page.getByRole('menuitem', { name: 'by leohr' });
       await expect(neu).toBeVisible();

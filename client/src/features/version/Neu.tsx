@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
-import { HINWEIS_TEXT } from '../../../../shared/features/version/index.ts';
-import { TEXTE, versionsZeile } from '../../../../shared/kern/texte.ts';
+import { neuigkeitenKopf, TEXTE } from '../../../../shared/kern/texte.ts';
 import { AKTUELLE_VERSION, VERSIONEN } from '../../../../shared/versionen.ts';
 import { Kopf } from '../library/Kopf.tsx';
 import { ladeStand, merkeStand } from './api.ts';
@@ -34,11 +33,11 @@ export function NeuSeite() {
 
   return (
     <div className="app">
-      <Kopf titel={HINWEIS_TEXT.neuigkeiten} zurueck="/library" zurueckLabel={TEXTE.zurueckBibliothek} />
+      <Kopf titel={neuigkeitenKopf()} zurueck="/library" zurueckLabel={TEXTE.zurueckBibliothek} />
       <main className="inhalt rolle">
         <div className="versionen" data-versionen="">
           {VERSIONEN.map((eintrag) => (
-            <section key={eintrag.version} aria-label={versionsZeile(eintrag.version)}>
+            <section key={eintrag.version} aria-label={`${TEXTE.versionWort} ${eintrag.version}`}>
               <p className="nr">{eintrag.version}</p>
               <p className="wann">{datumText(eintrag.datum)}</p>
               <ul>
