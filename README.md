@@ -15,8 +15,9 @@ Die öffentliche App-Adresse lässt sich mit `CORTX_APP_URL` setzen, zum Beispie
 - **Termine:** Datums- und Zeitangaben im Text („morgen 15 Uhr“, „next Monday“, „03.11.“) werden beim Lesen und in der Suche unter dem Text als Datum angezeigt.
 - **Suche:** Durchsucht alle Themen und die Inbox. The search index is rebuilt once on first start of 1.14.8, from the plain text of every existing note. A later start does not rebuild it again. Markdown is used when you paste and when you export a note from the note menu; what is stored is the editor document.
 - **Offline:** Entwürfe bleiben auf dem Gerät, offline abgelegte Notizen werden nach der Anmeldung abgeglichen. Installierbar als PWA.
-- **Anmeldung:** Mit einem Konto aus [Wupo](https://github.com/leohr1117/Stride). Neben dem Namen steht ein #. Unter dem Formular verlinkt „by leohr“ auf [leohr.de](https://leohr.de).
-- **Neuigkeiten:** Das Menü der Bibliothek zeigt die aktuelle Version, unter "What's new" stehen die Änderungen jeder Version. Darunter steht derselbe Link „by leohr“. Nach einem Update erscheint einmal ein Hinweis. Ein X schließt ihn, auch nach dem Neuladen bleibt er weg.
+- **Anmeldung:** Mit einem Konto aus [Wupo](https://github.com/leohr1117/Stride). Neben dem Namen steht ein #. Unter dem Formular verlinkt „by leohr“ auf [leohr.de](https://leohr.de). Darunter führen „Legal notice“ und „Privacy“ zum Impressum und zum Datenschutz in der App.
+- **Neuigkeiten:** Das Menü der Bibliothek zeigt die aktuelle Version, unter "What's new" stehen die Änderungen jeder Version. Darunter stehen „Legal notice“, „Privacy“ und derselbe Link „by leohr“. Nach einem Update erscheint einmal ein Hinweis. Ein X schließt ihn, auch nach dem Neuladen bleibt er weg.
+- **Rechtliches:** Impressum und Datenschutz stehen unter `/impressum` und `/datenschutz`, auch ohne Anmeldung. Sie nennen den Hoster und die Adresse der App.
 
 Die Oberfläche ist englisch. Änderungen je Version stehen in [CHANGELOG.md](CHANGELOG.md).
 
@@ -64,7 +65,7 @@ npm start              # Server mit fertigem Build
 | `CORTX_DB` | Pfad der Datenbank, Standard `data/cortex.db` |
 | `CORTX_CLIENT_DIST` | Ordner der ausgelieferten Oberfläche, Standard `../cortx-betrieb/dist-live` (Live). Build und Tests nutzen `client/dist` |
 | `CORTX_STRIDE_URL` | Anmeldeadresse von Wupo, Standard `http://127.0.0.1:3000/api/zugang` |
-| `CORTX_STRIDE_PUBLIC_URL` | Öffentliche Wupo-Adresse für „Passwort ändern“, Standard `https://stride.leohr.de` |
+| `CORTX_STRIDE_PUBLIC_URL` | Öffentliche Wupo-Adresse für „Passwort ändern“, Standard `https://wupo.app` |
 | `LOG_LEVEL` | Log-Stufe, Standard `warn` |
 | `CORTX_TEST` | `1` markiert einen Testlauf: Der Server verlangt dann `CORTX_DB` außerhalb von `data/` und ruft Wupo nicht auf; Browser-Tests lesen das Editor-Dokument dann über `window.__cortxModell` |
 

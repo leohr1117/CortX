@@ -83,8 +83,8 @@ describe('config', () => {
     const vorher = process.env.CORTX_STRIDE_PUBLIC_URL;
     delete process.env.CORTX_STRIDE_PUBLIC_URL;
     try {
-      expect(stridePublicUrl()).toBe('https://stride.leohr.de');
-      expect(stridePasswortZiel(stridePublicUrl())).toBe('https://stride.leohr.de/mehr/profil/passwort');
+      expect(stridePublicUrl()).toBe('https://wupo.app');
+      expect(stridePasswortZiel(stridePublicUrl())).toBe('https://wupo.app/mehr/profil/passwort');
       process.env.CORTX_STRIDE_PUBLIC_URL = 'https://stride.example/';
       expect(stridePublicUrl()).toBe('https://stride.example');
       expect(stridePasswortZiel(stridePublicUrl())).toBe('https://stride.example/mehr/profil/passwort');

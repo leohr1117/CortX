@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.15.4
+
+The legal notices now name the new host and address.
+
 ## 1.15.3
 
 Styra is now marked as a beta in the menu and in What's new.

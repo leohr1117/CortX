@@ -2,7 +2,7 @@ import { expect, test, type Page } from './ruhe.ts';
 import { ANMELDE_NAME, ANMELDE_PASSWORT } from './anmelden.ts';
 import { liesEntwurf, warteBereit, warteschlangeLaenge } from './lokal.ts';
 
-const PASSWORT_SEITE = 'https://stride.leohr.de/mehr/profil/passwort';
+const PASSWORT_SEITE = 'https://wupo.app/mehr/profil/passwort';
 
 const BILDER = 'tmp-test/screens';
 
@@ -92,8 +92,8 @@ test('sign-in rejects a bad password, opens the app, and signs out', async ({ pa
 test('change-password redirects without a session', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible();
-  await page.route('https://stride.leohr.de/**', (route) =>
-    route.fulfill({ status: 200, contentType: 'text/html', body: '<!doctype html><title>Stride</title>' }),
+  await page.route('https://wupo.app/**', (route) =>
+    route.fulfill({ status: 200, contentType: 'text/html', body: '<!doctype html><title>Wupo</title>' }),
   );
   const antwort = await page.goto('/.well-known/change-password');
   const herkunft = antwort?.request().redirectedFrom();
@@ -101,6 +101,7 @@ test('change-password redirects without a session', async ({ page }) => {
   expect((await herkunft?.response())?.status()).toBe(302);
   expect((await herkunft?.response())?.headers().location).toBe(PASSWORT_SEITE);
   await expect(page).toHaveURL(PASSWORT_SEITE);
+  await expect(page).toHaveTitle('Wupo');
 });
 
 test('an offline draft can be filed without an account and syncs after sign-in', async ({ page }, testInfo) => {

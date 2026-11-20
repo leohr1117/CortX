@@ -127,6 +127,7 @@ test('an update shows one snackbar, and the dot stays until What\'s new was seen
     expect(text.indexOf(AKTUELLE_VERSION)).toBeLessThan(text.indexOf('1.5.2'));
     expect(text.indexOf('1.5.2')).toBeLessThan(text.indexOf('0.1.0'));
     expect(text.indexOf('November 2, 2026')).toBeLessThan(text.indexOf('November 1, 2026'));
+    await expect(page.getByRole('region', { name: 'Version 1.15.4' })).toContainText('The legal notices now name the new host and address.');
     await expect(page.getByRole('region', { name: 'Version 1.15.3' })).toContainText('Styra is now marked as a beta in the menu and in What\'s new.');
     await expect(page.getByRole('region', { name: 'Version 1.15.2' })).toContainText('The public app address can be configured, for example https://getstyra.app.');
     await expect(page.getByRole('region', { name: 'Version 1.15.1' })).toContainText('Sign-in now says Wupo, not Stride.');

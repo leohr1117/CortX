@@ -1,6 +1,7 @@
 import { type FormEvent, useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import { NAME_MAX, PASSWORT_MAX } from '../../../../shared/features/zugang/index.ts';
+import { RECHT_LISTE } from '../../../../shared/kern/recht.ts';
 import { TEXTE } from '../../../../shared/kern/texte.ts';
 import { useSitzung } from './Sitzung.tsx';
 
@@ -122,6 +123,13 @@ export function Anmeldung() {
         <a className="absender" href={TEXTE.absenderUrl}>
           {TEXTE.absender}
         </a>
+        <nav className="recht-zeile" aria-label={TEXTE.rechtNav}>
+          {RECHT_LISTE.map((seite) => (
+            <Link key={seite.pfad} to={seite.pfad}>
+              {seite.titel}
+            </Link>
+          ))}
+        </nav>
       </main>
     </div>
   );

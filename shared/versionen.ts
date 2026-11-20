@@ -2,6 +2,11 @@ import { VERSIONEN_ALT, type Versionseintrag } from './versionen-alt.ts';
 
 export const VERSIONEN: readonly Versionseintrag[] = [
   {
+    version: '1.15.4',
+    datum: '2026-11-20',
+    zeilen: ['The legal notices now name the new host and address.'],
+  },
+  {
     version: '1.15.3',
     datum: '2026-11-20',
     zeilen: ['Styra is now marked as a beta in the menu and in What\'s new.'],

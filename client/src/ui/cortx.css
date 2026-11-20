@@ -1125,6 +1125,27 @@ input.feld::placeholder { color: var(--leise); }
   outline: 2px solid var(--fokus);
   outline-offset: 2px;
 }
+.login .recht-zeile {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--abstand-8);
+  min-height: 48px;
+}
+.login .recht-zeile a {
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 var(--abstand-8);
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--leise);
+}
+.login .recht-zeile a:focus-visible {
+  outline: 2px solid var(--fokus);
+  outline-offset: 2px;
+}
 .menue a.absender { color: var(--leise); }
 .abmelden {
   height: 48px;
@@ -1210,6 +1231,31 @@ input.feld::placeholder { color: var(--leise); }
   line-height: 22px;
   margin: var(--abstand-4) 0;
   overflow-wrap: break-word;
+}
+.recht { padding: var(--abstand-16) var(--abstand-16) var(--abstand-48); }
+.recht h2 {
+  font-weight: 600;
+  font-size: 16px;
+  line-height: 22px;
+  margin-top: var(--abstand-16);
+}
+.recht section:first-child h2 { margin-top: 0; }
+.recht p {
+  margin-top: var(--abstand-8);
+  color: var(--leise);
+  font-size: 15px;
+  line-height: 22px;
+  overflow-wrap: anywhere;
+}
+.recht a {
+  color: var(--haupt);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  overflow-wrap: anywhere;
+}
+.recht a:focus-visible {
+  outline: 2px solid var(--fokus);
+  outline-offset: 2px;
 }
 @media (min-width: 900px) {
   .login .btn.voll { width: 100%; }

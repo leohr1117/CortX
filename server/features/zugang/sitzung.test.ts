@@ -313,7 +313,7 @@ describe('account session', () => {
       delete process.env.CORTX_STRIDE_PUBLIC_URL;
       delete process.env.CORTX_APP_URL;
       expect(strideUrl()).toMatch(/\/api\/zugang$/);
-      await pruefe('https://stride.leohr.de/mehr/profil/passwort');
+      await pruefe('https://wupo.app/mehr/profil/passwort');
       process.env.CORTX_STRIDE_PUBLIC_URL = 'https://stride.example/';
       process.env.CORTX_APP_URL = 'https://getstyra.app';
       await pruefe('https://stride.example/mehr/profil/passwort');

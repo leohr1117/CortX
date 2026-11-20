@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router';
 import { entscheideUpdateHinweis, HINWEIS_TEXT } from '../../../../shared/features/version/index.ts';
+import { RECHT_LISTE } from '../../../../shared/kern/recht.ts';
 import { TEXTE, versionsZeile } from '../../../../shared/kern/texte.ts';
 import { AKTUELLE_VERSION } from '../../../../shared/versionen.ts';
 import { PunkteIcon } from '../../ui/icons.tsx';
@@ -75,6 +76,11 @@ export function BibliothekMenue() {
           <Link className="m" role="menuitem" to="/library/whats-new" onClick={() => setOffen(false)}>
             {HINWEIS_TEXT.neuigkeiten}
           </Link>
+          {RECHT_LISTE.map((seite) => (
+            <Link key={seite.pfad} className="m" role="menuitem" to={seite.pfad} onClick={() => setOffen(false)}>
+              {seite.titel}
+            </Link>
+          ))}
           <a className="m absender" role="menuitem" href={TEXTE.absenderUrl}>
             {TEXTE.absender}
           </a>
