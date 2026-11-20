@@ -4,6 +4,8 @@ Styra ist eine Notiz-App: Du schreibst eine Notiz auf, und sie landet über ein 
 
 Live: [cortx.leohr.de](https://cortx.leohr.de)
 
+Die öffentliche App-Adresse lässt sich mit `CORTX_APP_URL` setzen, zum Beispiel [getstyra.app](https://getstyra.app). Ohne den Wert bleibt das bisherige Verhalten. Der Live-Link bleibt, solange cortx.leohr.de bedient wird.
+
 ## Funktionen
 
 - **Erfassen:** Notiz schreiben und mit „File“ oder Strg/Cmd+Enter ablegen. Dieselbe Formatleiste und dieselben Kürzel wie beim Bearbeiten: auf dem Handy sitzt sie immer am unteren Rand, bei offener Tastatur direkt auf der Tastatur, und der File-Knopf steht darüber. Auf einem großen Bildschirm erscheint sie bei einer Markierung. Lange Zielvorschläge lassen sich in der Liste scrollen. Der Eintrag zum Neu-Anlegen bleibt dabei unten stehen. Eine Zeile, die mit `#thema`, `#thema/seite` oder `#thema/seite/abschnitt` beginnt, ist eine Zielzeile (höchstens drei Ebenen). Der Text dahinter gehört zu diesem Teil, bis zur nächsten Zielzeile, und eine Notiz kann so auf mehrere Seiten gehen. Text vor der ersten Zielzeile landet in der Inbox. Ein `#` mitten in der Zeile bleibt ein Tag im Text. Eingefügtes Markdown wird sofort formatiert, die Zeichen sind dabei nicht zu sehen. Eine Zielzeile und ein `#tag` bleiben Text. Die Pfade selbst stehen nicht im abgelegten Text. Der Seitenname steht als erste Zeile im Text, ohne Überschriftzeichen. Ein Abschnitt wird eine Überschrift der zweiten Ebene. Unten stehen alle Ziele. Enter legt auf dem Handy nicht ab. Nach dem Ablegen stellt Rückgängig den eingegebenen Text wieder ins Feld und nimmt die ganze Ablage zurück. Das Thema einer Seite ändert man im Menü der Notiz; auch dort bleibt der Eintrag für ein neues Thema unten stehen.
@@ -58,6 +60,7 @@ npm start              # Server mit fertigem Build
 | Variable | Zweck |
 |---|---|
 | `PORT` | Port des Servers, Standard 3100 |
+| `CORTX_APP_URL` | Öffentliche App-Adresse, nur ein https-Ursprung ohne Benutzer, Query, Hash oder Pfad. Ohne Wert bleibt das bisherige Verhalten. Vorgesehen ist `https://getstyra.app`. Ein neuer Ursprung verlangt eine neue Anmeldung; Entwürfe, Push und die installierte App bleiben auf dem Gerät |
 | `CORTX_DB` | Pfad der Datenbank, Standard `data/cortex.db` |
 | `CORTX_CLIENT_DIST` | Ordner der ausgelieferten Oberfläche, Standard `../cortx-betrieb/dist-live` (Live). Build und Tests nutzen `client/dist` |
 | `CORTX_STRIDE_URL` | Anmeldeadresse von Wupo, Standard `http://127.0.0.1:3000/api/zugang` |

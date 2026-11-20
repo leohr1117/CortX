@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.15.2
+
+The public app address can be configured, for example https://getstyra.app.
+
 ## 1.15.1
 
 Sign-in now says Wupo, not Stride.

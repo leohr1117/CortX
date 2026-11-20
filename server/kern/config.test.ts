@@ -1,7 +1,7 @@
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { stridePasswortZiel } from '../../shared/features/zugang/index.ts';
-import { clientDist, datenbankPfad, lesePort, stridePublicUrl, strideUrl } from './config.ts';
+import { appUrl, clientDist, datenbankPfad, lesePort, stridePublicUrl, strideUrl } from './config.ts';
 import { istTestlauf, WURZEL } from './testpfad.ts';
 
 describe('config', () => {
@@ -91,6 +91,26 @@ describe('config', () => {
     } finally {
       if (vorher === undefined) delete process.env.CORTX_STRIDE_PUBLIC_URL;
       else process.env.CORTX_STRIDE_PUBLIC_URL = vorher;
+    }
+  });
+
+  it('reads the public app origin only when CORTX_APP_URL is set', () => {
+    expect(appUrl({})).toBeNull();
+    expect(appUrl({ CORTX_APP_URL: '' })).toBeNull();
+    expect(appUrl({ CORTX_APP_URL: 'https://getstyra.app' })).toBe('https://getstyra.app');
+    expect(appUrl({ CORTX_APP_URL: 'https://getstyra.app/' })).toBe('https://getstyra.app');
+    expect(appUrl({ CORTX_APP_URL: 'https://getstyra.app:8443' })).toBe('https://getstyra.app:8443');
+    expect(appUrl({ CORTX_APP_URL: 'HTTPS://GetStyra.app' })).toBe('https://getstyra.app');
+    for (const wert of [
+      'http://getstyra.app',
+      'https://ada@getstyra.app',
+      'https://getstyra.app/notes',
+      'https://getstyra.app?next=/library',
+      'https://getstyra.app?',
+      'https://getstyra.app#start',
+      'getstyra.app',
+    ]) {
+      expect(() => appUrl({ CORTX_APP_URL: wert })).toThrow(/CORTX_APP_URL/);
     }
   });
 });

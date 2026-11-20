@@ -289,11 +289,20 @@ describe('account session', () => {
 
   it('redirects the password change page without a session', async () => {
     const vorher = process.env.CORTX_STRIDE_PUBLIC_URL;
+    const vorherApp = process.env.CORTX_APP_URL;
     const pruefe = async (ziel: string) => {
       const server = await app(async () => {
         throw new Error('stride must not be called');
       });
-      const antwort = await server.inject({ method: 'GET', url: '/.well-known/change-password' });
+      const antwort = await server.inject({
+        method: 'GET',
+        url: '/.well-known/change-password',
+        headers: {
+          host: 'evil.example',
+          'x-forwarded-host': 'getstyra.app',
+          'x-forwarded-proto': 'https',
+        },
+      });
       expect(antwort.statusCode).toBe(302);
       expect(antwort.headers.location).toBe(ziel);
       expect(antwort.headers['set-cookie']).toBeUndefined();
@@ -302,13 +311,17 @@ describe('account session', () => {
     };
     try {
       delete process.env.CORTX_STRIDE_PUBLIC_URL;
+      delete process.env.CORTX_APP_URL;
       expect(strideUrl()).toMatch(/\/api\/zugang$/);
       await pruefe('https://stride.leohr.de/mehr/profil/passwort');
       process.env.CORTX_STRIDE_PUBLIC_URL = 'https://stride.example/';
+      process.env.CORTX_APP_URL = 'https://getstyra.app';
       await pruefe('https://stride.example/mehr/profil/passwort');
     } finally {
       if (vorher === undefined) delete process.env.CORTX_STRIDE_PUBLIC_URL;
       else process.env.CORTX_STRIDE_PUBLIC_URL = vorher;
+      if (vorherApp === undefined) delete process.env.CORTX_APP_URL;
+      else process.env.CORTX_APP_URL = vorherApp;
     }
   });
 });

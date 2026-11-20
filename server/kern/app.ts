@@ -12,7 +12,7 @@ import { versionsRouten } from '../features/version/index.ts';
 import { zugangRouten, type Dienste } from '../features/zugang/index.ts';
 import { strideHttp } from '../features/zugang/stride.ts';
 import { stridePasswortZiel } from '../../shared/features/zugang/index.ts';
-import { stridePublicUrl, strideUrl } from './config.ts';
+import { appUrl, stridePublicUrl, strideUrl } from './config.ts';
 import { AppFehler } from './fehler.ts';
 
 import { TEXTE } from '../../shared/kern/texte.ts';
@@ -60,6 +60,7 @@ export async function erstelleApp(
   stufe: string | false = false,
   dienste: Partial<Dienste> = {},
 ): Promise<FastifyInstance> {
+  appUrl();
   const lauf: Dienste = {
     stride: dienste.stride ?? strideHttp(strideUrl()),
     jetzt: dienste.jetzt ?? (() => Date.now()),

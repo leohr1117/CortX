@@ -2,6 +2,11 @@ import { VERSIONEN_ALT, type Versionseintrag } from './versionen-alt.ts';
 
 export const VERSIONEN: readonly Versionseintrag[] = [
   {
+    version: '1.15.2',
+    datum: '2026-11-20',
+    zeilen: ['The public app address can be configured, for example https://getstyra.app.'],
+  },
+  {
     version: '1.15.1',
     datum: '2026-11-19',
     zeilen: ['Sign-in now says Wupo, not Stride.'],

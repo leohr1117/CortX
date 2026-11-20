@@ -50,3 +50,27 @@ export function stridePublicUrl(): string {
   if (!gesetzt) return STRIDE_PUBLIC_URL;
   return new URL(gesetzt).origin;
 }
+
+const APP_URL_FEHLER = 'Invalid CORTX_APP_URL. Use an https origin without a user, query, hash, or path.';
+
+export function appUrl(env: NodeJS.ProcessEnv = process.env): string | null {
+  const gesetzt = env.CORTX_APP_URL;
+  if (gesetzt === undefined || gesetzt === '') return null;
+  let url: URL;
+  try {
+    url = new URL(gesetzt);
+  } catch {
+    throw new Error(APP_URL_FEHLER);
+  }
+  const nurUrsprung = url.protocol === 'https:'
+    && url.username === ''
+    && url.password === ''
+    && url.search === ''
+    && url.hash === ''
+    && !gesetzt.includes('?')
+    && !gesetzt.includes('#')
+    && (url.pathname === '' || url.pathname === '/')
+    && url.hostname !== '';
+  if (!nurUrsprung) throw new Error(APP_URL_FEHLER);
+  return url.origin;
+}
